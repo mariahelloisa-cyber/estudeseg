@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  /* Criamos a animação da esteira (marquee) no Tailwind v4 */
+  --animate-marquee: marquee 25s linear infinite;
+
+  @keyframes marquee {
+    from { transform: translateX(0%); }
+    to { transform: translateX(-100%); }
+  }
+}
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out forwards;
+}
