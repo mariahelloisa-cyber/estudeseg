@@ -17,7 +17,7 @@ import ListaCursos from './pages/ListaCursos';
 import CursoDetalhe from './pages/CursoDetalhe';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
-import Admin from './pages/Admin';
+import Admin from './pages/admin';
 
 
 function LayoutGlobal() {
