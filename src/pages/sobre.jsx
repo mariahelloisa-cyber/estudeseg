@@ -1,7 +1,7 @@
 import React from 'react';
 import Navbar from '../components/Navbar';
-import imagemInstitucional from '../assets/imagemInstitucional.png';
-import fundoHero from '../assets/fundoo.png'; 
+import imagemInstitucional from '../assets/imghero.png';
+import fundoHero from '../assets/fundoo.png';
 import selo6 from '../assets/selo6.png';
 
 export default function Sobre() {
