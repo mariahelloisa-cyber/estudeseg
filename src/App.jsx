@@ -16,6 +16,8 @@ import Sobre from './pages/sobre';
 import ListaCursos from './pages/ListaCursos';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
+import Admin from './pages/Admin';
+
 
 function LayoutGlobal() {
   const location = useLocation();
@@ -37,6 +39,7 @@ function LayoutGlobal() {
         <Route path="/cursos" element={<ListaCursos />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
 
       {/* O Footer SÓ aparece se NÃO for a página de login */}
