@@ -14,6 +14,7 @@ import FAQ from './pages/FAQ';
 import ValidacaoRastreio from './pages/ValidacaoRastreio';
 import Sobre from './pages/sobre';
 import ListaCursos from './pages/ListaCursos';
+import CursoDetalhe from './pages/CursoDetalhe';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
@@ -21,11 +22,11 @@ import Admin from './pages/Admin';
 
 function LayoutGlobal() {
   const location = useLocation();
-  const isLoginPage = location.pathname === '/login';
+  const paginaSemLayoutPublico = location.pathname === '/login' || location.pathname === '/admin';
 
   return (
     <>
-      <CarrinhoSidebar />
+      {!paginaSemLayoutPublico && <CarrinhoSidebar />}
 
       <Routes>
         <Route path="/" element={<Inicio />} />
@@ -37,13 +38,14 @@ function LayoutGlobal() {
         <Route path="/validacaoRastreio" element={<ValidacaoRastreio />} />
         <Route path="/sobre" element={<Sobre />} />
         <Route path="/cursos" element={<ListaCursos />} />
+        <Route path="/cursos/:id" element={<CursoDetalhe />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
 
-      {/* O Footer SÓ aparece se NÃO for a página de login */}
-      {!isLoginPage && <Footer />}
+      {/* O Footer e o carrinho só aparecem nas páginas públicas, não no login/admin */}
+      {!paginaSemLayoutPublico && <Footer />}
     </>
   );
 }

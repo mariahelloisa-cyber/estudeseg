@@ -1,17 +1,115 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Squares2X2Icon,
+  PhotoIcon,
+  ShieldCheckIcon,
+  SparklesIcon,
+  NewspaperIcon,
+  BriefcaseIcon,
+  QuestionMarkCircleIcon,
+  ChatBubbleLeftRightIcon,
+  ArrowRightOnRectangleIcon,
+  AcademicCapIcon,
+  DocumentTextIcon,
+  Bars3Icon,
+  XMarkIcon,
+  TagIcon,
+} from '@heroicons/react/24/outline';
 import { supabase } from '../supabaseClient';
+import { listaCursosGiga } from './cursosData';
+import logo from '../assets/logo-estud.png';
+import { parseGradeCurricular, serializarGradeCurricular } from '../utils/gradeCurricular';
 
-const SENHA_ADMIN_DEFINIDA = "123456"; // <-- MUDA AQUI A TUA SENHA DO PAINEL!
+// --- Itens do menu lateral: só seções com dados reais no Supabase ---
+const ITENS_MENU = [
+  { id: 'dashboard', label: 'Dashboard', Icon: Squares2X2Icon },
+  { id: 'cursos', label: 'Cursos e Categorias', Icon: AcademicCapIcon },
+  { id: 'banners', label: 'Banners (Home)', Icon: PhotoIcon },
+  { id: 'selos', label: 'Selos', Icon: ShieldCheckIcon },
+  { id: 'diferenciais', label: 'Diferenciais', Icon: SparklesIcon },
+  { id: 'blog', label: 'Blog', Icon: NewspaperIcon },
+  { id: 'vagas', label: 'Vagas', Icon: BriefcaseIcon },
+  { id: 'faq', label: 'FAQ', Icon: QuestionMarkCircleIcon },
+  { id: 'depoimentos', label: 'Depoimentos', Icon: ChatBubbleLeftRightIcon },
+];
+
+const CURSO_FORM_INICIAL = {
+  titulo: "",
+  descricao: "",
+  duracao: "",
+  cargaHoraria: "",
+  modalidade: "EAD",
+  categoriaId: "",
+  preco: "",
+  seloMec: true,
+  gradeCurricular: [],
+};
+
+// --- Componentes visuais reutilizados nas páginas do painel ---
+function CabecalhoPagina({ titulo, subtitulo, Icon }) {
+  return (
+    <div className="flex items-center gap-3 mb-6">
+      <div className="w-11 h-11 rounded-xl bg-[#fed106]/15 text-[#8a6d00] flex items-center justify-center shrink-0">
+        <Icon className="w-5 h-5" />
+      </div>
+      <div>
+        <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">{titulo}</h1>
+        {subtitulo && <p className="text-xs text-gray-500 font-medium">{subtitulo}</p>}
+      </div>
+    </div>
+  );
+}
+
+function CardEstatistica({ label, valor, subtitulo, Icon, cor }) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-black uppercase tracking-wider text-gray-400">{label}</span>
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center ${cor}`}>
+          <Icon className="w-4.5 h-4.5 text-white" />
+        </div>
+      </div>
+      <div>
+        <p className="text-3xl font-black text-gray-900">{valor}</p>
+        {subtitulo && <p className="text-[11px] text-gray-400 font-semibold mt-1">{subtitulo}</p>}
+      </div>
+    </div>
+  );
+}
+
+function CartaoAcaoRapida({ titulo, descricao, Icon, cor, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 text-left hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
+    >
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${cor}`}>
+        <Icon className="w-6 h-6 text-white" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-black text-sm text-gray-900">{titulo}</p>
+        <p className="text-xs text-gray-500 font-medium truncate">{descricao}</p>
+      </div>
+      <span className="text-gray-300 text-xl">→</span>
+    </button>
+  );
+}
 
 export default function Admin() {
+  const navigate = useNavigate();
+
   // --- Estados do Painel Administrativo ---
   const [modoAdmin, setModoAdmin] = useState(false);
+  const [verificandoSessao, setVerificandoSessao] = useState(true);
+  const [abaAtiva, setAbaAtiva] = useState('dashboard');
+  const [sidebarAberta, setSidebarAberta] = useState(false);
   const [novoTitulo, setNovoTitulo] = useState("");
   const [mensagemStatus, setMensagemStatus] = useState("");
-  
+
   // --- Estados para os Banners Dinâmicos do Supabase ---
   const [banners, setBanners] = useState([]);
-  
+
   // --- Estados para o Formulário de Depoimentos ---
   const [novoNomeAluno, setNovoNomeAluno] = useState("");
   const [novoInstagram, setNovoInstagram] = useState("");
@@ -20,20 +118,20 @@ export default function Admin() {
   const [novoTituloDiferencial, setNovoTituloDiferencial] = useState("");
   const [novaNoticiaDestaque, setNovaNoticiaDestaque] = useState(false);
   const [novoTempoLeitura, setNovoTempoLeitura] = useState("");
-  
+
   // --- Estados para Edição de Notícias ---
   const [noticiaEditando, setNoticiaEditando] = useState(null);
   const [editTitulo, setEditTitulo] = useState("");
   const [editResumo, setEditResumo] = useState("");
   const [editTempoLeitura, setEditTempoLeitura] = useState("");
   const [editDestaque, setEditDestaque] = useState(false);
-  
+
   // --- Estados para o Gerenciador de FAQ ---
   const [faqsAdmin, setFaqsAdmin] = useState([]);
   const [novaPerguntafaq, setNovaPerguntaFaq] = useState("");
   const [novaRespostafaq, setNovaRespostaFaq] = useState("");
   const [novoTopicofaq, setNovoTopicofaq] = useState("Geral");
-  
+
   // --- Estados para o Gerenciador de Vagas ---
   const [vagasAdmin, setVagasAdmin] = useState([]);
   const [novaVagaTitulo, setNovaVagaTitulo] = useState("");
@@ -42,7 +140,7 @@ export default function Admin() {
   const [novaVagaTipoContrato, setNovaVagaTipoContrato] = useState("CLT");
   const [novaVagaDescricao, setNovaVagaDescricao] = useState("");
   const [novaVagaLink, setNovaVagaLink] = useState("");
-  
+
   // --- Estados para as restantes seções ---
   const [listaSelos, setListaSelos] = useState([]);
   const [listaDiferenciais, setListaDiferenciais] = useState([]);
@@ -51,14 +149,51 @@ export default function Admin() {
   const [novoTituloNoticia, setNovoTituloNoticia] = useState("");
   const [novoResumoNoticia, setNovoResumoNoticia] = useState("");
 
+  // --- Estados para o Gerenciador de Categorias de Cursos ---
+  const [categoriasCursos, setCategoriasCursos] = useState([]);
+  const [novaCategoriaCursoNome, setNovaCategoriaCursoNome] = useState("");
+
+  // --- Estados para o Gerenciador de Cursos Cadastrados ---
+  const [cursosAdmin, setCursosAdmin] = useState([]);
+  const [cursoEditando, setCursoEditando] = useState(null);
+  const [formCurso, setFormCurso] = useState(CURSO_FORM_INICIAL);
+
+  // Marca quando o logout foi pedido pelo próprio botão "Sair do Painel",
+  // para diferenciar de uma sessão que expirou sozinha
+  const saindoManualmente = useRef(false);
+
+  // Protege o painel: só libera o acesso se houver uma sessão Supabase válida
   useEffect(() => {
-    // Lê a chave mágica que veio da tela de login
-    const isPainelLiberado = localStorage.getItem('painel_liberado');
-    if (isPainelLiberado === 'true') {
-      setModoAdmin(true);
-      localStorage.removeItem('painel_liberado');
-    }
-  }, []);
+    let ativo = true;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!ativo) return;
+      if (session) {
+        setModoAdmin(true);
+      } else {
+        navigate('/login');
+      }
+      setVerificandoSessao(false);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setModoAdmin(false);
+        if (saindoManualmente.current) {
+          // Já tratado pelo próprio botão de logout, que leva ao site público
+          saindoManualmente.current = false;
+        } else {
+          // Sessão expirou/foi invalidada sem ação do usuário: pede login de novo
+          navigate('/login');
+        }
+      }
+    });
+
+    return () => {
+      ativo = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   // 1. Buscar Banners do SUPABASE
   async function buscarBannersDoSupabase() {
@@ -67,7 +202,7 @@ export default function Admin() {
         .from('banners')
         .select('*')
         .order('created_at', { ascending: true });
-      
+
       if (error) throw error;
       setBanners(data || []);
     } catch (err) {
@@ -112,8 +247,8 @@ export default function Admin() {
 
       setMensagemStatus("✅ Banner publicado com sucesso!");
       setNovoTitulo("");
-      if (arquivoInput) arquivoInput.value = ""; 
-      buscarBannersDoSupabase(); 
+      if (arquivoInput) arquivoInput.value = "";
+      buscarBannersDoSupabase();
     } catch (err) {
       setMensagemStatus("❌ Erro no processo: " + err.message);
     }
@@ -162,9 +297,9 @@ export default function Admin() {
         .getPublicUrl(nomeArquivo);
 
       const { error: insertError } = await supabase.from('selos').insert([
-        { 
-          nome: novoNomeSelo, 
-          imagem_url: urlData.publicUrl 
+        {
+          nome: novoNomeSelo,
+          imagem_url: urlData.publicUrl
         }
       ]);
 
@@ -198,7 +333,7 @@ export default function Admin() {
         .from('selos')
         .select('*')
         .order('created_at', { ascending: true });
-      
+
       if (error) throw error;
       setListaSelos(data || []);
     } catch (err) {
@@ -217,7 +352,7 @@ export default function Admin() {
         .from('diferenciais')
         .select('*')
         .order('created_at', { ascending: true });
-      
+
       if (error) throw error;
 
       const dadosFormatados = (data || []).map(item => ({
@@ -266,9 +401,9 @@ export default function Admin() {
         .getPublicUrl(nomeArquivo);
 
       const { error: insertError } = await supabase.from('diferenciais').insert([
-        { 
-          titulo: novoTituloDiferencial, 
-          imagem_url: urlData.publicUrl 
+        {
+          titulo: novoTituloDiferencial,
+          imagem_url: urlData.publicUrl
         }
       ]);
 
@@ -292,7 +427,7 @@ export default function Admin() {
         .delete()
         .eq('id', id)
         .select();
-        
+
       if (error) throw error;
 
       if (!data || data.length === 0) {
@@ -321,16 +456,16 @@ export default function Admin() {
     try {
       setMensagemStatus("⏳ Publicando notícia...");
       const nomeArquivo = `noticia-${Date.now()}-${arquivo.name}`;
-      
+
       await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
       const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
 
       const { error } = await supabase.from('noticias').insert([
-        { 
-          titulo: novoTituloNoticia, 
-          resumo: novoResumoNoticia, 
+        {
+          titulo: novoTituloNoticia,
+          resumo: novoResumoNoticia,
           imagem_url: urlData.publicUrl,
-          destaque: novaNoticiaDestaque, 
+          destaque: novaNoticiaDestaque,
           tempo_leitura: parseInt(novoTempoLeitura) || 3
         }
       ]);
@@ -343,13 +478,13 @@ export default function Admin() {
       setNovoTempoLeitura("");
       setNovaNoticiaDestaque(false);
       if (arquivoInput) arquivoInput.value = "";
-      
+
       const { data: newData } = await supabase.from('noticias').select('*').order('created_at', { ascending: false });
       setNoticiasDestaque((newData || []).map(item => ({
-        id: item.id, 
-        titulo: item.titulo, 
-        resumo: item.resumo, 
-        fotoUrl: item.imagem_url, 
+        id: item.id,
+        titulo: item.titulo,
+        resumo: item.resumo,
+        fotoUrl: item.imagem_url,
         destaque: item.destaque,
         tempoLeitura: item.tempo_leitura || 3,
         dataCriacao: new Date(item.created_at).toLocaleDateString('pt-PT')
@@ -378,7 +513,7 @@ export default function Admin() {
     setEditResumo(noticia.resumo);
     setEditTempoLeitura(noticia.tempoLeitura || 3);
     setEditDestaque(noticia.destaque || false);
-    window.scrollTo({ top: 300, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // Função para Salvar Edição de Notícia
@@ -407,7 +542,7 @@ export default function Admin() {
         const { data: urlData } = supabase.storage
           .from('banners')
           .getPublicUrl(nomeArquivo);
-          
+
         urlImagemFinal = urlData.publicUrl;
       }
 
@@ -430,7 +565,7 @@ export default function Admin() {
       if (updateError) throw updateError;
 
       setMensagemStatus("✅ Notícia atualizada com sucesso!");
-      
+
       setNoticiaEditando(null);
       setEditTitulo("");
       setEditResumo("");
@@ -450,7 +585,7 @@ export default function Admin() {
             resumo: item.resumo,
             fotoUrl: item.imagem_url,
             destaque: item.destaque,
-            tempoLeitura: item.tempo_leitura || 3, 
+            tempoLeitura: item.tempo_leitura || 3,
             dataCriacao: new Date(item.created_at).toLocaleDateString('pt-BR')
           })));
         }
@@ -469,7 +604,7 @@ export default function Admin() {
   // Função para Adicionar FAQ
   async function handleAdicionarFaq(e) {
     e.preventDefault();
-    
+
     if (!novaPerguntafaq.trim() || !novaRespostafaq.trim()) {
       alert("⚠️ Por favor, preenche a Pergunta e a Resposta!");
       return;
@@ -478,10 +613,10 @@ export default function Admin() {
     try {
       const { error } = await supabase
         .from('faqs')
-        .insert([{ 
-          pergunta: novaPerguntafaq, 
-          resposta: novaRespostafaq, 
-          topico: novoTopicofaq 
+        .insert([{
+          pergunta: novaPerguntafaq,
+          resposta: novaRespostafaq,
+          topico: novoTopicofaq
         }]);
 
       if (error) {
@@ -492,9 +627,9 @@ export default function Admin() {
 
       setNovaPerguntaFaq("");
       setNovaRespostaFaq("");
-      
+
       alert("✅ FAQ adicionada com sucesso!");
-      
+
       buscarFaqsAdmin();
     } catch (err) {
       console.error(err);
@@ -531,15 +666,15 @@ export default function Admin() {
 
   async function handleAdicionarVaga(e) {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
-    
+
     if (!novaVagaTitulo.trim() || !novaVagaDescricao.trim()) {
       alert("⚠️ Por favor, preenche o Título e a Descrição da vaga!");
       return;
     }
 
     try {
-      const { error } = await supabase.from('vagas').insert([{ 
-        titulo: novaVagaTitulo, 
+      const { error } = await supabase.from('vagas').insert([{
+        titulo: novaVagaTitulo,
         departamento: novaVagaDepartamento,
         localizacao: novaVagaLocalizacao,
         tipo_contrato: novaVagaTipoContrato,
@@ -551,7 +686,7 @@ export default function Admin() {
 
       setNovaVagaTitulo(""); setNovaVagaDepartamento(""); setNovaVagaLocalizacao("");
       setNovaVagaTipoContrato("CLT"); setNovaVagaDescricao(""); setNovaVagaLink("");
-      
+
       alert("✅ Vaga adicionada com sucesso!");
       buscarVagasAdmin();
     } catch (err) {
@@ -602,11 +737,11 @@ export default function Admin() {
         .getPublicUrl(nomeArquivo);
 
       const { error: insertError } = await supabase.from('depoimentos').insert([
-        { 
-          nome: novoNomeAluno, 
-          instagram: novoInstagram, 
-          video_url: novoVideoUrl, 
-          foto_url: urlData.publicUrl 
+        {
+          nome: novoNomeAluno,
+          instagram: novoInstagram,
+          video_url: novoVideoUrl,
+          foto_url: urlData.publicUrl
         }
       ]);
 
@@ -642,7 +777,7 @@ export default function Admin() {
         .from('depoimentos')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       setDepoimentos(data || []);
     } catch (err) {
@@ -654,479 +789,1182 @@ export default function Admin() {
     buscarDepoimentosDoSupabase();
   }, []);
 
-  // Função para alternar o modo administrativo
-  function gerenciarAcessoAdmin() {
-    if (modoAdmin) {
-      setModoAdmin(false);
-    } else {
-      const senhaDigitada = prompt("Insira a senha de administrador para aceder ao painel:");
-      if (senhaDigitada === SENHA_ADMIN_DEFINIDA) {
-        setModoAdmin(true);
-      } else if (senhaDigitada !== null) {
-        alert("❌ Senha incorreta!");
-      }
+  // --- CATEGORIAS DE CURSOS ---
+  async function buscarCategoriasCursos() {
+    try {
+      const { data, error } = await supabase
+        .from('categorias_cursos')
+        .select('*')
+        .order('nome', { ascending: true });
+
+      if (error) throw error;
+      setCategoriasCursos(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar categorias de cursos:", err);
     }
   }
 
-  // --- SE MODO ADMIN ESTIVER ATIVO, EXIBE O PAINEL ---
-  if (modoAdmin) {
+  useEffect(() => {
+    buscarCategoriasCursos();
+  }, []);
+
+  async function handleAdicionarCategoriaCurso(e) {
+    e.preventDefault();
+    if (!novaCategoriaCursoNome.trim()) {
+      setMensagemStatus("⚠️ O nome da categoria é obrigatório!");
+      return;
+    }
+    try {
+      const { error } = await supabase.from('categorias_cursos').insert([{ nome: novaCategoriaCursoNome.trim() }]);
+      if (error) throw error;
+
+      setMensagemStatus("✅ Categoria criada com sucesso!");
+      setNovaCategoriaCursoNome("");
+      buscarCategoriasCursos();
+    } catch (err) {
+      setMensagemStatus("❌ Erro ao criar categoria: " + err.message);
+    }
+  }
+
+  async function handleEliminarCategoriaCurso(id) {
+    if (!window.confirm("Tem a certeza que quer eliminar esta categoria? Os cursos associados ficarão sem categoria.")) return;
+    try {
+      const { error } = await supabase.from('categorias_cursos').delete().eq('id', id);
+      if (error) throw error;
+      buscarCategoriasCursos();
+      buscarCursosAdmin();
+    } catch (err) {
+      alert("Erro ao eliminar categoria: " + err.message);
+    }
+  }
+
+  // --- CURSOS CADASTRADOS ---
+  async function buscarCursosAdmin() {
+    try {
+      const { data, error } = await supabase
+        .from('cursos_cadastrados')
+        .select('*, categorias_cursos(nome)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCursosAdmin(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar cursos cadastrados:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarCursosAdmin();
+  }, []);
+
+  function atualizarCampoFormCurso(campo, valor) {
+    setFormCurso((prev) => ({ ...prev, [campo]: valor }));
+  }
+
+  function adicionarSemestre() {
+    setFormCurso((prev) => ({
+      ...prev,
+      gradeCurricular: [
+        ...prev.gradeCurricular,
+        { titulo: `${prev.gradeCurricular.length + 1}º Semestre`, disciplinas: [{ nome: "", horas: "" }] },
+      ],
+    }));
+  }
+
+  function removerSemestre(indiceSemestre) {
+    setFormCurso((prev) => ({
+      ...prev,
+      gradeCurricular: prev.gradeCurricular.filter((_, i) => i !== indiceSemestre),
+    }));
+  }
+
+  function atualizarTituloSemestre(indiceSemestre, titulo) {
+    setFormCurso((prev) => ({
+      ...prev,
+      gradeCurricular: prev.gradeCurricular.map((semestre, i) =>
+        i === indiceSemestre ? { ...semestre, titulo } : semestre
+      ),
+    }));
+  }
+
+  function adicionarDisciplina(indiceSemestre) {
+    setFormCurso((prev) => ({
+      ...prev,
+      gradeCurricular: prev.gradeCurricular.map((semestre, i) =>
+        i === indiceSemestre
+          ? { ...semestre, disciplinas: [...semestre.disciplinas, { nome: "", horas: "" }] }
+          : semestre
+      ),
+    }));
+  }
+
+  function removerDisciplina(indiceSemestre, indiceDisciplina) {
+    setFormCurso((prev) => ({
+      ...prev,
+      gradeCurricular: prev.gradeCurricular.map((semestre, i) =>
+        i === indiceSemestre
+          ? { ...semestre, disciplinas: semestre.disciplinas.filter((_, j) => j !== indiceDisciplina) }
+          : semestre
+      ),
+    }));
+  }
+
+  function atualizarDisciplina(indiceSemestre, indiceDisciplina, campo, valor) {
+    setFormCurso((prev) => ({
+      ...prev,
+      gradeCurricular: prev.gradeCurricular.map((semestre, i) =>
+        i === indiceSemestre
+          ? {
+              ...semestre,
+              disciplinas: semestre.disciplinas.map((disciplina, j) =>
+                j === indiceDisciplina ? { ...disciplina, [campo]: valor } : disciplina
+              ),
+            }
+          : semestre
+      ),
+    }));
+  }
+
+  function iniciarEdicaoCurso(curso) {
+    setCursoEditando(curso.id);
+    setFormCurso({
+      titulo: curso.titulo || "",
+      descricao: curso.descricao || "",
+      duracao: curso.duracao || "",
+      cargaHoraria: curso.carga_horaria || "",
+      modalidade: curso.modalidade || "EAD",
+      categoriaId: curso.categoria_id ? String(curso.categoria_id) : "",
+      preco: curso.preco != null ? String(curso.preco) : "",
+      seloMec: curso.selo_mec ?? true,
+      gradeCurricular: parseGradeCurricular(curso.grade_curricular),
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelarEdicaoCurso() {
+    setCursoEditando(null);
+    setFormCurso(CURSO_FORM_INICIAL);
+  }
+
+  async function handleSubmitCurso(e) {
+    e.preventDefault();
+
+    if (!formCurso.titulo.trim() || !formCurso.descricao.trim()) {
+      setMensagemStatus("⚠️ Preencha ao menos o título e a descrição do curso!");
+      return;
+    }
+
+    const arquivoInput = document.getElementById(cursoEditando ? 'imagem-curso-edit' : 'imagem-curso');
+    const arquivo = arquivoInput?.files[0];
+
+    if (!cursoEditando && !arquivo) {
+      setMensagemStatus("⚠️ Selecione uma imagem para o curso!");
+      return;
+    }
+
+    try {
+      setMensagemStatus(cursoEditando ? "⏳ Atualizando curso..." : "⏳ Publicando curso...");
+
+      let urlImagem = null;
+      if (arquivo) {
+        const nomeArquivo = `curso-${Date.now()}-${arquivo.name}`;
+        const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+        if (uploadError) {
+          console.error("Erro no upload da imagem do curso:", uploadError);
+          throw new Error(`[upload da imagem] ${uploadError.message}`);
+        }
+        const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+        urlImagem = urlData.publicUrl;
+      }
+
+      const dadosCurso = {
+        titulo: formCurso.titulo,
+        descricao: formCurso.descricao,
+        duracao: formCurso.duracao,
+        carga_horaria: formCurso.cargaHoraria,
+        modalidade: formCurso.modalidade,
+        categoria_id: formCurso.categoriaId ? Number(formCurso.categoriaId) : null,
+        preco: parseFloat(formCurso.preco) || 0,
+        selo_mec: formCurso.seloMec,
+        grade_curricular: serializarGradeCurricular(formCurso.gradeCurricular),
+      };
+      if (urlImagem) dadosCurso.imagem_url = urlImagem;
+
+      if (cursoEditando) {
+        const { error } = await supabase.from('cursos_cadastrados').update(dadosCurso).eq('id', cursoEditando);
+        if (error) {
+          console.error("Erro ao atualizar cursos_cadastrados:", error);
+          throw new Error(`[tabela cursos_cadastrados] ${error.message}${error.code ? ` (code: ${error.code})` : ''}`);
+        }
+        setMensagemStatus("✅ Curso atualizado com sucesso!");
+      } else {
+        const { error } = await supabase.from('cursos_cadastrados').insert([dadosCurso]);
+        if (error) {
+          console.error("Erro ao inserir em cursos_cadastrados:", error);
+          throw new Error(`[tabela cursos_cadastrados] ${error.message}${error.code ? ` (code: ${error.code})` : ''}`);
+        }
+        setMensagemStatus("✅ Curso publicado com sucesso!");
+      }
+
+      cancelarEdicaoCurso();
+      if (arquivoInput) arquivoInput.value = "";
+      buscarCursosAdmin();
+    } catch (err) {
+      setMensagemStatus("❌ Erro ao salvar curso: " + err.message);
+    }
+  }
+
+  async function handleEliminarCurso(id) {
+    if (!window.confirm("Tem a certeza que quer eliminar este curso?")) return;
+    try {
+      const { error } = await supabase.from('cursos_cadastrados').delete().eq('id', id);
+      if (error) throw error;
+      if (cursoEditando === id) cancelarEdicaoCurso();
+      buscarCursosAdmin();
+    } catch (err) {
+      alert("Erro ao eliminar curso: " + err.message);
+    }
+  }
+
+  // Enquanto verifica se existe sessão Supabase válida, mostra um loading
+  if (verificandoSessao) {
     return (
-      <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col font-sans">
-        <div className="bg-gray-800 border-b border-gray-700 py-5 px-6 flex justify-between items-center shadow-lg">
-          <div>
-            <h1 className="text-xl font-black uppercase text-[#fed106] tracking-wider">LATec Dashboard</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Gerenciador de Conteúdo (Supabase)</p>
-          </div>
-           <button 
-        onClick={async () => {
-          await supabase.auth.signOut();
-          setModoAdmin(false);
-          alert('Sessão encerrada com segurança.');
-        }} 
-        className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all cursor-pointer shadow-md" 
-      > 
-        Sair do Painel ➔ 
-      </button>
-        </div>
-
-        <div className="max-w-7xl w-full mx-auto p-6 flex-col gap-12 flex">
-          {/* --- BLOCO 1: GERENCIAR BANNERS --- */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 border-b border-gray-800 pb-12">
-            <div className="md:col-span-1 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl h-fit">
-              <h3 className="text-base font-black uppercase text-white mb-4 tracking-wide">Novo Banner</h3>
-              <form onSubmit={handleAdicionarBanner} className="flex flex-col gap-4">
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Título (Opcional)</label>
-                  <input type="text" value={novoTitulo} onChange={(e) => setNovoTitulo(e.target.value)} placeholder="Ex: Novas Matrículas" className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#fed106]" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Arquivo de Imagem</label>
-                  <input type="file" id="arquivo-banner" accept="image/*" className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-sm text-white file:bg-[#fed106] file:text-white file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
-                </div>
-                <button type="submit" className="w-full bg-[#fed106] hover:bg-[#a61058] text-white font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Banner</button>
-              </form>
-            </div>
-            <div className="md:col-span-2 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl">
-              <h3 className="text-base font-black uppercase text-white mb-4 tracking-wide">Banners Ativos ({banners.length})</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {banners.map((b) => (
-                  <div key={b.id} className="bg-gray-900 border border-gray-700 rounded-xl overflow-hidden relative shadow-lg">
-                    <img src={b.imagem_url} alt="" className="w-full h-32 object-cover" />
-                    <button onClick={() => handleEliminarBanner(b.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm cursor-pointer">✕</button>
-                    <div className="p-3 text-left truncate text-xs font-bold text-white">{b.titulo || "Sem Título"}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* --- BLOCO 2: GERENCIAR SELOS --- */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 border-t border-gray-800 pt-12">
-            <div className="md:col-span-1 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl h-fit">
-              <h3 className="text-base font-black uppercase text-white mb-4 tracking-wide">Novo Selo / Parceiro</h3>
-              <form onSubmit={handleAdicionarSelo} className="flex flex-col gap-4">
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Nome da Empresa/Selo</label>
-                  <input type="text" value={novoNomeSelo} onChange={(e) => setNovoNomeSelo(e.target.value)} placeholder="Ex: MEC ou Empresa Parceira" className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#fed106]" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Logo (Do PC)</label>
-                  <input type="file" id="imagem-selo" accept="image/*" className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-sm text-white file:bg-[#fed106] file:text-white file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
-                </div>
-                <button type="submit" className="w-full bg-[#fed106] hover:bg-[#a61058] text-white font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Selo</button>
-              </form>
-            </div>
-            <div className="md:col-span-2 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl">
-              <h3 className="text-base font-black uppercase text-white mb-4 tracking-wide">Selos Ativos ({listaSelos.length})</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {listaSelos.map((s) => (
-                  <div key={s.id} className="bg-gray-900 border border-gray-700 rounded-xl p-4 flex flex-col items-center justify-between relative shadow-lg h-36">
-                    <button onClick={() => handleEliminarSelo(s.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
-                    <div className="flex-1 flex items-center justify-center w-full">
-                      <img src={s.imagem_url} alt="" className="h-12 w-auto object-contain" />
-                    </div>
-                    <p className="text-[11px] font-bold text-gray-300 text-center truncate w-full mt-2">{s.nome}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* --- BLOCO 3: GERENCIAR DIFERENCIAIS --- */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 border-t border-gray-800 pt-12">
-            <div className="md:col-span-1 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl h-fit">
-              <h3 className="text-base font-black uppercase text-white mb-4 tracking-wide">Novo Diferencial</h3>
-              <form onSubmit={handleAdicionarDiferencial} className="flex flex-col gap-4">
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Título do Diferencial</label>
-                  <input 
-                    type="text" 
-                    value={novoTituloDiferencial} 
-                    onChange={(e) => setNovoTituloDiferencial(e.target.value)} 
-                    placeholder="Ex: Suporte 24/7 ou Metodologia Ativa" 
-                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#fed106]" 
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Imagem Ilustrativa (Do PC)</label>
-                  <input 
-                    type="file" 
-                    id="imagem-diferencial" 
-                    accept="image/*" 
-                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-sm text-white file:bg-[#fed106] file:text-white file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" 
-                  />
-                </div>
-                <button type="submit" className="w-full bg-[#fed106] hover:bg-[#a61058] text-white font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Diferencial</button>
-              </form>
-            </div>
-            
-            <div className="md:col-span-2 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl">
-              <h3 className="text-base font-black uppercase text-white mb-4 tracking-wide">Diferenciais Ativos ({listaDiferenciais.length})</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {listaDiferenciais.map((d) => (
-                  <div key={d.id} className="bg-gray-900 border border-gray-700 rounded-xl overflow-hidden relative shadow-lg flex items-center p-3 gap-4">
-                    <img src={d.fotoUrl} alt="" className="w-16 h-16 object-cover rounded-lg bg-gray-800 shrink-0" />
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-black text-white truncate">{d.titulo}</p>
-                    </div>
-                    <button 
-                      onClick={() => handleEliminarDiferencial(d.id)} 
-                      className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer shrink-0"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* --- BLOCO 5: GERENCIAR NOTÍCIAS --- */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 border-t border-gray-800 pt-12 pb-8">
-            <div className="md:col-span-1 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl h-fit">
-              
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base font-black uppercase text-white tracking-wide">
-                  {noticiaEditando ? "✏️ Editar Notícia" : "📝 Nova Notícia"}
-                </h3>
-                {noticiaEditando && (
-                  <button 
-                    type="button" 
-                    onClick={() => { setNoticiaEditando(null); setEditTitulo(""); setEditResumo(""); setEditTempoLeitura(""); setEditDestaque(false); }}
-                    className="text-[10px] uppercase bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded-md font-bold transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                )}
-              </div>
-
-              <form onSubmit={noticiaEditando ? handleSalvarEdicaoNoticia : handleAdicionarNoticia} className="flex flex-col gap-4">
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Título da Notícia</label>
-                  <input 
-                    type="text" 
-                    value={noticiaEditando ? editTitulo : novoTituloNoticia} 
-                    onChange={(e) => noticiaEditando ? setEditTitulo(e.target.value) : setNovoTituloNoticia(e.target.value)} 
-                    placeholder="Ex: Novo curso aberto!" 
-                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#fed106]" 
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Breve Resumo</label>
-                  <textarea 
-                    rows="3"
-                    value={noticiaEditando ? editResumo : novoResumoNoticia} 
-                    onChange={(e) => noticiaEditando ? setEditResumo(e.target.value) : setNovoResumoNoticia(e.target.value)} 
-                    placeholder="Ex: Inscrições abertas..." 
-                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#fed106] resize-none" 
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">
-                    {noticiaEditando ? "Nova Imagem (Opcional)" : "Imagem de Capa"}
-                  </label>
-                  <input 
-                    type="file" 
-                    id={noticiaEditando ? "imagem-noticia-edit" : "imagem-noticia"}
-                    accept="image/*" 
-                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-sm text-white file:bg-[#fed106] file:text-white file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" 
-                    required={!noticiaEditando}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Tempo de Leitura (minutos)</label>
-                  <input 
-                    type="number" 
-                    value={noticiaEditando ? editTempoLeitura : novoTempoLeitura} 
-                    onChange={(e) => noticiaEditando ? setEditTempoLeitura(e.target.value) : setNovoTempoLeitura(e.target.value)} 
-                    placeholder="Ex: 5" 
-                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#fed106]" 
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="checkbox" 
-                    id="destaque-noticia"
-                    checked={noticiaEditando ? editDestaque : novaNoticiaDestaque} 
-                    onChange={(e) => noticiaEditando ? setEditDestaque(e.target.checked) : setNovaNoticiaDestaque(e.target.checked)} 
-                    className="w-4 h-4 rounded border-gray-700 bg-gray-900 cursor-pointer"
-                  />
-                  <label htmlFor="destaque-noticia" className="text-xs text-gray-400 font-bold uppercase">Marcar como Destaque</label>
-                </div>
-                <button type="submit" className="w-full bg-[#fed106] hover:bg-[#a61058] text-white font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                  {noticiaEditando ? "💾 Salvar Alterações" : "➕ Publicar Notícia"}
-                </button>
-              </form>
-            </div>
-
-            <div className="md:col-span-2 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl">
-              <h3 className="text-base font-black uppercase text-white mb-4 tracking-wide">Notícias Publicadas ({noticiasDestaque.length})</h3>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {noticiasDestaque.map((n) => (
-                  <div key={n.id} className="bg-gray-900 border border-gray-700 rounded-xl p-4 flex items-start gap-4 relative shadow-lg">
-                    <img src={n.fotoUrl} alt="" className="w-20 h-20 object-cover rounded-lg bg-gray-800 shrink-0" />
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-bold text-white truncate">{n.titulo}</p>
-                      <p className="text-xs text-gray-400 line-clamp-2">{n.resumo}</p>
-                      <div className="flex gap-2 mt-2 text-[11px] text-gray-500">
-                        <span>{n.tempoLeitura} min</span>
-                        <span>•</span>
-                        <span>{n.dataCriacao}</span>
-                        {n.destaque && <span className="text-[#fed106] font-bold">⭐ Destaque</span>}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <button 
-                        onClick={() => iniciarEdicaoNoticia(n)} 
-                        className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        onClick={() => handleEliminarNoticia(n.id)} 
-                        className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* --- BLOCO 6: GERENCIAR VAGAS --- */}
-          <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 mt-8 text-left shadow-xl">
-            <h3 className="text-sm font-black text-white uppercase tracking-wider mb-6 border-b border-slate-700 pb-3 inline-flex items-center gap-2">
-              📌 Gerenciar Vagas
-            </h3>
-            
-            <form onSubmit={handleAdicionarVaga} className="space-y-4 mb-6">
-              <input 
-                type="text" 
-                placeholder="Título da Vaga" 
-                value={novaVagaTitulo}
-                onChange={(e) => setNovaVagaTitulo(e.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-slate-600 bg-slate-900 text-white placeholder-slate-500 focus:outline-hidden focus:border-[#fed106]"
-                required
-              />
-              <select 
-                value={novaVagaDepartamento}
-                onChange={(e) => setNovaVagaDepartamento(e.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-slate-600 bg-slate-900 text-white focus:outline-hidden focus:border-[#fed106]"
-              >
-                <option value="">Departamento (Opcional)</option>
-                <option value="TI">TI</option>
-                <option value="RH">RH</option>
-                <option value="Marketing">Marketing</option>
-              </select>
-              <input 
-                type="text" 
-                placeholder="Localização (Opcional)" 
-                value={novaVagaLocalizacao}
-                onChange={(e) => setNovaVagaLocalizacao(e.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-slate-600 bg-slate-900 text-white placeholder-slate-500 focus:outline-hidden focus:border-[#fed106]"
-              />
-              <select 
-                value={novaVagaTipoContrato}
-                onChange={(e) => setNovaVagaTipoContrato(e.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-slate-600 bg-slate-900 text-white focus:outline-hidden focus:border-[#fed106]"
-              >
-                <option value="CLT">CLT</option>
-                <option value="PJ">PJ</option>
-                <option value="Estágio">Estágio</option>
-              </select>
-              <textarea 
-                rows="3" 
-                placeholder="Descrição da Vaga" 
-                value={novaVagaDescricao}
-                onChange={(e) => setNovaVagaDescricao(e.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-slate-600 bg-slate-900 text-white placeholder-slate-500 focus:outline-hidden focus:border-[#fed106]"
-                required
-              />
-              <input 
-                type="url" 
-                placeholder="Link do Formulário (Opcional)" 
-                value={novaVagaLink}
-                onChange={(e) => setNovaVagaLink(e.target.value)}
-                className="w-full text-xs p-3 rounded-xl border border-slate-600 bg-slate-900 text-white placeholder-slate-500 focus:outline-hidden focus:border-[#fed106]"
-              />
-              <button 
-                type="submit" 
-                className="bg-[#fed106] hover:bg-[#a61058] text-white text-[11px] font-black uppercase tracking-wider px-5 py-3 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
-              >
-                Adicionar Vaga
-              </button>
-            </form>
-
-            <div className="border-t border-slate-700 pt-5 space-y-2">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Vagas Cadastradas:</p>
-              {vagasAdmin.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">Nenhuma vaga cadastrada.</p>
-              ) : (
-                vagasAdmin.map(vaga => (
-                  <div key={vaga.id} className="flex items-center justify-between bg-slate-900 p-3 rounded-xl border border-slate-700/60 shadow-xs">
-                    <div className="flex-1">
-                      <strong className="text-xs text-slate-200 font-medium">{vaga.titulo}</strong>
-                      <p className="text-[10px] text-slate-400">{vaga.departamento} • {vaga.tipo_contrato}</p>
-                    </div>
-                    <button 
-                      onClick={() => handleDeletarVaga(vaga.id)}
-                      className="text-red-400 hover:text-red-500 text-xs font-bold uppercase px-2 py-1 transition-colors cursor-pointer"
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-            <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 mt-8 text-left shadow-xl">
-              <h3 className="text-sm font-black text-white uppercase tracking-wider mb-6 border-b border-slate-700 pb-3 inline-flex items-center gap-2">
-                📌 Gerenciar Perguntas Frequentes (FAQ)
-              </h3>
-              
-              <form onSubmit={handleAdicionarFaq} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Tópico / Categoria</label>
-                  <select 
-                    value={novoTopicofaq} 
-                    onChange={(e) => setNovoTopicofaq(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-slate-600 bg-slate-900 text-white focus:outline-hidden focus:border-[#fed106]"
-                  >
-                    <option value="Geral">Geral</option>
-                    <option value="Cursos">Cursos</option>
-                    <option value="Inscrições">Inscrições</option>
-                    <option value="Certificados">Certificados</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Pergunta</label>
-                  <input 
-                    type="text" 
-                    placeholder="Ex: Como funciona a emissão do certificado?" 
-                    value={novaPerguntafaq}
-                    onChange={(e) => setNovaPerguntaFaq(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-slate-600 bg-slate-900 text-white placeholder-slate-500 focus:outline-hidden focus:border-[#fed106]"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Resposta</label>
-                  <textarea 
-                    rows="3" 
-                    placeholder="Digite a resposta detalhada aqui..." 
-                    value={novaRespostafaq}
-                    onChange={(e) => setNovaRespostaFaq(e.target.value)}
-                    className="w-full text-xs p-3 rounded-xl border border-slate-600 bg-slate-900 text-white placeholder-slate-500 focus:outline-hidden focus:border-[#fed106]"
-                    required
-                  />
-                </div>
-
-                <button 
-                  type="submit" 
-                  className="bg-[#fed106] hover:bg-[#a61058] text-white text-[11px] font-black uppercase tracking-wider px-5 py-3 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
-                >
-                  Adicionar ao FAQ
-                </button>
-              </form>
-
-              <div className="mt-6 border-t border-slate-700 pt-5 space-y-2">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Perguntas Cadastradas:</p>
-                {faqsAdmin.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">Nenhuma pergunta cadastrada.</p>
-                ) : (
-                  faqsAdmin.map(faq => (
-                    <div key={faq.id} className="flex items-center justify-between bg-slate-900 p-3 rounded-xl border border-slate-700/60 shadow-xs">
-                      <div className="pr-4 flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                        <span className="text-[9px] font-extrabold bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
-                          {faq.topico}
-                        </span>
-                        <strong className="text-xs text-slate-200 font-medium">{faq.pergunta}</strong>
-                      </div>
-                      <button 
-                        onClick={() => handleDeletarFaq(faq.id)}
-                        className="text-red-400 hover:text-red-500 text-xs font-bold uppercase px-2 py-1 transition-colors cursor-pointer shrink-0"
-                      >
-                        Excluir
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          
-          {/* --- BLOCO 7: GERENCIAR DEPOIMENTOS --- */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-1 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl h-fit">
-              <h3 className="text-base font-black uppercase text-white mb-4 tracking-wide">Novo Depoimento</h3>
-              <form onSubmit={handleAdicionarDepoimento} className="flex flex-col gap-4">
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Nome do Aluno</label>
-                  <input type="text" value={novoNomeAluno} onChange={(e) => setNovoNomeAluno(e.target.value)} placeholder="Ex: Maria Silva" className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#fed106]" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Instagram (Opcional)</label>
-                  <input type="text" value={novoInstagram} onChange={(e) => setNovoInstagram(e.target.value)} placeholder="Ex: @maria_silva" className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#fed106]" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Link do Vídeo (YouTube/Drive)</label>
-                  <input type="text" value={novoVideoUrl} onChange={(e) => setNovoVideoUrl(e.target.value)} placeholder="https://youtube.com/..." className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#fed106]" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 font-bold block mb-1 uppercase">Foto de Capa (Do PC)</label>
-                  <input type="file" id="capa-depoimento" accept="image/*" className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2 text-sm text-white file:bg-[#fed106] file:text-white file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
-                </div>
-                <button type="submit" className="w-full bg-[#fed106] hover:bg-[#a61058] text-white font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Depoimento</button>
-              </form>
-            </div>
-            <div className="md:col-span-2 bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl">
-              <h3 className="text-base font-black uppercase text-white mb-4 tracking-wide">Depoimentos Ativos ({depoimentos.length})</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {depoimentos.map((d) => (
-                  <div key={d.id} className="bg-gray-900 border border-gray-700 rounded-xl overflow-hidden relative shadow-lg">
-                    <img src={d.foto_url} alt="" className="w-full h-40 object-cover" />
-                    <button onClick={() => handleEliminarDepoimento(d.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
-                    <div className="p-2.5 text-left bg-gray-900">
-                      <p className="text-xs font-black text-white truncate">{d.nome}</p>
-                      <p className="text-[10px] text-gray-400 truncate">{d.instagram || 'Sem Instagram'}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          {mensagemStatus && (
-            <p className="text-sm font-bold text-center p-3 bg-gray-800 border border-gray-700 rounded-xl animate-pulse text-gray-200">{mensagemStatus}</p>
-          )}
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#fed106]"></div>
       </div>
     );
   }
 
-  // Retorna vazio quando não estiver em modo admin (este componente é chamado apenas no painel)
-  return null;
+  // Sem sessão: o useEffect já redirecionou para /login
+  if (!modoAdmin) return null;
+
+  const irParaAba = (id) => {
+    setAbaAtiva(id);
+    setSidebarAberta(false);
+  };
+
+  const noticiasDestacadas = noticiasDestaque.filter((n) => n.destaque).length;
+  const depoimentosComVideo = depoimentos.filter((d) => d.video_url).length;
+
+  // --- SE MODO ADMIN ESTIVER ATIVO, EXIBE O PAINEL ---
+  return (
+    <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
+      {/* Fundo escuro ao abrir a sidebar no mobile */}
+      {sidebarAberta && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarAberta(false)}
+        />
+      )}
+
+      {/* --- SIDEBAR --- */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-black text-white flex flex-col transform transition-transform duration-300 md:translate-x-0 ${
+          sidebarAberta ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center gap-3 px-6 py-6 border-b border-white/10">
+          <img src={logo} alt="Estude Seguro" className="w-10 h-10 object-contain rounded-full bg-white p-1 shrink-0" />
+          <div className="min-w-0">
+            <p className="font-black text-sm leading-tight truncate">Estude Seguro</p>
+            <p className="text-[10px] text-white/50 font-bold tracking-widest uppercase">Painel Administrativo</p>
+          </div>
+          <button
+            onClick={() => setSidebarAberta(false)}
+            className="ml-auto text-white/60 hover:text-white md:hidden cursor-pointer"
+          >
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+          {ITENS_MENU.map(({ id, label, Icon }) => {
+            const ativo = abaAtiva === id;
+            return (
+              <button
+                key={id}
+                onClick={() => irParaAba(id)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+                  ativo ? 'bg-[#fed106] text-black' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <Icon className="w-5 h-5 shrink-0" />
+                {label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-white/10">
+          <button
+            onClick={async () => {
+              saindoManualmente.current = true;
+              await supabase.auth.signOut();
+              navigate('/');
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-white/70 hover:bg-red-600 hover:text-white transition-colors cursor-pointer"
+          >
+            <ArrowRightOnRectangleIcon className="w-5 h-5 shrink-0" />
+            Sair do Painel
+          </button>
+        </div>
+      </aside>
+
+      {/* --- CONTEÚDO --- */}
+      <div className="flex-1 md:ml-64 min-w-0 flex flex-col">
+        {/* Barra superior no mobile */}
+        <div className="md:hidden flex items-center justify-between bg-white border-b border-gray-100 px-4 py-3 sticky top-0 z-30">
+          <button onClick={() => setSidebarAberta(true)} className="p-1 text-gray-700 cursor-pointer">
+            <Bars3Icon className="w-6 h-6" />
+          </button>
+          <span className="font-black text-sm text-gray-900">Painel Administrativo</span>
+          <div className="w-6" />
+        </div>
+
+        <main className="flex-1 p-5 md:p-8 max-w-6xl w-full mx-auto">
+
+          {/* ================= DASHBOARD ================= */}
+          {abaAtiva === 'dashboard' && (
+            <>
+              <div className="flex items-center justify-between mb-8 flex-wrap gap-2">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                    Dashboard <SparklesIcon className="w-6 h-6 text-[#fed106]" />
+                  </h1>
+                  <p className="text-sm text-gray-500 font-medium">Bem-vindo ao painel administrativo da Estude Seguro</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Última atualização</p>
+                  <p className="text-xs text-gray-600 font-semibold">{new Date().toLocaleString('pt-BR')}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
+                <CardEstatistica label="Cursos (Catálogo)" valor={listaCursosGiga.length} subtitulo="Lista antiga" Icon={AcademicCapIcon} cor="bg-blue-500" />
+                <CardEstatistica label="Cursos Cadastrados" valor={cursosAdmin.length} subtitulo={`${categoriasCursos.length} categorias`} Icon={TagIcon} cor="bg-indigo-500" />
+                <CardEstatistica label="Posts no Blog" valor={noticiasDestaque.length} subtitulo={`${noticiasDestacadas} em destaque`} Icon={DocumentTextIcon} cor="bg-emerald-500" />
+                <CardEstatistica label="Banners Ativos" valor={banners.length} subtitulo="Na Home" Icon={PhotoIcon} cor="bg-[#fed106]" />
+                <CardEstatistica label="Depoimentos" valor={depoimentos.length} subtitulo="Publicados" Icon={ChatBubbleLeftRightIcon} cor="bg-orange-500" />
+              </div>
+
+              <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+                Ações Rápidas <span className="flex-1 h-px bg-gray-200" />
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <CartaoAcaoRapida titulo="Gerenciar Cursos e Categorias" descricao="Adicionar, editar e organizar cursos por categoria" Icon={AcademicCapIcon} cor="bg-indigo-500" onClick={() => irParaAba('cursos')} />
+                <CartaoAcaoRapida titulo="Gerenciar Banners" descricao="Atualizar banners e imagens da Home" Icon={PhotoIcon} cor="bg-[#fed106]" onClick={() => irParaAba('banners')} />
+                <CartaoAcaoRapida titulo="Gerenciar Blog" descricao="Criar e editar notícias e artigos" Icon={NewspaperIcon} cor="bg-emerald-500" onClick={() => irParaAba('blog')} />
+                <CartaoAcaoRapida titulo="Gerenciar Selos" descricao="Selos de confiança e reconhecimento" Icon={ShieldCheckIcon} cor="bg-blue-500" onClick={() => irParaAba('selos')} />
+                <CartaoAcaoRapida titulo="Gerenciar Diferenciais" descricao="Cards de diferenciais da Home" Icon={SparklesIcon} cor="bg-purple-500" onClick={() => irParaAba('diferenciais')} />
+                <CartaoAcaoRapida titulo="Gerenciar Vagas" descricao="Publicar e remover vagas abertas" Icon={BriefcaseIcon} cor="bg-slate-600" onClick={() => irParaAba('vagas')} />
+                <CartaoAcaoRapida titulo="Gerenciar FAQ" descricao="Perguntas frequentes do site" Icon={QuestionMarkCircleIcon} cor="bg-orange-500" onClick={() => irParaAba('faq')} />
+                <CartaoAcaoRapida titulo="Gerenciar Depoimentos" descricao="Depoimentos em vídeo de alunos" Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" onClick={() => irParaAba('depoimentos')} />
+              </div>
+            </>
+          )}
+
+          {/* ================= CURSOS E CATEGORIAS ================= */}
+          {abaAtiva === 'cursos' && (
+            <>
+              <CabecalhoPagina titulo="Cursos e Categorias" subtitulo="Cursos cadastrados aqui aparecem em cards na página /cursos, junto do catálogo antigo" Icon={AcademicCapIcon} />
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <CardEstatistica label="Cursos Cadastrados" valor={cursosAdmin.length} Icon={AcademicCapIcon} cor="bg-indigo-500" />
+                <CardEstatistica label="Categorias" valor={categoriasCursos.length} Icon={TagIcon} cor="bg-[#fed106]" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* --- COLUNA ESQUERDA: CATEGORIAS + FORMULÁRIO DE CURSO --- */}
+                <div className="md:col-span-1 flex flex-col gap-6">
+
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                    <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide flex items-center gap-2">
+                      <TagIcon className="w-4 h-4 text-[#8a6d00]" /> Categorias
+                    </h3>
+                    <form onSubmit={handleAdicionarCategoriaCurso} className="flex gap-2 mb-4">
+                      <input
+                        type="text"
+                        value={novaCategoriaCursoNome}
+                        onChange={(e) => setNovaCategoriaCursoNome(e.target.value)}
+                        placeholder="Ex: EJA, Técnico, Livre"
+                        className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                      <button type="submit" className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs px-4 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0">
+                        ➕
+                      </button>
+                    </form>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {categoriasCursos.length === 0 ? (
+                        <p className="text-xs text-gray-400 italic">Nenhuma categoria criada ainda.</p>
+                      ) : (
+                        categoriasCursos.map((cat) => (
+                          <div key={cat.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
+                            <span className="text-xs font-bold text-gray-700">{cat.nome}</span>
+                            <button
+                              onClick={() => handleEliminarCategoriaCurso(cat.id)}
+                              className="text-red-500 hover:text-red-600 text-xs font-bold cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
+                        {cursoEditando ? "✏️ Editar Curso" : "🎓 Novo Curso"}
+                      </h3>
+                      {cursoEditando && (
+                        <button
+                          type="button"
+                          onClick={cancelarEdicaoCurso}
+                          className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
+
+                    <form onSubmit={handleSubmitCurso} className="flex flex-col gap-4">
+                      <div>
+                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Título do Curso</label>
+                        <input
+                          type="text"
+                          value={formCurso.titulo}
+                          onChange={(e) => atualizarCampoFormCurso('titulo', e.target.value)}
+                          placeholder="Ex: EJA - Ensino Fundamental"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Descrição</label>
+                        <textarea
+                          rows="3"
+                          value={formCurso.descricao}
+                          onChange={(e) => atualizarCampoFormCurso('descricao', e.target.value)}
+                          placeholder="Sobre o curso..."
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Duração</label>
+                          <input
+                            type="text"
+                            value={formCurso.duracao}
+                            onChange={(e) => atualizarCampoFormCurso('duracao', e.target.value)}
+                            placeholder="Ex: 3 a 6 meses"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-800 focus:outline-none focus:border-[#fed106]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Carga Horária</label>
+                          <input
+                            type="text"
+                            value={formCurso.cargaHoraria}
+                            onChange={(e) => atualizarCampoFormCurso('cargaHoraria', e.target.value)}
+                            placeholder="Ex: 800h"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-800 focus:outline-none focus:border-[#fed106]"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Modalidade</label>
+                          <select
+                            value={formCurso.modalidade}
+                            onChange={(e) => atualizarCampoFormCurso('modalidade', e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-800 focus:outline-none focus:border-[#fed106]"
+                          >
+                            <option value="EAD">EAD</option>
+                            <option value="Presencial">Presencial</option>
+                            <option value="Semipresencial">Semipresencial</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Categoria</label>
+                          <select
+                            value={formCurso.categoriaId}
+                            onChange={(e) => atualizarCampoFormCurso('categoriaId', e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-800 focus:outline-none focus:border-[#fed106]"
+                          >
+                            <option value="">Sem categoria</option>
+                            {categoriasCursos.map((cat) => (
+                              <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Preço (R$)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formCurso.preco}
+                          onChange={(e) => atualizarCampoFormCurso('preco', e.target.value)}
+                          placeholder="Ex: 699"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="curso-selo-mec"
+                          checked={formCurso.seloMec}
+                          onChange={(e) => atualizarCampoFormCurso('seloMec', e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                        />
+                        <label htmlFor="curso-selo-mec" className="text-xs text-gray-500 font-bold uppercase">Exibir selo MEC</label>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs text-gray-500 font-bold uppercase">Grade Curricular</label>
+                          <button
+                            type="button"
+                            onClick={adicionarSemestre}
+                            className="text-[10px] uppercase bg-[#fed106]/15 hover:bg-[#fed106]/30 text-[#8a6d00] px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
+                          >
+                            + Semestre
+                          </button>
+                        </div>
+
+                        {formCurso.gradeCurricular.length === 0 ? (
+                          <p className="text-xs text-gray-400 italic bg-gray-50 border border-dashed border-gray-200 rounded-xl px-4 py-3">
+                            Nenhum semestre adicionado ainda.
+                          </p>
+                        ) : (
+                          <div className="flex flex-col gap-3">
+                            {formCurso.gradeCurricular.map((semestre, sIdx) => (
+                              <div key={sIdx} className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <input
+                                    type="text"
+                                    value={semestre.titulo}
+                                    onChange={(e) => atualizarTituloSemestre(sIdx, e.target.value)}
+                                    placeholder="Ex: 1º Semestre"
+                                    className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-800 focus:outline-none focus:border-[#fed106]"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removerSemestre(sIdx)}
+                                    className="text-red-500 hover:text-red-600 text-xs font-bold px-2 cursor-pointer shrink-0"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+
+                                <div className="flex flex-col gap-2 mb-2">
+                                  {semestre.disciplinas.map((disciplina, dIdx) => (
+                                    <div key={dIdx} className="flex items-center gap-2">
+                                      <input
+                                        type="text"
+                                        value={disciplina.nome}
+                                        onChange={(e) => atualizarDisciplina(sIdx, dIdx, 'nome', e.target.value)}
+                                        placeholder="Nome da disciplina"
+                                        className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#fed106]"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={disciplina.horas}
+                                        onChange={(e) => atualizarDisciplina(sIdx, dIdx, 'horas', e.target.value)}
+                                        placeholder="Horas"
+                                        className="w-20 bg-white border border-gray-200 rounded-lg px-2 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#fed106] shrink-0"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => removerDisciplina(sIdx, dIdx)}
+                                        className="text-red-500 hover:text-red-600 text-xs font-bold px-1 cursor-pointer shrink-0"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => adicionarDisciplina(sIdx)}
+                                  className="text-[10px] uppercase text-[#8a6d00] hover:text-black font-bold cursor-pointer"
+                                >
+                                  + Disciplina
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                          {cursoEditando ? "Nova Imagem (Opcional)" : "Imagem de Capa"}
+                        </label>
+                        <input
+                          type="file"
+                          id={cursoEditando ? "imagem-curso-edit" : "imagem-curso"}
+                          accept="image/*"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+                        />
+                      </div>
+                      <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
+                        {cursoEditando ? "💾 Salvar Alterações" : "➕ Publicar Curso"}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                {/* --- COLUNA DIREITA: CURSOS CADASTRADOS --- */}
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Cursos Cadastrados ({cursosAdmin.length})</h3>
+                  {cursosAdmin.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                      <AcademicCapIcon className="w-10 h-10 text-gray-300 mb-3" />
+                      <p className="font-black text-gray-700 text-sm">Nenhum curso cadastrado</p>
+                      <p className="text-xs text-gray-400 mt-1">Use o formulário ao lado para publicar o primeiro curso</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[42rem] overflow-y-auto">
+                      {cursosAdmin.map((curso) => (
+                        <div key={curso.id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex items-start gap-4 relative shadow-sm">
+                          <img src={curso.imagem_url} alt="" className="w-20 h-20 object-cover rounded-lg bg-gray-200 shrink-0" />
+                          <div className="flex-1 min-w-0 text-left">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <p className="text-sm font-bold text-gray-800 truncate">{curso.titulo}</p>
+                              {curso.categorias_cursos?.nome && (
+                                <span className="text-[9px] font-extrabold bg-white text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
+                                  {curso.categorias_cursos.nome}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-2">{curso.descricao}</p>
+                            <div className="flex gap-2 mt-2 text-[11px] text-gray-500 flex-wrap">
+                              <span>{curso.duracao || '-'}</span>
+                              <span>•</span>
+                              <span>{curso.carga_horaria || '-'}</span>
+                              <span>•</span>
+                              <span>{curso.modalidade}</span>
+                              <span>•</span>
+                              <span className="font-bold text-gray-700">R$ {(curso.preco || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <button
+                              onClick={() => iniciarEdicaoCurso(curso)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleEliminarCurso(curso.id)}
+                              className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= BANNERS ================= */}
+          {abaAtiva === 'banners' && (
+            <>
+              <CabecalhoPagina titulo="Gerenciar Banners" subtitulo="Banners rotativos exibidos no topo da Home" Icon={PhotoIcon} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Novo Banner</h3>
+                  <form onSubmit={handleAdicionarBanner} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Título (Opcional)</label>
+                      <input type="text" value={novoTitulo} onChange={(e) => setNovoTitulo(e.target.value)} placeholder="Ex: Novas Matrículas" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Arquivo de Imagem</label>
+                      <input type="file" id="arquivo-banner" accept="image/*" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
+                    </div>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Banner</button>
+                  </form>
+                </div>
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Banners Ativos ({banners.length})</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {banners.map((b) => (
+                      <div key={b.id} className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden relative shadow-sm">
+                        <img src={b.imagem_url} alt="" className="w-full h-32 object-cover" />
+                        <button onClick={() => handleEliminarBanner(b.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm cursor-pointer">✕</button>
+                        <div className="p-3 text-left truncate text-xs font-bold text-gray-700">{b.titulo || "Sem Título"}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= SELOS ================= */}
+          {abaAtiva === 'selos' && (
+            <>
+              <CabecalhoPagina titulo="Gerenciar Selos" subtitulo="Selos de confiança e reconhecimento exibidos na Home" Icon={ShieldCheckIcon} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Novo Selo / Parceiro</h3>
+                  <form onSubmit={handleAdicionarSelo} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nome da Empresa/Selo</label>
+                      <input type="text" value={novoNomeSelo} onChange={(e) => setNovoNomeSelo(e.target.value)} placeholder="Ex: MEC ou Empresa Parceira" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Logo (Do PC)</label>
+                      <input type="file" id="imagem-selo" accept="image/*" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
+                    </div>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Selo</button>
+                  </form>
+                </div>
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Selos Ativos ({listaSelos.length})</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {listaSelos.map((s) => (
+                      <div key={s.id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-between relative shadow-sm h-36">
+                        <button onClick={() => handleEliminarSelo(s.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+                        <div className="flex-1 flex items-center justify-center w-full">
+                          <img src={s.imagem_url} alt="" className="h-12 w-auto object-contain" />
+                        </div>
+                        <p className="text-[11px] font-bold text-gray-600 text-center truncate w-full mt-2">{s.nome}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= DIFERENCIAIS ================= */}
+          {abaAtiva === 'diferenciais' && (
+            <>
+              <CabecalhoPagina titulo="Gerenciar Diferenciais" subtitulo="Cards de diferenciais exibidos na Home" Icon={SparklesIcon} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Novo Diferencial</h3>
+                  <form onSubmit={handleAdicionarDiferencial} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Título do Diferencial</label>
+                      <input
+                        type="text"
+                        value={novoTituloDiferencial}
+                        onChange={(e) => setNovoTituloDiferencial(e.target.value)}
+                        placeholder="Ex: Suporte 24/7 ou Metodologia Ativa"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Imagem Ilustrativa (Do PC)</label>
+                      <input
+                        type="file"
+                        id="imagem-diferencial"
+                        accept="image/*"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+                      />
+                    </div>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Diferencial</button>
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Diferenciais Ativos ({listaDiferenciais.length})</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {listaDiferenciais.map((d) => (
+                      <div key={d.id} className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden relative shadow-sm flex items-center p-3 gap-4">
+                        <img src={d.fotoUrl} alt="" className="w-16 h-16 object-cover rounded-lg bg-gray-200 shrink-0" />
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-sm font-black text-gray-800 truncate">{d.titulo}</p>
+                        </div>
+                        <button
+                          onClick={() => handleEliminarDiferencial(d.id)}
+                          className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer shrink-0"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= BLOG (NOTÍCIAS) ================= */}
+          {abaAtiva === 'blog' && (
+            <>
+              <CabecalhoPagina titulo="Gerenciar Blog" subtitulo="Gerencie seus posts, notícias e matérias" Icon={NewspaperIcon} />
+
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <CardEstatistica label="Total" valor={noticiasDestaque.length} Icon={DocumentTextIcon} cor="bg-blue-500" />
+                <CardEstatistica label="Destaques" valor={noticiasDestacadas} Icon={SparklesIcon} cor="bg-[#fed106]" />
+                <CardEstatistica label="Sem Destaque" valor={noticiasDestaque.length - noticiasDestacadas} Icon={NewspaperIcon} cor="bg-slate-500" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
+                      {noticiaEditando ? "✏️ Editar Notícia" : "📝 Nova Notícia"}
+                    </h3>
+                    {noticiaEditando && (
+                      <button
+                        type="button"
+                        onClick={() => { setNoticiaEditando(null); setEditTitulo(""); setEditResumo(""); setEditTempoLeitura(""); setEditDestaque(false); }}
+                        className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+
+                  <form onSubmit={noticiaEditando ? handleSalvarEdicaoNoticia : handleAdicionarNoticia} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Título da Notícia</label>
+                      <input
+                        type="text"
+                        value={noticiaEditando ? editTitulo : novoTituloNoticia}
+                        onChange={(e) => noticiaEditando ? setEditTitulo(e.target.value) : setNovoTituloNoticia(e.target.value)}
+                        placeholder="Ex: Novo curso aberto!"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Breve Resumo</label>
+                      <textarea
+                        rows="3"
+                        value={noticiaEditando ? editResumo : novoResumoNoticia}
+                        onChange={(e) => noticiaEditando ? setEditResumo(e.target.value) : setNovoResumoNoticia(e.target.value)}
+                        placeholder="Ex: Inscrições abertas..."
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                        {noticiaEditando ? "Nova Imagem (Opcional)" : "Imagem de Capa"}
+                      </label>
+                      <input
+                        type="file"
+                        id={noticiaEditando ? "imagem-noticia-edit" : "imagem-noticia"}
+                        accept="image/*"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+                        required={!noticiaEditando}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Tempo de Leitura (minutos)</label>
+                      <input
+                        type="number"
+                        value={noticiaEditando ? editTempoLeitura : novoTempoLeitura}
+                        onChange={(e) => noticiaEditando ? setEditTempoLeitura(e.target.value) : setNovoTempoLeitura(e.target.value)}
+                        placeholder="Ex: 5"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="destaque-noticia"
+                        checked={noticiaEditando ? editDestaque : novaNoticiaDestaque}
+                        onChange={(e) => noticiaEditando ? setEditDestaque(e.target.checked) : setNovaNoticiaDestaque(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                      />
+                      <label htmlFor="destaque-noticia" className="text-xs text-gray-500 font-bold uppercase">Marcar como Destaque</label>
+                    </div>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
+                      {noticiaEditando ? "💾 Salvar Alterações" : "➕ Publicar Notícia"}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Notícias Publicadas ({noticiasDestaque.length})</h3>
+                  <div className="space-y-3 max-h-[32rem] overflow-y-auto">
+                    {noticiasDestaque.map((n) => (
+                      <div key={n.id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex items-start gap-4 relative shadow-sm">
+                        <img src={n.fotoUrl} alt="" className="w-20 h-20 object-cover rounded-lg bg-gray-200 shrink-0" />
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-sm font-bold text-gray-800 truncate">{n.titulo}</p>
+                          <p className="text-xs text-gray-500 line-clamp-2">{n.resumo}</p>
+                          <div className="flex gap-2 mt-2 text-[11px] text-gray-400">
+                            <span>{n.tempoLeitura} min</span>
+                            <span>•</span>
+                            <span>{n.dataCriacao}</span>
+                            {n.destaque && <span className="text-[#8a6d00] font-bold">⭐ Destaque</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => iniciarEdicaoNoticia(n)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => handleEliminarNoticia(n.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= VAGAS ================= */}
+          {abaAtiva === 'vagas' && (
+            <>
+              <CabecalhoPagina titulo="Gerenciar Vagas" subtitulo="Vagas de emprego exibidas na página Vagas" Icon={BriefcaseIcon} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Nova Vaga</h3>
+                  <form onSubmit={handleAdicionarVaga} className="space-y-4">
+                    <input
+                      type="text"
+                      placeholder="Título da Vaga"
+                      value={novaVagaTitulo}
+                      onChange={(e) => setNovaVagaTitulo(e.target.value)}
+                      className="w-full text-xs p-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-[#fed106]"
+                      required
+                    />
+                    <select
+                      value={novaVagaDepartamento}
+                      onChange={(e) => setNovaVagaDepartamento(e.target.value)}
+                      className="w-full text-xs p-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 focus:outline-hidden focus:border-[#fed106]"
+                    >
+                      <option value="">Departamento (Opcional)</option>
+                      <option value="TI">TI</option>
+                      <option value="RH">RH</option>
+                      <option value="Marketing">Marketing</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Localização (Opcional)"
+                      value={novaVagaLocalizacao}
+                      onChange={(e) => setNovaVagaLocalizacao(e.target.value)}
+                      className="w-full text-xs p-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-[#fed106]"
+                    />
+                    <select
+                      value={novaVagaTipoContrato}
+                      onChange={(e) => setNovaVagaTipoContrato(e.target.value)}
+                      className="w-full text-xs p-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 focus:outline-hidden focus:border-[#fed106]"
+                    >
+                      <option value="CLT">CLT</option>
+                      <option value="PJ">PJ</option>
+                      <option value="Estágio">Estágio</option>
+                    </select>
+                    <textarea
+                      rows="3"
+                      placeholder="Descrição da Vaga"
+                      value={novaVagaDescricao}
+                      onChange={(e) => setNovaVagaDescricao(e.target.value)}
+                      className="w-full text-xs p-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-[#fed106]"
+                      required
+                    />
+                    <input
+                      type="url"
+                      placeholder="Link do Formulário (Opcional)"
+                      value={novaVagaLink}
+                      onChange={(e) => setNovaVagaLink(e.target.value)}
+                      className="w-full text-xs p-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-[#fed106]"
+                    />
+                    <button
+                      type="submit"
+                      className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black text-xs font-black uppercase tracking-wider px-5 py-3 rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                    >
+                      Adicionar Vaga
+                    </button>
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Vagas Cadastradas ({vagasAdmin.length})</h3>
+                  <div className="space-y-2">
+                    {vagasAdmin.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">Nenhuma vaga cadastrada.</p>
+                    ) : (
+                      vagasAdmin.map(vaga => (
+                        <div key={vaga.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 shadow-xs">
+                          <div className="flex-1">
+                            <strong className="text-xs text-gray-800 font-medium">{vaga.titulo}</strong>
+                            <p className="text-[10px] text-gray-400">{vaga.departamento} • {vaga.tipo_contrato}</p>
+                          </div>
+                          <button
+                            onClick={() => handleDeletarVaga(vaga.id)}
+                            className="text-red-500 hover:text-red-600 text-xs font-bold uppercase px-2 py-1 transition-colors cursor-pointer"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= FAQ ================= */}
+          {abaAtiva === 'faq' && (
+            <>
+              <CabecalhoPagina titulo="Gerenciar FAQ" subtitulo="Perguntas frequentes exibidas no site" Icon={QuestionMarkCircleIcon} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Nova Pergunta</h3>
+                  <form onSubmit={handleAdicionarFaq} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Tópico / Categoria</label>
+                      <select
+                        value={novoTopicofaq}
+                        onChange={(e) => setNovoTopicofaq(e.target.value)}
+                        className="w-full text-xs p-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 focus:outline-hidden focus:border-[#fed106]"
+                      >
+                        <option value="Geral">Geral</option>
+                        <option value="Cursos">Cursos</option>
+                        <option value="Inscrições">Inscrições</option>
+                        <option value="Certificados">Certificados</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Pergunta</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Como funciona a emissão do certificado?"
+                        value={novaPerguntafaq}
+                        onChange={(e) => setNovaPerguntaFaq(e.target.value)}
+                        className="w-full text-xs p-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-[#fed106]"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Resposta</label>
+                      <textarea
+                        rows="3"
+                        placeholder="Digite a resposta detalhada aqui..."
+                        value={novaRespostafaq}
+                        onChange={(e) => setNovaRespostaFaq(e.target.value)}
+                        className="w-full text-xs p-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 placeholder-gray-400 focus:outline-hidden focus:border-[#fed106]"
+                        required
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="bg-[#fed106] hover:bg-black hover:text-white text-black text-[11px] font-black uppercase tracking-wider px-5 py-3 rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                    >
+                      Adicionar ao FAQ
+                    </button>
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Perguntas Cadastradas ({faqsAdmin.length})</h3>
+                  <div className="space-y-2">
+                    {faqsAdmin.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">Nenhuma pergunta cadastrada.</p>
+                    ) : (
+                      faqsAdmin.map(faq => (
+                        <div key={faq.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 shadow-xs">
+                          <div className="pr-4 flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                            <span className="text-[9px] font-extrabold bg-white text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
+                              {faq.topico}
+                            </span>
+                            <strong className="text-xs text-gray-800 font-medium">{faq.pergunta}</strong>
+                          </div>
+                          <button
+                            onClick={() => handleDeletarFaq(faq.id)}
+                            className="text-red-500 hover:text-red-600 text-xs font-bold uppercase px-2 py-1 transition-colors cursor-pointer shrink-0"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= DEPOIMENTOS ================= */}
+          {abaAtiva === 'depoimentos' && (
+            <>
+              <CabecalhoPagina titulo="Depoimentos dos Alunos" subtitulo='Gerencie os depoimentos exibidos na seção "Depoimentos"' Icon={ChatBubbleLeftRightIcon} />
+
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <CardEstatistica label="Total de Depoimentos" valor={depoimentos.length} Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" />
+                <CardEstatistica label="Com Vídeo" valor={depoimentosComVideo} Icon={SparklesIcon} cor="bg-emerald-500" />
+                <CardEstatistica label="Sem Vídeo" valor={depoimentos.length - depoimentosComVideo} Icon={NewspaperIcon} cor="bg-slate-500" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Novo Depoimento</h3>
+                  <form onSubmit={handleAdicionarDepoimento} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nome do Aluno</label>
+                      <input type="text" value={novoNomeAluno} onChange={(e) => setNovoNomeAluno(e.target.value)} placeholder="Ex: Maria Silva" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Instagram (Opcional)</label>
+                      <input type="text" value={novoInstagram} onChange={(e) => setNovoInstagram(e.target.value)} placeholder="Ex: @maria_silva" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Link do Vídeo (YouTube/Drive)</label>
+                      <input type="text" value={novoVideoUrl} onChange={(e) => setNovoVideoUrl(e.target.value)} placeholder="https://youtube.com/..." className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Foto de Capa (Do PC)</label>
+                      <input type="file" id="capa-depoimento" accept="image/*" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
+                    </div>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Depoimento</button>
+                  </form>
+                </div>
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Depoimentos Publicados ({depoimentos.length})</h3>
+                  {depoimentos.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                      <ChatBubbleLeftRightIcon className="w-10 h-10 text-gray-300 mb-3" />
+                      <p className="font-black text-gray-700 text-sm">Nenhum depoimento cadastrado</p>
+                      <p className="text-xs text-gray-400 mt-1">Adicione depoimentos de alunos para exibir na Home</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {depoimentos.map((d) => (
+                        <div key={d.id} className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden relative shadow-sm">
+                          <img src={d.foto_url} alt="" className="w-full h-40 object-cover" />
+                          <button onClick={() => handleEliminarDepoimento(d.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+                          <div className="p-2.5 text-left bg-white">
+                            <p className="text-xs font-black text-gray-800 truncate">{d.nome}</p>
+                            <p className="text-[10px] text-gray-400 truncate">{d.instagram || 'Sem Instagram'}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {mensagemStatus && (
+            <p className="text-sm font-bold text-center p-3 mt-6 bg-white border border-gray-200 rounded-xl shadow-sm animate-pulse text-gray-700">{mensagemStatus}</p>
+          )}
+        </main>
+      </div>
+    </div>
+  );
 }

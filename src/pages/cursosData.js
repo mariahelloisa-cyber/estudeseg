@@ -648,7 +648,7 @@ export const listaCursosGiga = [
   { id: 647, titulo: "INGLÊS BÁSICO II", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
   { id: 648, titulo: "INGLÊS INTERMEDIÁRIO I", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
   { id: 649, titulo: "INGLÊS INTERMEDIÁRIO II", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
-  { id: 500, titulo: "INGLÊS PARA ATENDIMENTO", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" }, // Nota: O id original na lista crua voltou para 500 aqui. Segui a ordem sequencial se preferir corrigir, mas mantive o padrão.
+  { id: 650, titulo: "INGLÊS PARA ATENDIMENTO", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
   { id: 651, titulo: "INGLÊS PARA NEGÓCIOS", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
   { id: 652, titulo: "INGLÊS PARA O ENEM: ERROS COMUNS", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
   { id: 653, titulo: "INICIAÇÃO MUSICAL", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },

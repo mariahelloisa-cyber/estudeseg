@@ -1,9 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { ClockIcon, BoltIcon, BookOpenIcon } from '@heroicons/react/24/outline';
 import Navbar from '../components/Navbar';
 import { listaCursosGiga } from './cursosData';
 import imagemFundo from '../assets/imghero.png';
 import { useCartStore } from '../store/cartStore';
+import { supabase } from '../supabaseClient';
 import CarrinhoSidebar from '../components/CarrinhoSidebar';// <-- ADICIONE ESTA LINHA AQUI
+
+// --- Card de curso cadastrado pelo admin (Supabase) ---
+function CursoCardNovo({ curso }) {
+  return (
+    <Link
+      to={`/cursos/${curso.id}`}
+      className="flex flex-col bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 group"
+    >
+      <div className="relative w-full h-44 overflow-hidden bg-gray-100">
+        <img src={curso.imagem_url} alt={curso.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        {curso.selo_mec && (
+          <span className="absolute top-3 left-3 bg-white text-gray-800 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+            <svg className="w-3 h-3 text-[#fed106]" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 1l2.39 4.84L18 6.91l-4 3.9.94 5.49L10 13.77l-4.94 2.53L6 10.81l-4-3.9 5.61-1.07L10 1z" />
+            </svg>
+            MEC
+          </span>
+        )}
+      </div>
+      <div className="p-5 flex flex-col flex-grow">
+        <h4 className="text-base font-black text-gray-900 mb-2 leading-snug uppercase">{curso.titulo}</h4>
+        <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-4">{curso.descricao}</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] text-gray-500 font-semibold mb-5 pt-4 border-t border-gray-100 mt-auto">
+          <span className="flex items-center gap-1.5">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#fff4cc] text-[#c99a00] shrink-0"><ClockIcon className="w-3 h-3" /></span>
+            {curso.duracao || '-'}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#ede9fe] text-[#7c3aed] shrink-0"><BoltIcon className="w-3 h-3" /></span>
+            {curso.carga_horaria || '-'}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 text-gray-600 shrink-0"><BookOpenIcon className="w-3 h-3" /></span>
+            {curso.modalidade}
+          </span>
+        </div>
+        <span className="w-full text-center bg-gradient-to-r from-[#fed106] to-[#ffeea0] hover:opacity-90 text-black font-black text-xs uppercase tracking-wider py-3.5 rounded-full transition-opacity shadow-sm">
+          Ver Detalhes
+        </span>
+      </div>
+    </Link>
+  );
+}
 
 export default function ListaCursos() {
   const [pesquisa, setPesquisa] = useState('');
@@ -11,6 +57,35 @@ export default function ListaCursos() {
   const adicionarAoCarrinho = useCartStore((state) => state.adicionarAoCarrinho);
   const carrinho = useCartStore((state) => state.carrinho);
   const setCarrinhoAberto = useCartStore((state) => state.setCarrinhoAberto);
+
+  // --- Cursos cadastrados pelo admin (Supabase), exibidos em cards, acima da lista antiga ---
+  const [cursosCadastrados, setCursosCadastrados] = useState([]);
+  const [categoriasCadastradas, setCategoriasCadastradas] = useState([]);
+
+  useEffect(() => {
+    async function buscarCursosCadastrados() {
+      try {
+        const [{ data: cursos, error: erroCursos }, { data: categorias, error: erroCategorias }] = await Promise.all([
+          supabase.from('cursos_cadastrados').select('*, categorias_cursos(nome)').order('created_at', { ascending: false }),
+          supabase.from('categorias_cursos').select('*').order('nome', { ascending: true }),
+        ]);
+
+        if (erroCursos) throw erroCursos;
+        if (erroCategorias) throw erroCategorias;
+
+        setCursosCadastrados(cursos || []);
+        setCategoriasCadastradas(categorias || []);
+      } catch (err) {
+        console.error('Erro ao buscar cursos cadastrados pelo admin:', err);
+      }
+    }
+    buscarCursosCadastrados();
+  }, []);
+
+  const cursosCadastradosFiltrados = cursosCadastrados.filter((curso) => {
+    if (categoriaSelecionada === 'Todas') return true;
+    return (curso.categorias_cursos?.nome || 'Geral') === categoriaSelecionada;
+  });
 
   // Proteção contra dados vazios
   const dadosCursos = Array.isArray(listaCursosGiga) ? listaCursosGiga : [];
@@ -51,9 +126,24 @@ export default function ListaCursos() {
           </svg>
         );
       default:
-        return null;
+        return (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5.586a1 1 0 01.707.293l6.414 6.414a1 1 0 010 1.414l-6.586 6.586a1 1 0 01-1.414 0L4.293 11.293A1 1 0 014 10.586V5a2 2 0 012-2z" />
+          </svg>
+        );
     }
   };
+
+  // Uma única lista de categorias: as fixas do catálogo antigo + as cadastradas pelo admin
+  const categoriasFiltroUnificadas = [
+    ...categoriasFiltro,
+    ...categoriasCadastradas
+      .map((cat) => cat.nome)
+      .filter((nome) => !categoriasFiltro.includes(nome)),
+  ];
+
+  // Uma categoria "nova" é a que só existe entre os cursos cadastrados pelo admin (não no catálogo antigo)
+  const categoriaEhNova = categoriaSelecionada !== 'Todas' && !categoriasFiltro.includes(categoriaSelecionada);
 
   // Filtro de Busca e Categoria
   const cursosFiltrados = dadosCursos.filter((curso) => {
@@ -138,9 +228,9 @@ export default function ListaCursos() {
       {/* 2. FILTROS E CONTEÚDO */}
       <div className="max-w-6xl w-full mx-auto px-6 mt-10">
         
-        {/* Abas de Categorias */}
-        <div className="flex flex-wrap gap-3 mb-6 justify-start">
-          {categoriasFiltro.map((cat) => {
+        {/* Abas de Categorias (catálogo antigo + categorias cadastradas pelo admin, juntas) */}
+        <div className="flex flex-wrap gap-3 mb-8 justify-start">
+          {categoriasFiltroUnificadas.map((cat) => {
             const isSelected = categoriaSelecionada.toLowerCase() === cat.toLowerCase();
             return (
               <button
@@ -159,6 +249,18 @@ export default function ListaCursos() {
           })}
         </div>
 
+        {/* CURSOS CADASTRADOS PELO ADMIN (EM CARDS), sempre acima da lista quando aparecem */}
+        {cursosCadastradosFiltrados.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            {cursosCadastradosFiltrados.map((curso) => (
+              <CursoCardNovo key={`curso-cadastrado-${curso.id}`} curso={curso} />
+            ))}
+          </div>
+        )}
+
+        {/* Quando a categoria escolhida é exclusiva dos cursos cadastrados, não mostra a lista antiga */}
+        {!categoriaEhNova && (
+          <>
         {/* Quantidade Encontrada */}
         <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-bold mb-4 uppercase tracking-wider">
           <svg className="w-3.5 h-3.5 text-[#000000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -202,7 +304,7 @@ export default function ListaCursos() {
 
                 return (
                   <div
-                    key={`linha-curso-${curso.id || index}`}
+                    key={`linha-curso-${curso.id ?? 'sem-id'}-${index}`}
                     className="flex flex-col md:flex-row items-start md:items-center justify-between py-4 px-6 border-b border-gray-100 hover:bg-gray-50/50 transition-colors gap-4 md:gap-0"
                   >
                     {/* Numeração em Destaque Rosa + Título Escuro */}
@@ -231,7 +333,7 @@ export default function ListaCursos() {
                       {/* Botão de Compra Retangular Rosa */}
                        <button
   onClick={() => adicionarAoCarrinho({
-                    id: index, 
+                    id: curso.id,
                     titulo: nomeItem,
                     preco: precoItem,
                     horas: horasItem
@@ -252,6 +354,8 @@ export default function ListaCursos() {
       )}
     </div>
   </div>
+          </>
+        )}
 
       </div>
     </div>
