@@ -118,10 +118,10 @@ export default function Blog() {
           {/* LADO DIREITO: Grafismo e Foto da Estudante */}
           <div className="lg:col-span-6 relative flex justify-end items-center h-full min-h-[320px] lg:min-h-[420px]">
   
-  {/* Onda de Trás - Rosa da LaTec */}
+  {/* Onda de Trás  */}
   <div className="absolute right-[-5%] top-[-10%] w-[105%] h-[120%] bg-gradient-to-br from-[#fed106] via-[##ffeea0] to-transparent rounded-[40%_60%_30%_70%/50%_40%_60%_50%] opacity-85 pointer-events-none z-0 transform rotate-12 scale-105"></div>
   
-  {/* Onda da Frente - Azul da LaTec */}
+  {/* Onda da Frente -  */}
   <div className="absolute left-[10%] bottom-[-5%] w-[85%] h-[90%] bg-gradient-to-tr from-[#ffeea0] to-[#fed106] rounded-[60%_40%_70%_30%/40%_50%_30%_70%] opacity-90 pointer-events-none z-10"></div>
 
             {/* Imagem Recortada da Aluna */}

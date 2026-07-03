@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -182,8 +183,10 @@ export default function Inicio() {
       const { data, error } = await supabase
         .from('depoimentos')
         .select('*')
-        .order('created_at', { ascending: false });
-      
+        .eq('destaque', true)
+        .order('created_at', { ascending: false })
+        .limit(4);
+
       if (error) throw error;
       setDepoimentos(data || []);
     } catch (err) {
@@ -251,13 +254,18 @@ export default function Inicio() {
       {/* --- SEÇÃO 1: BANNER ROTATIVO (AGORA INTEGRADO AO SUPABASE) --- */}
       {banners.length > 0 && (
         <div className="w-full bg-white relative group">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+          <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
             <div className="w-full relative overflow-hidden rounded-2xl md:rounded-3xl shadow-sm h-[220px] sm:h-[340px] md:h-[460px]">
-              <img 
-                src={banners[indexAtual]?.imagem_url} 
-                alt="LATec Banner" 
-                className="w-full h-full object-cover duration-500 ease-in-out"
-              />
+              {banners.map((banner, idx) => (
+                <img
+                  key={banner.id ?? idx}
+                  src={banner.imagem_url}
+                  alt="LATec Banner"
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
+                    idx === indexAtual ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
+                />
+              ))}
               {banners.length > 1 && (
                 <>
                   <button 
@@ -350,7 +358,7 @@ export default function Inicio() {
   <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-16 pb-16">
     <div className="text-center md:text-left mb-8 pl-2">
       <h2 className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Nossos Diferenciais</h2>
-      <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Por que escolher o LATec para impulsionar o seu futuro profissional?</p>
+      <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Por que escolher a Estude Seguro para impulsionar o seu futuro profissional?</p>
     </div>
     <div className="w-full flex flex-col items-center">
       <div className="w-full min-h-[320px] flex items-center justify-center relative overflow-hidden px-2 py-6 gap-3 md:gap-6">
@@ -382,8 +390,8 @@ export default function Inicio() {
           ))}
         </div>
         <div className="flex gap-2">
-          <button onClick={irParaEsquerda} className="w-10 h-10 rounded-full bg-gray-900 hover:bg-[#fed106] text-white flex items-center justify-center shadow transition-all cursor-pointer font-bold z-40">&#10094;</button>
-          <button onClick={irParaDireita} className="w-10 h-10 rounded-full bg-gray-900 hover:bg-[#fed106] text-white flex items-center justify-center shadow transition-all cursor-pointer font-bold z-40">&#10095;</button>
+          <button onClick={irParaEsquerda} className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-[#000000] text-white flex items-center justify-center shadow transition-all cursor-pointer font-bold z-40">&#10094;</button>
+          <button onClick={irParaDireita} className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-[#000000] text-white flex items-center justify-center shadow transition-all cursor-pointer font-bold z-40">&#10095;</button>
         </div>
       </div>
     </div>
@@ -480,7 +488,7 @@ export default function Inicio() {
         </div>
       )}
 
-      {/* --- SEÇÃO: BLOG LA TEC (100% DINÂMICA, DESIGN ORIGINAL) --- */}
+      {/* --- SEÇÃO: BLOG Estude seguro (100% DINÂMICA, DESIGN ORIGINAL) --- */}
 <section className="relative py-16 md:py-24 bg-[#fffff] w-full overflow-hidden">
   <div className="absolute top-20 left-10 hidden lg:block opacity-30">
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
@@ -506,7 +514,7 @@ export default function Inicio() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
         </svg>
         <span className="text-[10px] font-extrabold text-[#fed106] tracking-widest uppercase">
-          Blog LaTec
+          Blog Estude Seguro
         </span>
       </div>
 
@@ -660,7 +668,7 @@ export default function Inicio() {
     <div className="mt-12 flex justify-center">
       <a
         href="/blog"
-        className="bg-[#000000] hover:bg-[#fed106] text-white font-extrabold text-sm py-4 px-8 rounded-full transition-colors flex items-center gap-2 shadow-md cursor-pointer"
+        className="bg-[#fed106] hover:bg-[#000000] text-white font-extrabold text-sm py-4 px-8 rounded-full transition-colors flex items-center gap-2 shadow-md cursor-pointer"
       >
         Ver todos os artigos
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
@@ -697,7 +705,7 @@ export default function Inicio() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 px-1">
-              {depoimentos.slice(0, 4).map((item) => (
+              {depoimentos.map((item) => (
                 <a
                   key={`depoimento-${item.id}`}
                   href={item.video_url}
@@ -727,6 +735,15 @@ export default function Inicio() {
                   </div>
                 </a>
               ))}
+            </div>
+
+            <div className="flex justify-center mt-10">
+              <Link
+                to="/depoimentos"
+                className="inline-flex items-center gap-2 bg-[#fed106] hover:bg-black text-white hover:text-white px-8 py-3.5 rounded-full font-black text-sm uppercase tracking-wider transition-all shadow-sm"
+              >
+                Ver mais
+              </Link>
             </div>
           </div>
         </div>

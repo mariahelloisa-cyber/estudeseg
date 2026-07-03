@@ -1,17 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
-import imagemInstitucional from '../assets/imghero.png';
+import imagemInstitucional from '../assets/capa-video.png';
 import fundoHero from '../assets/fundoo.png';
 import selo6 from '../assets/selo6.png';
 
+const VIDEO_DRIVE_ID = '1PFZab6pHDCmfEseEQjoRVA8Rb1g1FE08';
+
 export default function Sobre() {
+  const [videoReproduzindo, setVideoReproduzindo] = useState(false);
+
   // Array completo com os 6 cards configurados
   const linhaDoTempo = [
     {
       ano: '2020 - 2021',
       categoria: 'IDEALIZAÇÃO',
       titulo: 'O Início de um Sonho',
-      descricao: 'Nasce a LA Tec, com o propósito de ampliar o acesso à educação técnica de qualidade e contribuir para o desenvolvimento regional.',
+      descricao: 'Nasce a Estude Seguro, com o propósito de ampliar o acesso à educação técnica de qualidade e contribuir para o desenvolvimento regional.',
       imagem: selo6 
     },
     {
@@ -32,7 +36,7 @@ export default function Sobre() {
       ano: '2024',
       categoria: 'INOVAÇÃO',
       titulo: 'Crescimento e Impacto',
-      descricao: 'Consolidação da LA Tec como uma instituição comprometida com a qualificação profissional e a transformação de vidas.',
+      descricao: 'Consolidação da Estude Seguro como uma instituição comprometida com a qualificação profissional e a transformação de vidas.',
       imagem: selo6
     },
     {
@@ -46,7 +50,7 @@ export default function Sobre() {
       ano: '2026',
       categoria: 'O FUTURO CONTINUA',
       titulo: 'O Futuro Continua',
-      descricao: 'A LA Tec segue investindo em inovação, tecnologia e educação para criar novas oportunidades e formar profissionais preparados para os desafios do amanhã.',
+      descricao: 'A Estude Seguro segue investindo em inovação, tecnologia e educação para criar novas oportunidades e formar profissionais preparados para os desafios do amanhã.',
       imagem: selo6
     }
   ];
@@ -119,13 +123,13 @@ export default function Sobre() {
             {/* Parágrafos de Conteúdo */}
             <div className="space-y-6 text-gray-700 text-sm md:text-[15px] font-medium leading-relaxed max-w-xl">
               <p>
-                A <strong className="text-gray-900 font-bold">LA Tec</strong> nasceu com a missão de tornar a educação técnica mais acessível, moderna e conectada às necessidades do mercado de trabalho. Integrante do Grupo LA Educação e sediada em <strong className="text-gray-900 font-bold">Aracruz-ES</strong>, a instituição foi criada para contribuir com o desenvolvimento econômico e social da região por meio da formação de profissionais qualificados.
+                A <strong className="text-gray-900 font-bold">Estude Seguro</strong> nasceu com a missão de tornar a educação técnica mais acessível, moderna e conectada às necessidades do mercado de trabalho. Integrante do Grupo LA Educação e sediada em <strong className="text-gray-900 font-bold">Aracruz-ES</strong>, a instituição foi criada para contribuir com o desenvolvimento econômico e social da região por meio da formação de profissionais qualificados.
               </p>
               <p>
                 Desde o início, acreditamos que a educação deve ser uma ponte entre os sonhos dos alunos e as oportunidades profissionais. Por isso, desenvolvemos uma metodologia de ensino a distância que combina flexibilidade, tecnologia e suporte humanizado, permitindo que cada estudante aprenda no seu próprio ritmo e alcance seus objetivos com mais facilidade.
               </p>
               <p>
-                Hoje, a <strong className="text-gray-900 font-bold">LA Tec</strong> segue transformando vidas através da educação técnica, oferecendo cursos alinhados às demandas do mercado e preparando profissionais para construir careers sólidas e um futuro promissor.
+                Hoje, a <strong className="text-gray-900 font-bold">Estude Seguro</strong> segue transformando vidas através da educação técnica, oferecendo cursos alinhados às demandas do mercado e preparando profissionais para construir careers sólidas e um futuro promissor.
               </p>
             </div>
           </div>
@@ -187,32 +191,47 @@ export default function Sobre() {
           </h2>
 
           <p className="text-gray-600 font-medium text-sm md:text-base max-w-xl leading-relaxed mb-12">
-            A história da LA Tec é construída diariamente por alunos, professores e colaboradores que acreditam no poder transformador da educação.
+            A história da Estude Seguro é construída diariamente por alunos, professores e colaboradores que acreditam no poder transformador da educação.
 
 Assista ao vídeo e descubra como estamos conectando conhecimento, oportunidades e desenvolvimento profissional para ajudar milhares de estudantes a conquistarem seus objetivos.
           </p>
 
           {/* Espaço para o Vídeo / Player (SEM A BORDA BRANCA e um pouco mais largo: max-w-4xl) */}
-          <div className="relative w-full max-w-4xl aspect-video rounded-[32px] overflow-hidden shadow-2xl group cursor-pointer">
-            
-            <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
-              <img 
-                src={imagemInstitucional} 
-                alt="Capa do Manifesto" 
-                className="w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-105"
+          <div className="relative w-full max-w-4xl aspect-video rounded-[32px] overflow-hidden shadow-2xl group">
+            {videoReproduzindo ? (
+              <iframe
+                src={`https://drive.google.com/file/d/${VIDEO_DRIVE_ID}/preview`}
+                className="w-full h-full"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                title="Vídeo institucional Estude Seguro"
               />
-            </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setVideoReproduzindo(true)}
+                className="absolute inset-0 w-full h-full cursor-pointer"
+                aria-label="Reproduzir vídeo institucional"
+              >
+                <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+                  <img
+                    src={imagemInstitucional}
+                    alt="Capa do Manifesto"
+                    className="w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-105"
+                  />
+                </div>
 
-            <div className="absolute inset-0 bg-black/20 transition-opacity duration-300 group-hover:bg-black/30"></div>
+                <div className="absolute inset-0 bg-black/20 transition-opacity duration-300 group-hover:bg-black/30"></div>
 
-            <div className="absolute inset-0 flex items-center justify-center z-10">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center shadow-lg transform transition-all duration-300 group-hover:scale-110 group-hover:shadow-[#fed106]/30">
-                <svg className="w-6 h-6 md:w-8 md:h-8 text-[#fed106] ml-1" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </div>
-            </div>
-
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center shadow-lg transform transition-all duration-300 group-hover:scale-110 group-hover:shadow-[#fed106]/30">
+                    <svg className="w-6 h-6 md:w-8 md:h-8 text-[#fed106] ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                </div>
+              </button>
+            )}
           </div>
 
         </div>

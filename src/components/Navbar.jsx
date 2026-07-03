@@ -43,6 +43,7 @@ export default function Navbar() {
               <Link to="/" className="text-gray-700 hover:text-[#efc819] font-medium text-sm transition-colors">Início</Link>
               <Link to="/sobre" className="text-gray-700 hover:text-[#fed106] font-medium text-sm transition-colors">Sobre Nós</Link>
               <Link to="/cursos" className="text-gray-700 hover:text-[#fed106] font-medium text-sm transition-colors">Cursos</Link>
+              <Link to="/depoimentos" className="text-gray-700 hover:text-[#fed106] font-medium text-sm transition-colors">Depoimentos</Link>
               <Link to="/blog" className="text-gray-700 hover:text-[#fed106] font-medium text-sm transition-colors">Blog</Link>
               <Link to="/vagas" className="text-gray-700 hover:text-[#fed106] font-medium text-sm transition-colors">Vagas</Link>
               <Link to="/ouvidoria" className="text-gray-700 hover:text-[#fed106] font-medium text-sm transition-colors">Ouvidoria</Link>

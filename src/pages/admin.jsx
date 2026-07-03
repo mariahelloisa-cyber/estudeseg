@@ -15,11 +15,14 @@ import {
   Bars3Icon,
   XMarkIcon,
   TagIcon,
+  StarIcon,
 } from '@heroicons/react/24/outline';
+import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
 import { listaCursosGiga } from './cursosData';
 import logo from '../assets/logo-estud.png';
 import { parseGradeCurricular, serializarGradeCurricular } from '../utils/gradeCurricular';
+import { parseBlocosConteudo, serializarBlocosConteudo } from '../utils/blocosConteudo';
 
 // --- Itens do menu lateral: só seções com dados reais no Supabase ---
 const ITENS_MENU = [
@@ -41,9 +44,11 @@ const CURSO_FORM_INICIAL = {
   cargaHoraria: "",
   modalidade: "EAD",
   categoriaId: "",
+  precoOriginal: "",
   preco: "",
   seloMec: true,
   gradeCurricular: [],
+  blocosConteudo: [],
 };
 
 // --- Componentes visuais reutilizados nas páginas do painel ---
@@ -770,6 +775,25 @@ export default function Admin() {
     }
   }
 
+  // Função para Destacar/Remover Destaque de um Depoimento (máx. 4 na Home)
+  async function handleAlternarDestaqueDepoimento(depoimento) {
+    const totalDestacados = depoimentos.filter((d) => d.destaque).length;
+    if (!depoimento.destaque && totalDestacados >= 4) {
+      alert("Você já tem 4 depoimentos em destaque. Remova um antes de adicionar outro.");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('depoimentos')
+        .update({ destaque: !depoimento.destaque })
+        .eq('id', depoimento.id);
+      if (error) throw error;
+      buscarDepoimentosDoSupabase();
+    } catch (err) {
+      alert("Erro ao atualizar destaque: " + err.message);
+    }
+  }
+
   // 4. Buscar Depoimentos do SUPABASE
   async function buscarDepoimentosDoSupabase() {
     try {
@@ -925,6 +949,29 @@ export default function Admin() {
     }));
   }
 
+  function adicionarBlocoConteudo() {
+    setFormCurso((prev) => ({
+      ...prev,
+      blocosConteudo: [...prev.blocosConteudo, { titulo: "", texto: "" }],
+    }));
+  }
+
+  function removerBlocoConteudo(indiceBloco) {
+    setFormCurso((prev) => ({
+      ...prev,
+      blocosConteudo: prev.blocosConteudo.filter((_, i) => i !== indiceBloco),
+    }));
+  }
+
+  function atualizarBlocoConteudo(indiceBloco, campo, valor) {
+    setFormCurso((prev) => ({
+      ...prev,
+      blocosConteudo: prev.blocosConteudo.map((bloco, i) =>
+        i === indiceBloco ? { ...bloco, [campo]: valor } : bloco
+      ),
+    }));
+  }
+
   function iniciarEdicaoCurso(curso) {
     setCursoEditando(curso.id);
     setFormCurso({
@@ -934,9 +981,11 @@ export default function Admin() {
       cargaHoraria: curso.carga_horaria || "",
       modalidade: curso.modalidade || "EAD",
       categoriaId: curso.categoria_id ? String(curso.categoria_id) : "",
+      precoOriginal: curso.preco_original != null ? String(curso.preco_original) : "",
       preco: curso.preco != null ? String(curso.preco) : "",
       seloMec: curso.selo_mec ?? true,
       gradeCurricular: parseGradeCurricular(curso.grade_curricular),
+      blocosConteudo: parseBlocosConteudo(curso.blocos_conteudo),
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -984,9 +1033,11 @@ export default function Admin() {
         carga_horaria: formCurso.cargaHoraria,
         modalidade: formCurso.modalidade,
         categoria_id: formCurso.categoriaId ? Number(formCurso.categoriaId) : null,
+        preco_original: formCurso.precoOriginal ? parseFloat(formCurso.precoOriginal) : null,
         preco: parseFloat(formCurso.preco) || 0,
         selo_mec: formCurso.seloMec,
         grade_curricular: serializarGradeCurricular(formCurso.gradeCurricular),
+        blocos_conteudo: serializarBlocosConteudo(formCurso.blocosConteudo),
       };
       if (urlImagem) dadosCurso.imagem_url = urlImagem;
 
@@ -1045,6 +1096,7 @@ export default function Admin() {
 
   const noticiasDestacadas = noticiasDestaque.filter((n) => n.destaque).length;
   const depoimentosComVideo = depoimentos.filter((d) => d.video_url).length;
+  const depoimentosDestacados = depoimentos.filter((d) => d.destaque).length;
 
   // --- SE MODO ADMIN ESTIVER ATIVO, EXIBE O PAINEL ---
   return (
@@ -1298,16 +1350,30 @@ export default function Admin() {
                           </select>
                         </div>
                       </div>
-                      <div>
-                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Preço (R$)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={formCurso.preco}
-                          onChange={(e) => atualizarCampoFormCurso('preco', e.target.value)}
-                          placeholder="Ex: 699"
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                        />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Preço Original (opcional)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formCurso.precoOriginal}
+                            onChange={(e) => atualizarCampoFormCurso('precoOriginal', e.target.value)}
+                            placeholder="Ex: 999"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-800 focus:outline-none focus:border-[#fed106]"
+                          />
+                          <p className="text-[10px] text-gray-400 mt-1">Aparece riscado. Deixe em branco para não exibir.</p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Preço Atual (R$)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formCurso.preco}
+                            onChange={(e) => atualizarCampoFormCurso('preco', e.target.value)}
+                            placeholder="Ex: 699"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-800 focus:outline-none focus:border-[#fed106]"
+                          />
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <input
@@ -1391,6 +1457,54 @@ export default function Admin() {
                                 >
                                   + Disciplina
                                 </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs text-gray-500 font-bold uppercase">Entenda Como Vai Funcionar o Curso</label>
+                          <button
+                            type="button"
+                            onClick={adicionarBlocoConteudo}
+                            className="text-[10px] uppercase bg-[#fed106]/15 hover:bg-[#fed106]/30 text-[#8a6d00] px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
+                          >
+                            + Texto
+                          </button>
+                        </div>
+
+                        {formCurso.blocosConteudo.length === 0 ? (
+                          <p className="text-xs text-gray-400 italic bg-gray-50 border border-dashed border-gray-200 rounded-xl px-4 py-3">
+                            Nenhum texto adicionado ainda.
+                          </p>
+                        ) : (
+                          <div className="flex flex-col gap-3">
+                            {formCurso.blocosConteudo.map((bloco, bIdx) => (
+                              <div key={bIdx} className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <input
+                                    type="text"
+                                    value={bloco.titulo}
+                                    onChange={(e) => atualizarBlocoConteudo(bIdx, 'titulo', e.target.value)}
+                                    placeholder="Ex: Curso Técnico em Eletrotécnica EAD: O que é"
+                                    className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-800 focus:outline-none focus:border-[#fed106]"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removerBlocoConteudo(bIdx)}
+                                    className="text-red-500 hover:text-red-600 text-xs font-bold px-2 cursor-pointer shrink-0"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                                <textarea
+                                  rows="4"
+                                  value={bloco.texto}
+                                  onChange={(e) => atualizarBlocoConteudo(bIdx, 'texto', e.target.value)}
+                                  placeholder="Texto explicativo sobre o curso..."
+                                  className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-[#fed106] resize-none"
+                                />
                               </div>
                             ))}
                           </div>
@@ -1904,10 +2018,11 @@ export default function Admin() {
             <>
               <CabecalhoPagina titulo="Depoimentos dos Alunos" subtitulo='Gerencie os depoimentos exibidos na seção "Depoimentos"' Icon={ChatBubbleLeftRightIcon} />
 
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <CardEstatistica label="Total de Depoimentos" valor={depoimentos.length} Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" />
                 <CardEstatistica label="Com Vídeo" valor={depoimentosComVideo} Icon={SparklesIcon} cor="bg-emerald-500" />
                 <CardEstatistica label="Sem Vídeo" valor={depoimentos.length - depoimentosComVideo} Icon={NewspaperIcon} cor="bg-slate-500" />
+                <CardEstatistica label="Em Destaque (Home)" valor={`${depoimentosDestacados}/4`} Icon={StarIcon} cor="bg-[#fed106]" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1944,12 +2059,24 @@ export default function Admin() {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {depoimentos.map((d) => (
-                        <div key={d.id} className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden relative shadow-sm">
+                        <div key={d.id} className={`bg-gray-50 border rounded-xl overflow-hidden relative shadow-sm ${d.destaque ? 'border-[#fed106] ring-2 ring-[#fed106]/40' : 'border-gray-100'}`}>
                           <img src={d.foto_url} alt="" className="w-full h-40 object-cover" />
                           <button onClick={() => handleEliminarDepoimento(d.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+                          <button
+                            onClick={() => handleAlternarDestaqueDepoimento(d)}
+                            title={d.destaque ? 'Remover destaque' : 'Destacar na Home (máx. 4)'}
+                            className={`absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer shadow-sm transition-colors ${
+                              d.destaque ? 'bg-[#fed106] text-black' : 'bg-white/90 text-gray-400 hover:text-[#fed106]'
+                            }`}
+                          >
+                            {d.destaque ? <StarIconSolido className="w-4 h-4" /> : <StarIcon className="w-4 h-4" />}
+                          </button>
                           <div className="p-2.5 text-left bg-white">
                             <p className="text-xs font-black text-gray-800 truncate">{d.nome}</p>
                             <p className="text-[10px] text-gray-400 truncate">{d.instagram || 'Sem Instagram'}</p>
+                            {d.destaque && (
+                              <p className="text-[9px] font-black text-[#8a6d00] uppercase tracking-wide mt-1">★ Em destaque na Home</p>
+                            )}
                           </div>
                         </div>
                       ))}

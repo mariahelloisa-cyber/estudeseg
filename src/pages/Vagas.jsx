@@ -51,7 +51,7 @@ export default function Vagas() {
         className="w-full h-[360px] sm:h-[350px] md:h-[400px] bg-cover bg-center relative z-0"
         style={{ 
           backgroundImage: `url(${ImagemVagas})`,
-          boxShadow: '0 20px 35px -10px #fed106' /* Sombra Rosa Projetada Abaixo */
+          boxShadow: '0 5px 25px -3px #fed106' /* Sombra Rosa Projetada Abaixo */
         }}
       >
         {/* Banner 100% limpo, servindo puramente para exibir a imagem de fundo */}
@@ -69,7 +69,7 @@ export default function Vagas() {
           <div className="w-full max-w-xl mx-auto bg-white rounded-[2.5rem] p-10 md:p-12 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.06)] border border-gray-100 text-center mt-10 md:mt-14 transition-all duration-300 animate-fade-in">
             
             {/* Ícone de Maleta / Carreira Executiva com gradiente suave */}
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#fdf2f7] to-[#fed106] text-[#ffeea0] mb-6 shadow-inner">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#000000] to-[#000000] text-[#ffeea0] mb-6 shadow-inner">
               <svg 
                 className="w-8 h-8" 
                 fill="none" 
@@ -82,12 +82,12 @@ export default function Vagas() {
             </div>
             
             {/* Tag explicativa sutil */}
-            <span className="block text-[11px] font-bold text-[#fed106] tracking-widest uppercase bg-[#fdf2f7] py-1 px-3.5 rounded-full w-max mx-auto mb-4">
+            <span className="block text-[11px] font-bold text-[#fed106] tracking-widest uppercase bg-[#000000] py-1 px-3.5 rounded-full w-max mx-auto mb-4">
               Mural de Oportunidades
             </span>
             
             {/* Título e frase reestruturados */}
-            <h3 className="text-gray-800 font-extrabold text-xl md:text-2xl tracking-tight mb-3">
+            <h3 className="text-black font-extrabold text-xl md:text-2xl tracking-tight mb-3">
               Não há vagas disponíveis no momento.
             </h3>
             

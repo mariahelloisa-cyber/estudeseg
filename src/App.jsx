@@ -15,6 +15,7 @@ import ValidacaoRastreio from './pages/ValidacaoRastreio';
 import Sobre from './pages/sobre';
 import ListaCursos from './pages/ListaCursos';
 import CursoDetalhe from './pages/CursoDetalhe';
+import Depoimentos from './pages/Depoimentos';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Admin from './pages/admin';
@@ -39,6 +40,7 @@ function LayoutGlobal() {
         <Route path="/sobre" element={<Sobre />} />
         <Route path="/cursos" element={<ListaCursos />} />
         <Route path="/cursos/:id" element={<CursoDetalhe />} />
+        <Route path="/depoimentos" element={<Depoimentos />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />

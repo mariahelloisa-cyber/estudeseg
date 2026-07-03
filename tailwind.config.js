@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        latec: {
+        Estudeseguro: {
           primaria: '#fed106',   // amarelo da logo
           azul: '#4281c7',       // Azul da logo
           roxo: '#000000',       // Roxo da logo

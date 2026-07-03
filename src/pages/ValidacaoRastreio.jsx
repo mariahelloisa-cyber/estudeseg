@@ -80,7 +80,7 @@ export default function ValidacaoRastreio() {
                 </p>
                 <button 
                   onClick={() => setTelaAtual('rastreio')}
-                  className="w-full bg-[#000000] hover:bg-[#fed106] text-white font-bold py-3.5 rounded-xl transition-colors tracking-wide text-sm"
+                  className="w-full bg-[#fed106] hover:bg-[#000000] text-white font-bold py-3.5 rounded-xl transition-colors tracking-wide text-sm"
                 >
                   RASTREAR AGORA
                 </button>
