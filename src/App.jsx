@@ -1,8 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 
 // Importação dos componentes globais
-import Footer from './components/Footer'; 
+import Footer from './components/Footer';
 import CarrinhoSidebar from './components/CarrinhoSidebar';
+import WhatsAppButton from './components/WhatsAppButton';
+import PopupAvisos from './components/PopupAvisos';
 
 // Importação das tuas páginas
 import Inicio from './pages/Inicio';
@@ -46,8 +48,10 @@ function LayoutGlobal() {
         <Route path="/admin" element={<Admin />} />
       </Routes>
 
-      {/* O Footer e o carrinho só aparecem nas páginas públicas, não no login/admin */}
+      {/* O Footer, o carrinho e o WhatsApp só aparecem nas páginas públicas, não no login/admin */}
       {!paginaSemLayoutPublico && <Footer />}
+      {!paginaSemLayoutPublico && <WhatsAppButton />}
+      {!paginaSemLayoutPublico && <PopupAvisos />}
     </>
   );
 }

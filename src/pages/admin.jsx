@@ -17,6 +17,7 @@ import {
   TagIcon,
   StarIcon,
   EnvelopeIcon,
+  MegaphoneIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -36,6 +37,7 @@ const ITENS_MENU = [
   { id: 'vagas', label: 'Vagas', Icon: BriefcaseIcon },
   { id: 'faq', label: 'FAQ', Icon: QuestionMarkCircleIcon },
   { id: 'depoimentos', label: 'Depoimentos', Icon: ChatBubbleLeftRightIcon },
+  { id: 'popups', label: 'Pop-ups', Icon: MegaphoneIcon },
   { id: 'contatos', label: 'Contatos', Icon: EnvelopeIcon },
 ];
 
@@ -165,6 +167,11 @@ export default function Admin() {
 
   // --- Estados para o Gerenciador de Contatos (formulário da Home) ---
   const [contatosAdmin, setContatosAdmin] = useState([]);
+
+  // --- Estados para o Gerenciador de Pop-ups ---
+  const [popupsAdmin, setPopupsAdmin] = useState([]);
+  const [novoTituloPopup, setNovoTituloPopup] = useState("");
+  const [novoLinkPopup, setNovoLinkPopup] = useState("");
 
   // --- Estados para o Gerenciador de Cursos Cadastrados ---
   const [cursosAdmin, setCursosAdmin] = useState([]);
@@ -686,6 +693,94 @@ export default function Admin() {
       setContatosAdmin((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       alert("Erro ao eliminar contato: " + err.message);
+    }
+  }
+
+  // --- FUNÇÕES DE POP-UPS ---
+  async function buscarPopupsAdmin() {
+    try {
+      const { data, error } = await supabase
+        .from('popups')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPopupsAdmin(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar pop-ups:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarPopupsAdmin();
+  }, []);
+
+  async function handleAdicionarPopup(e) {
+    e.preventDefault();
+
+    if (!novoTituloPopup.trim()) {
+      setMensagemStatus("⚠️ O nome interno do pop-up é obrigatório!");
+      return;
+    }
+
+    const arquivoInput = document.getElementById('imagem-popup');
+    const arquivo = arquivoInput?.files[0];
+
+    if (!arquivo) {
+      setMensagemStatus("⚠️ O pop-up é exibido apenas como imagem: selecione um arquivo!");
+      return;
+    }
+
+    try {
+      setMensagemStatus("⏳ Salvando pop-up...");
+      const nomeArquivo = `popup-${Date.now()}-${arquivo.name}`;
+      const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+      const urlImagem = urlData.publicUrl;
+
+      const { error: insertError } = await supabase.from('popups').insert([
+        {
+          titulo: novoTituloPopup,
+          imagem_url: urlImagem,
+          link_redirecionamento: novoLinkPopup.trim() || null,
+          ativo: false,
+        }
+      ]);
+
+      if (insertError) throw insertError;
+
+      setMensagemStatus("✅ Pop-up criado com sucesso! Ative-o na lista para exibir no site.");
+      setNovoTituloPopup("");
+      setNovoLinkPopup("");
+      if (arquivoInput) arquivoInput.value = "";
+      buscarPopupsAdmin();
+    } catch (err) {
+      setMensagemStatus("❌ Erro ao salvar pop-up: " + err.message);
+    }
+  }
+
+  async function handleAlternarAtivoPopup(popup) {
+    try {
+      const { error } = await supabase
+        .from('popups')
+        .update({ ativo: !popup.ativo })
+        .eq('id', popup.id);
+      if (error) throw error;
+      buscarPopupsAdmin();
+    } catch (err) {
+      alert("Erro ao atualizar pop-up: " + err.message);
+    }
+  }
+
+  async function handleEliminarPopup(id) {
+    if (!window.confirm("Tem a certeza que quer eliminar este pop-up?")) return;
+    try {
+      const { error } = await supabase.from('popups').delete().eq('id', id);
+      if (error) throw error;
+      buscarPopupsAdmin();
+    } catch (err) {
+      alert("Erro ao eliminar pop-up: " + err.message);
     }
   }
 
@@ -1243,6 +1338,7 @@ export default function Admin() {
                 <CardEstatistica label="Banners Ativos" valor={banners.length} subtitulo="Na Home" Icon={PhotoIcon} cor="bg-[#fed106]" />
                 <CardEstatistica label="Depoimentos" valor={depoimentos.length} subtitulo="Publicados" Icon={ChatBubbleLeftRightIcon} cor="bg-orange-500" />
                 <CardEstatistica label="Contatos" valor={contatosAdmin.length} subtitulo="Recebidos pela Home" Icon={EnvelopeIcon} cor="bg-teal-500" />
+                <CardEstatistica label="Pop-ups" valor={popupsAdmin.length} subtitulo={`${popupsAdmin.filter((p) => p.ativo).length} ativo(s)`} Icon={MegaphoneIcon} cor="bg-rose-500" />
               </div>
 
               <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -1258,6 +1354,7 @@ export default function Admin() {
                 <CartaoAcaoRapida titulo="Gerenciar FAQ" descricao="Perguntas frequentes do site" Icon={QuestionMarkCircleIcon} cor="bg-orange-500" onClick={() => irParaAba('faq')} />
                 <CartaoAcaoRapida titulo="Gerenciar Depoimentos" descricao="Depoimentos em vídeo de alunos" Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" onClick={() => irParaAba('depoimentos')} />
                 <CartaoAcaoRapida titulo="Gerenciar Contatos" descricao="Mensagens recebidas pelo formulário da Home" Icon={EnvelopeIcon} cor="bg-teal-500" onClick={() => irParaAba('contatos')} />
+                <CartaoAcaoRapida titulo="Gerenciar Pop-ups" descricao="Avisos e promoções exibidos no site" Icon={MegaphoneIcon} cor="bg-rose-500" onClick={() => irParaAba('popups')} />
               </div>
             </>
           )}
@@ -2141,6 +2238,98 @@ export default function Admin() {
                               <p className="text-[9px] font-black text-[#8a6d00] uppercase tracking-wide mt-1">★ Em destaque na Home</p>
                             )}
                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= POP-UPS ================= */}
+          {abaAtiva === 'popups' && (
+            <>
+              <CabecalhoPagina titulo="Gerenciar Pop-ups" subtitulo="O pop-up é exibido apenas como imagem, sem textos. Apenas os marcados como 'Ativo' aparecem para os visitantes." Icon={MegaphoneIcon} />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Novo Pop-up</h3>
+                  <form onSubmit={handleAdicionarPopup} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nome Interno (não aparece no site)</label>
+                      <input
+                        type="text"
+                        value={novoTituloPopup}
+                        onChange={(e) => setNovoTituloPopup(e.target.value)}
+                        placeholder="Ex: Matrículas Abertas!"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Imagem do Pop-up</label>
+                      <input
+                        type="file"
+                        id="imagem-popup"
+                        accept="image/*"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Link de Redirecionamento (Opcional)</label>
+                      <input
+                        type="text"
+                        value={novoLinkPopup}
+                        onChange={(e) => setNovoLinkPopup(e.target.value)}
+                        placeholder="https://..."
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Criar Pop-up</button>
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Pop-ups Cadastrados ({popupsAdmin.length})</h3>
+                  {popupsAdmin.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                      <MegaphoneIcon className="w-10 h-10 text-gray-300 mb-3" />
+                      <p className="font-black text-gray-700 text-sm">Nenhum pop-up cadastrado</p>
+                      <p className="text-xs text-gray-400 mt-1">Crie um pop-up e ative-o para exibir no site</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {popupsAdmin.map((p) => (
+                        <div key={p.id} className={`bg-gray-50 border rounded-xl overflow-hidden relative shadow-sm flex items-center p-3 gap-4 ${p.ativo ? 'border-[#fed106] ring-2 ring-[#fed106]/40' : 'border-gray-100'}`}>
+                          {p.imagem_url ? (
+                            <img src={p.imagem_url} alt="" className="w-16 h-16 object-cover rounded-lg bg-gray-200 shrink-0" />
+                          ) : (
+                            <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center shrink-0">
+                              <MegaphoneIcon className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0 text-left">
+                            <p className="text-sm font-black text-gray-800 truncate">{p.titulo}</p>
+                            {p.link_redirecionamento && (
+                              <p className="text-[11px] text-gray-400 truncate">{p.link_redirecionamento}</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAlternarAtivoPopup(p)}
+                            title={p.ativo ? 'Desativar pop-up' : 'Ativar pop-up'}
+                            className={`shrink-0 text-[10px] font-black uppercase tracking-wide px-3 py-1.5 rounded-full transition-colors cursor-pointer ${
+                              p.ativo ? 'bg-[#fed106] text-black' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                            }`}
+                          >
+                            {p.ativo ? 'Ativo' : 'Inativo'}
+                          </button>
+                          <button
+                            onClick={() => handleEliminarPopup(p.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer shrink-0"
+                          >
+                            ✕
+                          </button>
                         </div>
                       ))}
                     </div>

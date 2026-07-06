@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
@@ -16,6 +16,17 @@ export default function Inicio() {
   const [listaDiferenciais, setListaDiferenciais] = useState([]);
   const [indiceAtivo, setIndiceAtivo] = useState(0);
   const [cursosDestaque, setCursosDestaque] = useState([]);
+  const cursosCarrosselRef = useRef(null);
+
+  const rolarCursosDestaque = (direcao) => {
+    const container = cursosCarrosselRef.current;
+    if (!container) return;
+    const largura = container.clientWidth;
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    let destino = container.scrollLeft + (direcao === 'direita' ? largura : -largura);
+    destino = Math.max(0, Math.min(destino, maxScroll));
+    container.scrollTo({ left: destino, behavior: 'smooth' });
+  };
   const [noticiasDestaque, setNoticiasDestaque] = useState([]);
   const [bannerLateral, setBannerLateral] = useState(null);
   const [depoimentos, setDepoimentos] = useState([]);
@@ -60,6 +71,13 @@ export default function Inicio() {
       .animate-marquee {
         animation: marquee 30s linear infinite;
         will-change: transform;
+      }
+      .hide-scrollbar {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
       }
     `;
     document.head.appendChild(style);
@@ -464,29 +482,44 @@ export default function Inicio() {
                   </svg>
                 </a>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                <div className="flex items-center gap-2 w-full">
+                  <button
+                    type="button"
+                    onClick={() => rolarCursosDestaque('esquerda')}
+                    aria-label="Ver cursos anteriores"
+                    className="hidden sm:flex shrink-0 w-9 h-9 rounded-full bg-[#fed106] hover:bg-black text-white hover:text-white items-center justify-center shadow-sm border border-gray-200 transition-all cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+
+                  <div
+                    ref={cursosCarrosselRef}
+                    className="flex flex-nowrap gap-4 flex-1 min-w-0 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar pb-2"
+                  >
                   {cursosDestaque.slice(0, MAX_CURSOS_DESTAQUE).map((curso) => (
                     <a
                       key={`curso-home-${curso.id}`}
                       href={`/cursos/${curso.id}`}
-                      className="flex flex-col bg-white rounded-2xl overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group cursor-pointer border border-gray-100"
+                      className="flex flex-col shrink-0 snap-start w-[180px] bg-white rounded-2xl overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group cursor-pointer border border-gray-100"
                     >
-                      <div className="w-full h-32 overflow-hidden relative bg-gray-50">
-                        <img 
-                          src={curso.fotoUrl} 
-                          alt={curso.titulo} 
+                      <div className="w-full h-[55%] shrink-0 overflow-hidden relative bg-gray-50">
+                        <img
+                          src={curso.fotoUrl}
+                          alt={curso.titulo}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                         <span className="absolute top-2 left-2 bg-[#fed106] text-white font-black text-[8px] tracking-wider uppercase py-0.5 px-2 rounded-full">
                           {curso.categoria}
                         </span>
                       </div>
-                      
-                      <div className="p-4 flex flex-col flex-grow text-left">
+
+                      <div className="p-3 flex flex-col flex-1 min-h-0 text-left">
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 block">
-                          ⏱ {curso.duracao}
+                          {curso.duracao}
                         </span>
-                        <div className="flex items-end justify-between gap-2 flex-grow">
+                        <div className="flex items-end justify-between gap-2 flex-1 min-h-0">
                           <div className="min-w-0">
                             <h4 className="text-sm font-black text-gray-800 mb-1 group-hover:text-[#fed106] transition-colors duration-300 line-clamp-1">
                               {curso.titulo}
@@ -504,6 +537,18 @@ export default function Inicio() {
                       </div>
                     </a>
                   ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => rolarCursosDestaque('direita')}
+                    aria-label="Ver mais cursos"
+                    className="shrink-0 w-9 h-9 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-sm transition-all cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>

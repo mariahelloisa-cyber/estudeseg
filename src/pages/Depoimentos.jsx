@@ -32,9 +32,9 @@ export default function Depoimentos() {
       <Navbar />
 
       {/* --- CABEÇALHO --- */}
-      <div className="w-full bg-[#fed106]/5 relative overflow-hidden py-16 md:py-20">
+      <div className="w-full bg-[#fed106]/10 relative overflow-hidden py-16 md:py-20">
         <svg
-          className="absolute -right-60 -top-55 w-[700px] md:w-[1200px] h-[1200px] md:h-[1200px] text-[#fed106]/10 pointer-events-none z-0"
+          className="absolute -right-60 -top-55 w-[700px] md:w-[1200px] h-[1200px] md:h-[1200px] text-[#fed106]/20 pointer-events-none z-0"
           viewBox="0 0 1000 1000"
           xmlns="http://www.w3.org/2000/svg"
           preserveAspectRatio="none"
