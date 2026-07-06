@@ -20,6 +20,31 @@ export default function Inicio() {
   const [bannerLateral, setBannerLateral] = useState(null);
   const [depoimentos, setDepoimentos] = useState([]);
 
+  // --- Estado do Formulário de Contato ---
+  const [contatoForm, setContatoForm] = useState({ nome: '', email: '', telefone: '', curso_desejado: '', mensagem: '' });
+  const [contatoStatus, setContatoStatus] = useState('');
+
+  const handleContatoChange = (e) => {
+    const { name, value } = e.target;
+    setContatoForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleContatoSubmit = async (e) => {
+    e.preventDefault();
+    setContatoStatus('enviando');
+    try {
+      const { error } = await supabase.from('contatos').insert([contatoForm]);
+      if (error) throw error;
+
+      setContatoStatus('sucesso');
+      setContatoForm({ nome: '', email: '', telefone: '', curso_desejado: '', mensagem: '' });
+      setTimeout(() => setContatoStatus(''), 5000);
+    } catch (err) {
+      console.error('Erro ao salvar contato no Supabase:', err);
+      setContatoStatus('erro');
+    }
+  };
+
   // Adicionar CSS para animação marquee
   useEffect(() => {
     const style = document.createElement('style');
@@ -132,50 +157,36 @@ export default function Inicio() {
     return listaDiferenciais[indiceDado];
   };
 
-  // --- Fetch para Cursos em Destaque do Strapi ---
+  // --- Fetch para Cursos em Destaque (marcados no painel admin) ---
+  const MAX_CURSOS_DESTAQUE = 5;
+
   useEffect(() => {
     async function buscarCursosDestaque() {
       try {
-        const resposta = await fetch(`${API_URL}/api/cursos?filters[destaque][$eq]=true&populate=*`);
-        const dados = await resposta.json();
-        
-        if (dados && Array.isArray(dados.data)) {
-          const cursosFormatados = dados.data.map(item => {
-            const alvo = item.attributes || item; 
-            
-            let imgCaminho = "";
-            if (alvo.imagem?.data?.attributes?.url) {
-              imgCaminho = alvo.imagem.data.attributes.url;
-            } else if (alvo.imagem?.url) {
-              imgCaminho = alvo.imagem.url;
-            } else if (alvo.foto?.url) {
-              imgCaminho = alvo.foto.url;
-            }
+        const { data, error } = await supabase
+          .from('cursos_cadastrados')
+          .select('*, categorias_cursos(nome)')
+          .eq('destaque', true)
+          .order('created_at', { ascending: false })
+          .limit(MAX_CURSOS_DESTAQUE);
 
-            let nomeCategoria = "Geral";
-            if (alvo.categoria?.data?.attributes?.nome) {
-              nomeCategoria = alvo.categoria.data.attributes.nome;
-            } else if (alvo.categoria?.nome) {
-              nomeCategoria = alvo.categoria.nome;
-            }
+        if (error) throw error;
 
-            return {
-              id: item.documentId || item.id,
-              titulo: alvo.titulo || alvo.nome || "Curso sem Título",
-              resumo: alvo.resumo || (alvo.descricao ? alvo.descricao.substring(0, 70) + "..." : ""),
-              duracao: alvo.duracao || "Curta Duração",
-              categoria: nomeCategoria.toUpperCase(),
-              fotoUrl: imgCaminho ? `${API_URL}${imgCaminho}` : "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600"
-            };
-          });
-          setCursosDestaque(cursosFormatados);
-        }
+        const cursosFormatados = (data || []).map((item) => ({
+          id: item.id,
+          titulo: item.titulo || "Curso sem Título",
+          resumo: item.descricao ? item.descricao.substring(0, 70) + "..." : "",
+          duracao: item.duracao || "Curta Duração",
+          categoria: (item.categorias_cursos?.nome || "Geral").toUpperCase(),
+          fotoUrl: item.imagem_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600"
+        }));
+        setCursosDestaque(cursosFormatados);
       } catch (erro) {
         console.error("Erro ao carregar cursos em destaque:", erro);
       }
     }
     buscarCursosDestaque();
-  }, [API_URL]);
+  }, []);
 
   // 4. Buscar Depoimentos do SUPABASE
   async function buscarDepoimentosDoSupabase() {
@@ -400,14 +411,14 @@ export default function Inicio() {
 
       {/* --- SEÇÃO 5: CURSOS EM DESTAQUE --- */}
       {cursosDestaque.length > 0 && (
-        <div className="w-full bg-[#fdf0f6] relative overflow-hidden mt-0">
-          <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-[42vw] z-10">
+        <div className="w-full bg-[#fed106]/5 relative overflow-hidden mt-0">
+          <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-[30vw] z-10">
             <img 
               src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=600" 
               alt="Alunos LATec" 
               className="w-full h-full object-cover"
             />
-            <div className="absolute right-0 top-[110px] translate-x-1/2 z-30 w-24 h-24 flex items-center justify-center">
+            <div className="absolute right-0 top-[110px] translate-x-1/2 z-30 w-30 h-30 flex items-center justify-center">
               <img 
                 src="meclogo.png" 
                 alt="Símbolo Oficial MEC"
@@ -419,11 +430,11 @@ export default function Inicio() {
             </div>
           </div>
 
-          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-[#fbe4f0] rounded-l-[120px] pointer-events-none z-0 opacity-60 hidden lg:block" />
+          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-[#ffeea0] rounded-l-[120px] pointer-events-none z-0 opacity-60 hidden lg:block" />
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 py-20 md:py-24">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 py-5 md:py-7">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-stretch">
-              <div className="lg:col-span-5 w-full flex items-center">
+              <div className="lg:col-span-4 w-full flex items-center">
                 <div className="block lg:hidden w-full h-[360px] relative rounded-2xl overflow-hidden shadow-md">
                   <div className="absolute top-4 left-4 bg-[#ffe600] text-gray-900 rounded-full w-16 h-16 flex flex-col items-center justify-center text-center p-1 shadow-md z-20">
                     <span className="text-[7px] font-bold uppercase leading-none">Nota MEC</span>
@@ -446,12 +457,15 @@ export default function Inicio() {
                   Formações atualizadas e focadas no que o mercado de trabalho está exigindo.
                 </p>
 
-                <a href="/cursos" className="text-gray-900 font-extrabold text-sm underline hover:text-[#fed106] transition-colors mb-8 inline-block w-fit">
+                <a href="/cursos" className="group inline-flex items-center gap-1.5 text-black font-extrabold text-sm no-underline hover:text-[#fed106] transition-colors mb-8 w-fit">
                   Ver todos os cursos
+                  <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
                 </a>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-                  {cursosDestaque.slice(0, 4).map((curso) => (
+                  {cursosDestaque.slice(0, MAX_CURSOS_DESTAQUE).map((curso) => (
                     <a
                       key={`curso-home-${curso.id}`}
                       href={`/cursos/${curso.id}`}
@@ -472,12 +486,21 @@ export default function Inicio() {
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1 block">
                           ⏱ {curso.duracao}
                         </span>
-                        <h4 className="text-sm font-black text-gray-800 mb-1 group-hover:text-[#fed106] transition-colors duration-300 line-clamp-1">
-                          {curso.titulo}
-                        </h4>
-                        <p className="text-[11px] text-gray-500 font-medium leading-relaxed line-clamp-2">
-                          {curso.resumo}
-                        </p>
+                        <div className="flex items-end justify-between gap-2 flex-grow">
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-black text-gray-800 mb-1 group-hover:text-[#fed106] transition-colors duration-300 line-clamp-1">
+                              {curso.titulo}
+                            </h4>
+                            <p className="text-[11px] text-gray-500 font-medium leading-relaxed line-clamp-2">
+                              {curso.resumo}
+                            </p>
+                          </div>
+                          <span className="shrink-0 w-8 h-8 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-700 group-hover:bg-[#fed106] group-hover:border-[#fed106] group-hover:text-white transition-all duration-300">
+                            <svg className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                          </span>
+                        </div>
                       </div>
                     </a>
                   ))}
@@ -683,7 +706,7 @@ export default function Inicio() {
       {depoimentos.length > 0 && (
         <div className="w-full bg-[#fed106]/5 relative overflow-hidden py-16 md:py-20 mt-12">
           <svg 
-            className="absolute -right-60 -top-55 w-[700px] md:w-[1200px] h-[1200px] md:h-[1200px] text-[#fed106]/10 pointer-events-none z-0" 
+            className="absolute -right-60 -top-55 w-[700px] md:w-[1200px] h-[1200px] md:h-[1200px] text-[#ffeea0]/55 pointer-events-none z-0" 
             viewBox="0 0 1000 1000" 
             xmlns="http://www.w3.org/2000/svg"
             preserveAspectRatio="none"
@@ -749,7 +772,137 @@ export default function Inicio() {
         </div>
       )}
 
-      
+      {/* --- SEÇÃO: FORMULÁRIO DE CONTATO --- */}
+      <section className="relative py-16 md:py-20 bg-black w-full overflow-hidden border-t border-gray-100">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-3">
+              Fale com a <span className="text-[#fed106]">Estude Seguro</span>
+            </h2>
+            <p className="text-gray-500 text-sm md:text-base font-medium">
+              Preencha o formulário abaixo e nossa equipe entrará em contato com você.
+            </p>
+          </div>
+
+          {contatoStatus === 'sucesso' && (
+            <div className="w-full bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-2xl mb-6 text-sm font-bold flex items-center gap-3">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Mensagem enviada com sucesso! Em breve entraremos em contato.
+            </div>
+          )}
+
+          {contatoStatus === 'erro' && (
+            <div className="w-full bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl mb-6 text-sm font-bold flex items-center gap-3">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Ocorreu um erro ao enviar sua mensagem. Tente novamente mais tarde.
+            </div>
+          )}
+
+          <div className="w-full bg-[#F8F9FA] rounded-[2rem] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] border border-gray-100 p-8 md:p-10">
+            <form onSubmit={handleContatoSubmit} className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                    Nome Completo <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="nome"
+                    value={contatoForm.nome}
+                    onChange={handleContatoChange}
+                    placeholder="Seu nome completo"
+                    required
+                    disabled={contatoStatus === 'enviando'}
+                    className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3.5 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#fed106]/10 focus:border-[#fed106] transition-all disabled:opacity-50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                    E-mail <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={contatoForm.email}
+                    onChange={handleContatoChange}
+                    placeholder="seu@email.com"
+                    required
+                    disabled={contatoStatus === 'enviando'}
+                    className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3.5 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#fed106]/10 focus:border-[#fed106] transition-all disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                    Telefone
+                  </label>
+                  <input
+                    type="text"
+                    name="telefone"
+                    value={contatoForm.telefone}
+                    onChange={handleContatoChange}
+                    placeholder="(00) 00000-0000"
+                    disabled={contatoStatus === 'enviando'}
+                    className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3.5 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#fed106]/10 focus:border-[#fed106] transition-all disabled:opacity-50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                    Curso Desejado
+                  </label>
+                  <input
+                    type="text"
+                    name="curso_desejado"
+                    value={contatoForm.curso_desejado}
+                    onChange={handleContatoChange}
+                    placeholder="Ex: Técnico em Enfermagem"
+                    disabled={contatoStatus === 'enviando'}
+                    className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3.5 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#fed106]/10 focus:border-[#fed106] transition-all disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-2">
+                  Mensagem <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="mensagem"
+                  value={contatoForm.mensagem}
+                  onChange={handleContatoChange}
+                  placeholder="Como podemos te ajudar?"
+                  required
+                  rows="4"
+                  disabled={contatoStatus === 'enviando'}
+                  className="w-full bg-white border border-gray-200 rounded-2xl px-5 py-4 text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#fed106]/10 focus:border-[#fed106] transition-all resize-none leading-relaxed disabled:opacity-50"
+                ></textarea>
+              </div>
+
+              <button
+                type="submit"
+                disabled={contatoStatus === 'enviando'}
+                className="w-full text-center bg-gradient-to-r from-[#fed106] to-[#ffeea0] text-black font-bold text-xs md:text-sm uppercase tracking-widest py-4.5 rounded-2xl transition-all duration-300 hover:opacity-95 shadow-md hover:shadow-lg active:scale-[0.99] mt-2 disabled:opacity-70 flex justify-center items-center gap-2"
+              >
+                {contatoStatus === 'enviando' ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-black" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Enviando...
+                  </>
+                ) : (
+                  'Enviar Mensagem'
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

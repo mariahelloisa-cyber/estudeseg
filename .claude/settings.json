@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"vite --port 5185\")",
+      "Bash(npm run *)",
+      "Bash(disown)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5186/)",
+      "Bash(node test-double-submit.js)",
+      "Bash(node test-double-submit2.js)",
+      "Bash(pkill -f \"vite --port 5186\")",
+      "Bash(npx eslint *)",
+      "Bash(npx vite *)"
+    ]
+  }
+}

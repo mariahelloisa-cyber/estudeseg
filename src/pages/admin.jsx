@@ -16,6 +16,7 @@ import {
   XMarkIcon,
   TagIcon,
   StarIcon,
+  EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -35,6 +36,7 @@ const ITENS_MENU = [
   { id: 'vagas', label: 'Vagas', Icon: BriefcaseIcon },
   { id: 'faq', label: 'FAQ', Icon: QuestionMarkCircleIcon },
   { id: 'depoimentos', label: 'Depoimentos', Icon: ChatBubbleLeftRightIcon },
+  { id: 'contatos', label: 'Contatos', Icon: EnvelopeIcon },
 ];
 
 const CURSO_FORM_INICIAL = {
@@ -47,9 +49,12 @@ const CURSO_FORM_INICIAL = {
   precoOriginal: "",
   preco: "",
   seloMec: true,
+  destaque: false,
   gradeCurricular: [],
   blocosConteudo: [],
 };
+
+const MAX_CURSOS_DESTAQUE = 5;
 
 // --- Componentes visuais reutilizados nas páginas do painel ---
 function CabecalhoPagina({ titulo, subtitulo, Icon }) {
@@ -157,6 +162,9 @@ export default function Admin() {
   // --- Estados para o Gerenciador de Categorias de Cursos ---
   const [categoriasCursos, setCategoriasCursos] = useState([]);
   const [novaCategoriaCursoNome, setNovaCategoriaCursoNome] = useState("");
+
+  // --- Estados para o Gerenciador de Contatos (formulário da Home) ---
+  const [contatosAdmin, setContatosAdmin] = useState([]);
 
   // --- Estados para o Gerenciador de Cursos Cadastrados ---
   const [cursosAdmin, setCursosAdmin] = useState([]);
@@ -655,11 +663,38 @@ export default function Admin() {
     }
   }
 
+  // --- FUNÇÕES DE CONTATOS (formulário da Home) ---
+  async function buscarContatosAdmin() {
+    try {
+      const { data, error } = await supabase
+        .from('contatos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setContatosAdmin(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar contatos:", err);
+    }
+  }
+
+  async function handleDeletarContato(id) {
+    if (!window.confirm("Tem certeza que deseja excluir este contato?")) return;
+    try {
+      const { error } = await supabase.from('contatos').delete().eq('id', id);
+      if (error) throw error;
+      setContatosAdmin((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      alert("Erro ao eliminar contato: " + err.message);
+    }
+  }
+
   // Executa a busca assim que o modo admin for aberto
   useEffect(() => {
     if (modoAdmin) {
       buscarFaqsAdmin();
       buscarVagasAdmin();
+      buscarContatosAdmin();
     }
   }, [modoAdmin]);
 
@@ -984,6 +1019,7 @@ export default function Admin() {
       precoOriginal: curso.preco_original != null ? String(curso.preco_original) : "",
       preco: curso.preco != null ? String(curso.preco) : "",
       seloMec: curso.selo_mec ?? true,
+      destaque: curso.destaque ?? false,
       gradeCurricular: parseGradeCurricular(curso.grade_curricular),
       blocosConteudo: parseBlocosConteudo(curso.blocos_conteudo),
     });
@@ -1001,6 +1037,14 @@ export default function Admin() {
     if (!formCurso.titulo.trim() || !formCurso.descricao.trim()) {
       setMensagemStatus("⚠️ Preencha ao menos o título e a descrição do curso!");
       return;
+    }
+
+    if (formCurso.destaque) {
+      const totalDestacados = cursosAdmin.filter((c) => c.destaque && c.id !== cursoEditando).length;
+      if (totalDestacados >= MAX_CURSOS_DESTAQUE) {
+        setMensagemStatus(`⚠️ Você já tem ${MAX_CURSOS_DESTAQUE} cursos em destaque. Remova um antes de adicionar outro.`);
+        return;
+      }
     }
 
     const arquivoInput = document.getElementById(cursoEditando ? 'imagem-curso-edit' : 'imagem-curso');
@@ -1036,6 +1080,7 @@ export default function Admin() {
         preco_original: formCurso.precoOriginal ? parseFloat(formCurso.precoOriginal) : null,
         preco: parseFloat(formCurso.preco) || 0,
         selo_mec: formCurso.seloMec,
+        destaque: formCurso.destaque,
         grade_curricular: serializarGradeCurricular(formCurso.gradeCurricular),
         blocos_conteudo: serializarBlocosConteudo(formCurso.blocosConteudo),
       };
@@ -1197,6 +1242,7 @@ export default function Admin() {
                 <CardEstatistica label="Posts no Blog" valor={noticiasDestaque.length} subtitulo={`${noticiasDestacadas} em destaque`} Icon={DocumentTextIcon} cor="bg-emerald-500" />
                 <CardEstatistica label="Banners Ativos" valor={banners.length} subtitulo="Na Home" Icon={PhotoIcon} cor="bg-[#fed106]" />
                 <CardEstatistica label="Depoimentos" valor={depoimentos.length} subtitulo="Publicados" Icon={ChatBubbleLeftRightIcon} cor="bg-orange-500" />
+                <CardEstatistica label="Contatos" valor={contatosAdmin.length} subtitulo="Recebidos pela Home" Icon={EnvelopeIcon} cor="bg-teal-500" />
               </div>
 
               <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -1211,6 +1257,7 @@ export default function Admin() {
                 <CartaoAcaoRapida titulo="Gerenciar Vagas" descricao="Publicar e remover vagas abertas" Icon={BriefcaseIcon} cor="bg-slate-600" onClick={() => irParaAba('vagas')} />
                 <CartaoAcaoRapida titulo="Gerenciar FAQ" descricao="Perguntas frequentes do site" Icon={QuestionMarkCircleIcon} cor="bg-orange-500" onClick={() => irParaAba('faq')} />
                 <CartaoAcaoRapida titulo="Gerenciar Depoimentos" descricao="Depoimentos em vídeo de alunos" Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" onClick={() => irParaAba('depoimentos')} />
+                <CartaoAcaoRapida titulo="Gerenciar Contatos" descricao="Mensagens recebidas pelo formulário da Home" Icon={EnvelopeIcon} cor="bg-teal-500" onClick={() => irParaAba('contatos')} />
               </div>
             </>
           )}
@@ -1223,6 +1270,7 @@ export default function Admin() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <CardEstatistica label="Cursos Cadastrados" valor={cursosAdmin.length} Icon={AcademicCapIcon} cor="bg-indigo-500" />
                 <CardEstatistica label="Categorias" valor={categoriasCursos.length} Icon={TagIcon} cor="bg-[#fed106]" />
+                <CardEstatistica label="Em Destaque (Home)" valor={`${cursosAdmin.filter((c) => c.destaque).length}/${MAX_CURSOS_DESTAQUE}`} Icon={StarIcon} cor="bg-[#fed106]" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1384,6 +1432,16 @@ export default function Admin() {
                           className="w-4 h-4 rounded border-gray-300 cursor-pointer"
                         />
                         <label htmlFor="curso-selo-mec" className="text-xs text-gray-500 font-bold uppercase">Exibir selo MEC</label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="curso-destaque"
+                          checked={formCurso.destaque}
+                          onChange={(e) => atualizarCampoFormCurso('destaque', e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                        />
+                        <label htmlFor="curso-destaque" className="text-xs text-gray-500 font-bold uppercase">Destacar na Home (máx. {MAX_CURSOS_DESTAQUE})</label>
                       </div>
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -1548,6 +1606,11 @@ export default function Admin() {
                               {curso.categorias_cursos?.nome && (
                                 <span className="text-[9px] font-extrabold bg-white text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
                                   {curso.categorias_cursos.nome}
+                                </span>
+                              )}
+                              {curso.destaque && (
+                                <span className="text-[9px] font-extrabold bg-[#fed106]/15 text-[#8a6d00] px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
+                                  ⭐ Destaque
                                 </span>
                               )}
                             </div>
@@ -2083,6 +2146,58 @@ export default function Admin() {
                     </div>
                   )}
                 </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= CONTATOS (formulário da Home) ================= */}
+          {abaAtiva === 'contatos' && (
+            <>
+              <CabecalhoPagina titulo="Contatos" subtitulo='Mensagens enviadas pelo formulário "Fale com a Estude Seguro" na Home' Icon={EnvelopeIcon} />
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <CardEstatistica label="Total de Contatos" valor={contatosAdmin.length} Icon={EnvelopeIcon} cor="bg-teal-500" />
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Mensagens Recebidas ({contatosAdmin.length})</h3>
+                {contatosAdmin.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <EnvelopeIcon className="w-10 h-10 text-gray-300 mb-3" />
+                    <p className="font-black text-gray-700 text-sm">Nenhum contato recebido ainda</p>
+                    <p className="text-xs text-gray-400 mt-1">Envios do formulário da Home aparecerão aqui</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[42rem] overflow-y-auto">
+                    {contatosAdmin.map((c) => (
+                      <div key={c.id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 relative shadow-sm">
+                        <button
+                          onClick={() => handleDeletarContato(c.id)}
+                          className="absolute top-3 right-3 text-red-500 hover:text-red-600 text-xs font-bold uppercase cursor-pointer"
+                        >
+                          Excluir
+                        </button>
+                        <div className="pr-16">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <strong className="text-sm text-gray-900 font-black">{c.nome}</strong>
+                            {c.curso_desejado && (
+                              <span className="text-[9px] font-extrabold bg-[#fed106]/15 text-[#8a6d00] px-2 py-0.5 rounded-full uppercase tracking-wide">
+                                {c.curso_desejado}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 font-medium">
+                            {c.email} {c.telefone ? `• ${c.telefone}` : ''}
+                          </p>
+                          <p className="text-xs text-gray-700 mt-2 leading-relaxed">{c.mensagem}</p>
+                          <p className="text-[10px] text-gray-400 font-semibold mt-2">
+                            {c.created_at ? new Date(c.created_at).toLocaleString('pt-BR') : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}
