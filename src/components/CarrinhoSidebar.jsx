@@ -23,7 +23,7 @@ export default function CarrinhoSidebar() {
         {/* CABEÇALHO COMPACTO */}
         <div className="flex items-center justify-between px-5 py-5 bg-white border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#FDF2F7] flex items-center justify-center text-[#fed106] shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#fffcef] flex items-center justify-center text-[#fed106] shrink-0">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
@@ -47,7 +47,7 @@ export default function CarrinhoSidebar() {
           ) : (
             carrinho.map((item) => (
               <div key={item.id} className="bg-white rounded-2xl p-4 shadow-xs border border-gray-100 flex items-center gap-4 relative group">
-                <div className="w-12 h-12 rounded-xl bg-[#F3E8FF] flex items-center justify-center text-[#7c3aed] shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-[#fffcef] flex items-center justify-center text-[#fed106] shrink-0">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path d="M12 14l9-5-9-5-9 5 9 5z" /><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.083 0 01.665-6.479L12 14z" />
                   </svg>
@@ -55,8 +55,8 @@ export default function CarrinhoSidebar() {
                 
                 <div className="flex-1 min-w-0 pr-6">
                   <h3 className="text-sm font-black text-[#1a103c] leading-tight break-words line-clamp-2">{item.titulo}</h3>
-                  <div className="inline-flex items-center gap-1 bg-[#F3E8FF]/60 text-[#7c3aed] px-2 py-0.5 rounded-md text-[10px] font-bold mt-1.5">
-                    ⏱️ {item.horas}h
+                  <div className="inline-flex items-center gap-1 bg-[#fffcef]/60 text-[#fed106] px-2 py-0.5 rounded-md text-[10px] font-bold mt-1.5">
+                     {item.horas}
                   </div>
                   <div className="mt-2">
                     <span className="text-base font-black text-[#fed106]">R$ {item.preco?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
@@ -91,7 +91,7 @@ export default function CarrinhoSidebar() {
             </div>
           </div>
 
-          <div className="bg-[#FDF2F7] rounded-xl p-4 flex justify-between items-center">
+          <div className="bg-[#fffcef] rounded-xl p-4 flex justify-between items-center">
             <span className="text-sm font-black text-[#1a103c] uppercase tracking-wider">Total</span>
             <span className="text-xl font-black text-[#fed106]">R$ {valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
           </div>
