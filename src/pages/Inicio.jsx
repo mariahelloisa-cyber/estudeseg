@@ -178,6 +178,32 @@ export default function Inicio() {
   // --- Fetch para Cursos em Destaque (marcados no painel admin) ---
   const MAX_CURSOS_DESTAQUE = 5;
 
+  // Tamanho fixo dos cards do carrossel "Cursos em Destaque" (em px) — altere aqui
+  const LARGURA_CARD_CURSO_DESTAQUE = 240;
+  const ALTURA_CARD_CURSO_DESTAQUE = 220;
+  const GAP_CARD_CURSO_DESTAQUE = 16; // precisa bater com o gap-4 usado no carrossel
+
+  // Mede o espaço disponível e mostra só cartões inteiros (nunca corta o último)
+  const cursosWrapperRef = useRef(null);
+  const [larguraFaixaCursos, setLarguraFaixaCursos] = useState(null);
+
+  useEffect(() => {
+    const wrapper = cursosWrapperRef.current;
+    if (!wrapper) return;
+
+    function recalcularLarguraFaixa() {
+      const disponivel = wrapper.clientWidth;
+      const cardComGap = LARGURA_CARD_CURSO_DESTAQUE + GAP_CARD_CURSO_DESTAQUE;
+      const numCartoesVisiveis = Math.max(1, Math.floor((disponivel + GAP_CARD_CURSO_DESTAQUE) / cardComGap));
+      setLarguraFaixaCursos(Math.min(disponivel, numCartoesVisiveis * cardComGap - GAP_CARD_CURSO_DESTAQUE));
+    }
+
+    recalcularLarguraFaixa();
+    const observer = new ResizeObserver(recalcularLarguraFaixa);
+    observer.observe(wrapper);
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     async function buscarCursosDestaque() {
       try {
@@ -482,12 +508,12 @@ export default function Inicio() {
                   </svg>
                 </a>
 
-                <div className="flex items-center gap-2 w-full">
+                <div ref={cursosWrapperRef} className="relative w-full">
                   <button
                     type="button"
                     onClick={() => rolarCursosDestaque('esquerda')}
                     aria-label="Ver cursos anteriores"
-                    className="hidden sm:flex shrink-0 w-9 h-9 rounded-full bg-[#fed106] hover:bg-black text-white hover:text-white items-center justify-center shadow-sm border border-gray-200 transition-all cursor-pointer"
+                    className="hidden sm:flex absolute -left-4 top-1/2 -translate-y-1/2 z-10 shrink-0 w-9 h-9 rounded-full bg-[#fed106] hover:bg-black text-white items-center justify-center shadow-md transition-all cursor-pointer"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -496,13 +522,15 @@ export default function Inicio() {
 
                   <div
                     ref={cursosCarrosselRef}
-                    className="flex flex-nowrap gap-4 flex-1 min-w-0 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar pb-2"
+                    style={{ width: larguraFaixaCursos ?? '100%' }}
+                    className="flex flex-nowrap gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory hide-scrollbar pb-2"
                   >
                   {cursosDestaque.slice(0, MAX_CURSOS_DESTAQUE).map((curso) => (
                     <a
                       key={`curso-home-${curso.id}`}
                       href={`/cursos/${curso.id}`}
-                      className="flex flex-col shrink-0 snap-start w-[180px] bg-white rounded-2xl overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group cursor-pointer border border-gray-100"
+                      style={{ width: LARGURA_CARD_CURSO_DESTAQUE, height: ALTURA_CARD_CURSO_DESTAQUE }}
+                      className="flex flex-col shrink-0 snap-start bg-white rounded-2xl overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group cursor-pointer border border-gray-100"
                     >
                       <div className="w-full h-[55%] shrink-0 overflow-hidden relative bg-gray-50">
                         <img
@@ -543,7 +571,7 @@ export default function Inicio() {
                     type="button"
                     onClick={() => rolarCursosDestaque('direita')}
                     aria-label="Ver mais cursos"
-                    className="shrink-0 w-9 h-9 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-sm transition-all cursor-pointer"
+                    className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 shrink-0 w-9 h-9 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-md transition-all cursor-pointer"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
