@@ -18,6 +18,8 @@ import {
   StarIcon,
   EnvelopeIcon,
   MegaphoneIcon,
+  ChartBarIcon,
+  ArrowTopRightOnSquareIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -69,6 +71,14 @@ function validarImagem(arquivo) {
   if (arquivo.size > TAMANHO_MAXIMO_MB * 1024 * 1024) {
     throw new Error(`Arquivo muito grande (máx. ${TAMANHO_MAXIMO_MB}MB).`);
   }
+}
+
+// Remove caracteres perigosos do nome original (barras, "..", espaços, acentos)
+// antes de usá-lo como chave de objeto no Supabase Storage.
+function sanitizarNomeArquivo(nomeOriginal) {
+  const extensaoMatch = nomeOriginal.match(/\.[a-zA-Z0-9]+$/);
+  const extensao = extensaoMatch ? extensaoMatch[0].toLowerCase() : '';
+  return `${crypto.randomUUID()}${extensao}`;
 }
 
 // --- Componentes visuais reutilizados nas páginas do painel ---
@@ -261,7 +271,7 @@ export default function Admin() {
     try {
       validarImagem(arquivo);
       setMensagemStatus("⏳ Fazendo upload da imagem...");
-      const nomeArquivo = `${Date.now()}-${arquivo.name}`;
+      const nomeArquivo = sanitizarNomeArquivo(arquivo.name);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('banners')
@@ -284,7 +294,8 @@ export default function Admin() {
       if (arquivoInput) arquivoInput.value = "";
       buscarBannersDoSupabase();
     } catch (err) {
-      setMensagemStatus("❌ Erro no processo: " + err.message);
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível concluir. Tente novamente.");
     }
   }
 
@@ -320,7 +331,7 @@ export default function Admin() {
     try {
       validarImagem(arquivo);
       setMensagemStatus("⏳ Guardando selo e fazendo upload da imagem...");
-      const nomeArquivo = `selo-${Date.now()}-${arquivo.name}`;
+      const nomeArquivo = `selo-${sanitizarNomeArquivo(arquivo.name)}`;
 
       const { error: uploadError } = await supabase.storage
         .from('banners')
@@ -346,7 +357,8 @@ export default function Admin() {
       if (arquivoInput) arquivoInput.value = "";
       buscarSelosDoSupabase();
     } catch (err) {
-      setMensagemStatus("❌ Erro ao salvar selo: " + err.message);
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar o selo. Tente novamente.");
     }
   }
 
@@ -426,7 +438,7 @@ export default function Admin() {
     try {
       validarImagem(arquivo);
       setMensagemStatus("⏳ Guardando diferencial e fazendo upload da imagem...");
-      const nomeArquivo = `diferencial-${Date.now()}-${arquivo.name}`;
+      const nomeArquivo = `diferencial-${sanitizarNomeArquivo(arquivo.name)}`;
 
       const { error: uploadError } = await supabase.storage
         .from('banners')
@@ -452,7 +464,8 @@ export default function Admin() {
       if (arquivoInput) arquivoInput.value = "";
       buscarDiferenciaisDoSupabase();
     } catch (err) {
-      setMensagemStatus("❌ Erro ao salvar diferencial: " + err.message);
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar o diferencial. Tente novamente.");
     }
   }
 
@@ -495,7 +508,7 @@ export default function Admin() {
     try {
       validarImagem(arquivo);
       setMensagemStatus("⏳ Publicando notícia...");
-      const nomeArquivo = `noticia-${Date.now()}-${arquivo.name}`;
+      const nomeArquivo = `noticia-${sanitizarNomeArquivo(arquivo.name)}`;
 
       await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
       const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
@@ -530,7 +543,8 @@ export default function Admin() {
         dataCriacao: new Date(item.created_at).toLocaleDateString('pt-PT')
       })));
     } catch (err) {
-      setMensagemStatus("❌ Erro: " + err.message);
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível publicar a notícia. Tente novamente.");
     }
   }
 
@@ -574,7 +588,7 @@ export default function Admin() {
 
       if (arquivo) {
         validarImagem(arquivo);
-        const nomeArquivo = `noticia-${Date.now()}-${arquivo.name}`;
+        const nomeArquivo = `noticia-${sanitizarNomeArquivo(arquivo.name)}`;
         const { error: uploadError } = await supabase.storage
           .from('banners')
           .upload(nomeArquivo, arquivo);
@@ -633,7 +647,8 @@ export default function Admin() {
         }
 
     } catch (err) {
-      setMensagemStatus("❌ Erro ao atualizar notícia: " + err.message);
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível atualizar a notícia. Tente novamente.");
     }
   }
 
@@ -757,7 +772,7 @@ export default function Admin() {
     try {
       validarImagem(arquivo);
       setMensagemStatus("⏳ Salvando pop-up...");
-      const nomeArquivo = `popup-${Date.now()}-${arquivo.name}`;
+      const nomeArquivo = `popup-${sanitizarNomeArquivo(arquivo.name)}`;
       const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
@@ -780,7 +795,8 @@ export default function Admin() {
       if (arquivoInput) arquivoInput.value = "";
       buscarPopupsAdmin();
     } catch (err) {
-      setMensagemStatus("❌ Erro ao salvar pop-up: " + err.message);
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar o pop-up. Tente novamente.");
     }
   }
 
@@ -886,7 +902,7 @@ export default function Admin() {
     try {
       validarImagem(arquivo);
       setMensagemStatus("⏳ Guardando depoimento e fazendo upload da capa...");
-      const nomeArquivo = `depoimento-${Date.now()}-${arquivo.name}`;
+      const nomeArquivo = `depoimento-${sanitizarNomeArquivo(arquivo.name)}`;
 
       const { error: uploadError } = await supabase.storage
         .from('banners')
@@ -916,7 +932,8 @@ export default function Admin() {
       if (arquivoInput) arquivoInput.value = "";
       buscarDepoimentosDoSupabase();
     } catch (err) {
-      setMensagemStatus("❌ Erro ao salvar depoimento: " + err.message);
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar o depoimento. Tente novamente.");
     }
   }
 
@@ -1005,7 +1022,8 @@ export default function Admin() {
       setNovaCategoriaCursoNome("");
       buscarCategoriasCursos();
     } catch (err) {
-      setMensagemStatus("❌ Erro ao criar categoria: " + err.message);
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível criar a categoria. Tente novamente.");
     }
   }
 
@@ -1186,7 +1204,7 @@ export default function Admin() {
       let urlImagem = null;
       if (arquivo) {
         validarImagem(arquivo);
-        const nomeArquivo = `curso-${Date.now()}-${arquivo.name}`;
+        const nomeArquivo = `curso-${sanitizarNomeArquivo(arquivo.name)}`;
         const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
         if (uploadError) {
           console.error("Erro no upload da imagem do curso:", uploadError);
@@ -1216,14 +1234,14 @@ export default function Admin() {
         const { error } = await supabase.from('cursos_cadastrados').update(dadosCurso).eq('id', cursoEditando);
         if (error) {
           console.error("Erro ao atualizar cursos_cadastrados:", error);
-          throw new Error(`[tabela cursos_cadastrados] ${error.message}${error.code ? ` (code: ${error.code})` : ''}`);
+          throw new Error('Não foi possível atualizar o curso.');
         }
         setMensagemStatus("✅ Curso atualizado com sucesso!");
       } else {
         const { error } = await supabase.from('cursos_cadastrados').insert([dadosCurso]);
         if (error) {
           console.error("Erro ao inserir em cursos_cadastrados:", error);
-          throw new Error(`[tabela cursos_cadastrados] ${error.message}${error.code ? ` (code: ${error.code})` : ''}`);
+          throw new Error('Não foi possível publicar o curso.');
         }
         setMensagemStatus("✅ Curso publicado com sucesso!");
       }
@@ -1232,7 +1250,8 @@ export default function Admin() {
       if (arquivoInput) arquivoInput.value = "";
       buscarCursosAdmin();
     } catch (err) {
-      setMensagemStatus("❌ Erro ao salvar curso: " + err.message);
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar o curso. Tente novamente.");
     }
   }
 
@@ -1317,6 +1336,18 @@ export default function Admin() {
               </button>
             );
           })}
+
+          <p className="px-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest text-white/30">Analytics</p>
+          <a
+            href="https://clarity.microsoft.com/projects/view/xir8032xu3/dashboard"
+            target="_blank"
+            rel="noreferrer"
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-white/70 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+          >
+            <ChartBarIcon className="w-5 h-5 shrink-0" />
+            Microsoft Clarity
+            <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5 ml-auto text-white/40 shrink-0" />
+          </a>
         </nav>
 
         <div className="p-4 border-t border-white/10">
