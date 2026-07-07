@@ -58,6 +58,19 @@ const CURSO_FORM_INICIAL = {
 
 const MAX_CURSOS_DESTAQUE = 5;
 
+// --- Validação de arquivos de imagem antes do upload para o Storage ---
+const TIPOS_IMAGEM_PERMITIDOS = ['image/png', 'image/jpeg', 'image/webp'];
+const TAMANHO_MAXIMO_MB = 5;
+
+function validarImagem(arquivo) {
+  if (!TIPOS_IMAGEM_PERMITIDOS.includes(arquivo.type)) {
+    throw new Error('Formato não suportado. Envie uma imagem PNG, JPEG ou WebP.');
+  }
+  if (arquivo.size > TAMANHO_MAXIMO_MB * 1024 * 1024) {
+    throw new Error(`Arquivo muito grande (máx. ${TAMANHO_MAXIMO_MB}MB).`);
+  }
+}
+
 // --- Componentes visuais reutilizados nas páginas do painel ---
 function CabecalhoPagina({ titulo, subtitulo, Icon }) {
   return (
@@ -246,6 +259,7 @@ export default function Admin() {
     }
 
     try {
+      validarImagem(arquivo);
       setMensagemStatus("⏳ Fazendo upload da imagem...");
       const nomeArquivo = `${Date.now()}-${arquivo.name}`;
 
@@ -283,7 +297,8 @@ export default function Admin() {
       if (error) throw error;
       buscarBannersDoSupabase();
     } catch (err) {
-      alert("Erro ao eliminar: " + err.message);
+      console.error(err);
+      alert("❌ Não foi possível eliminar. Tente novamente.");
     }
   }
 
@@ -303,6 +318,7 @@ export default function Admin() {
     }
 
     try {
+      validarImagem(arquivo);
       setMensagemStatus("⏳ Guardando selo e fazendo upload da imagem...");
       const nomeArquivo = `selo-${Date.now()}-${arquivo.name}`;
 
@@ -342,7 +358,8 @@ export default function Admin() {
       if (error) throw error;
       buscarSelosDoSupabase();
     } catch (err) {
-      alert("Erro ao eliminar selo: " + err.message);
+      console.error(err);
+      alert("❌ Não foi possível eliminar o selo. Tente novamente.");
     }
   }
 
@@ -407,6 +424,7 @@ export default function Admin() {
     }
 
     try {
+      validarImagem(arquivo);
       setMensagemStatus("⏳ Guardando diferencial e fazendo upload da imagem...");
       const nomeArquivo = `diferencial-${Date.now()}-${arquivo.name}`;
 
@@ -458,7 +476,8 @@ export default function Admin() {
       alert("✅ Diferencial eliminado com sucesso!");
       buscarDiferenciaisDoSupabase();
     } catch (err) {
-      alert("❌ Erro ao eliminar diferencial: " + err.message);
+      console.error(err);
+      alert("❌ Não foi possível eliminar o diferencial. Tente novamente.");
     }
   }
 
@@ -474,6 +493,7 @@ export default function Admin() {
     }
 
     try {
+      validarImagem(arquivo);
       setMensagemStatus("⏳ Publicando notícia...");
       const nomeArquivo = `noticia-${Date.now()}-${arquivo.name}`;
 
@@ -522,7 +542,8 @@ export default function Admin() {
       if (error) throw error;
       setNoticiasDestaque(prev => prev.filter(n => n.id !== id));
     } catch (err) {
-      alert("Erro ao eliminar notícia: " + err.message);
+      console.error(err);
+      alert("❌ Não foi possível eliminar a notícia. Tente novamente.");
     }
   }
 
@@ -552,6 +573,7 @@ export default function Admin() {
       let urlImagemFinal = null;
 
       if (arquivo) {
+        validarImagem(arquivo);
         const nomeArquivo = `noticia-${Date.now()}-${arquivo.name}`;
         const { error: uploadError } = await supabase.storage
           .from('banners')
@@ -641,7 +663,7 @@ export default function Admin() {
 
       if (error) {
         console.error("Erro do Supabase:", error);
-        alert("❌ Erro ao guardar na base de dados: " + error.message);
+        alert("❌ Não foi possível guardar. Tente novamente.");
         return;
       }
 
@@ -653,7 +675,7 @@ export default function Admin() {
       buscarFaqsAdmin();
     } catch (err) {
       console.error(err);
-      alert("❌ Ocorreu um erro inesperado: " + err.message);
+      alert("❌ Ocorreu um erro inesperado. Tente novamente.");
     }
   }
 
@@ -692,7 +714,8 @@ export default function Admin() {
       if (error) throw error;
       setContatosAdmin((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
-      alert("Erro ao eliminar contato: " + err.message);
+      console.error(err);
+      alert("❌ Não foi possível eliminar o contato. Tente novamente.");
     }
   }
 
@@ -732,6 +755,7 @@ export default function Admin() {
     }
 
     try {
+      validarImagem(arquivo);
       setMensagemStatus("⏳ Salvando pop-up...");
       const nomeArquivo = `popup-${Date.now()}-${arquivo.name}`;
       const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
@@ -769,7 +793,8 @@ export default function Admin() {
       if (error) throw error;
       buscarPopupsAdmin();
     } catch (err) {
-      alert("Erro ao atualizar pop-up: " + err.message);
+      console.error(err);
+      alert("❌ Não foi possível atualizar o pop-up. Tente novamente.");
     }
   }
 
@@ -780,7 +805,8 @@ export default function Admin() {
       if (error) throw error;
       buscarPopupsAdmin();
     } catch (err) {
-      alert("Erro ao eliminar pop-up: " + err.message);
+      console.error(err);
+      alert("❌ Não foi possível eliminar o pop-up. Tente novamente.");
     }
   }
 
@@ -826,7 +852,7 @@ export default function Admin() {
       buscarVagasAdmin();
     } catch (err) {
       console.error(err);
-      alert("❌ Erro ao adicionar vaga: " + err.message);
+      alert("❌ Não foi possível adicionar a vaga. Tente novamente.");
     }
   }
 
@@ -858,6 +884,7 @@ export default function Admin() {
     }
 
     try {
+      validarImagem(arquivo);
       setMensagemStatus("⏳ Guardando depoimento e fazendo upload da capa...");
       const nomeArquivo = `depoimento-${Date.now()}-${arquivo.name}`;
 
@@ -901,7 +928,8 @@ export default function Admin() {
       if (error) throw error;
       buscarDepoimentosDoSupabase();
     } catch (err) {
-      alert("Erro ao eliminar depoimento: " + err.message);
+      console.error(err);
+      alert("❌ Não foi possível eliminar o depoimento. Tente novamente.");
     }
   }
 
@@ -920,7 +948,8 @@ export default function Admin() {
       if (error) throw error;
       buscarDepoimentosDoSupabase();
     } catch (err) {
-      alert("Erro ao atualizar destaque: " + err.message);
+      console.error(err);
+      alert("❌ Não foi possível atualizar o destaque. Tente novamente.");
     }
   }
 
@@ -988,7 +1017,8 @@ export default function Admin() {
       buscarCategoriasCursos();
       buscarCursosAdmin();
     } catch (err) {
-      alert("Erro ao eliminar categoria: " + err.message);
+      console.error(err);
+      alert("❌ Não foi possível eliminar a categoria. Tente novamente.");
     }
   }
 
@@ -1155,6 +1185,7 @@ export default function Admin() {
 
       let urlImagem = null;
       if (arquivo) {
+        validarImagem(arquivo);
         const nomeArquivo = `curso-${Date.now()}-${arquivo.name}`;
         const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
         if (uploadError) {
@@ -1213,7 +1244,8 @@ export default function Admin() {
       if (cursoEditando === id) cancelarEdicaoCurso();
       buscarCursosAdmin();
     } catch (err) {
-      alert("Erro ao eliminar curso: " + err.message);
+      console.error(err);
+      alert("❌ Não foi possível eliminar o curso. Tente novamente.");
     }
   }
 

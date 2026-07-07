@@ -30,6 +30,11 @@ export default function PopupAvisos() {
 
   const fecharPopup = () => setIndiceAtual((prev) => prev + 1);
 
+  // Só aceita links http(s): bloqueia esquemas perigosos como javascript:
+  const linkSeguro = /^https?:\/\//i.test(popupAtual.link_redirecionamento || '')
+    ? popupAtual.link_redirecionamento
+    : null;
+
   const imagem = (
     <img
       src={popupAtual.imagem_url}
@@ -52,8 +57,8 @@ export default function PopupAvisos() {
           </svg>
         </button>
 
-        {popupAtual.link_redirecionamento ? (
-          <a href={popupAtual.link_redirecionamento} target="_blank" rel="noreferrer" className="block w-full h-full">
+        {linkSeguro ? (
+          <a href={linkSeguro} target="_blank" rel="noreferrer" className="block w-full h-full">
             {imagem}
           </a>
         ) : (

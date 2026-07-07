@@ -31,8 +31,7 @@ const mascaraCPF = (valor) => {
 export default function Checkout() {
   const { carrinho, limparCarrinho } = useCartStore();
   const navigate = useNavigate();
-  const [metodoPagamento, setMetodoPagamento] = useState('pix'); 
-  
+
   const [cpfErro, setCpfErro] = useState(''); // Estado para controlar o erro de CPF
 
   // Estados do Formulário
@@ -41,11 +40,6 @@ export default function Checkout() {
     email: '',
     cpf: '',
     whatsapp: '',
-    cardName: '',
-    cardNumber: '',
-    cardExpiry: '',
-    cardCvv: '',
-    parcelas: '1'
   });
 
   const valorTotal = carrinho.reduce((total, item) => total + (item.preco || 0), 0);
@@ -71,7 +65,7 @@ export default function Checkout() {
       return; // Interrompe o envio se for falso
     }
     
-    alert(`🎉 Matrícula Processada com Sucesso!\nForma de pagamento: ${metodoPagamento.toUpperCase()}\nTotal: R$ ${valorTotal.toFixed(2)}`);
+    alert(`🎉 Matrícula Processada com Sucesso!\nForma de pagamento: PIX\nTotal: R$ ${valorTotal.toFixed(2)}`);
     
     limparCarrinho();
     navigate('/'); 
@@ -147,50 +141,12 @@ export default function Checkout() {
               Forma de Pagamento
             </h2>
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <button type="button" onClick={() => setMetodoPagamento('pix')} className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 font-black text-sm cursor-pointer transition-all ${metodoPagamento === 'pix' ? 'border-[#fed106] bg-pink-50/30 text-[#fed106]' : 'border-gray-100 text-gray-500 bg-white'}`}>
-                <span>⚡</span> Pix Imediato
-              </button>
-              <button type="button" onClick={() => setMetodoPagamento('cartao')} className={`p-4 rounded-xl border-2 flex items-center justify-center gap-2 font-black text-sm cursor-pointer transition-all ${metodoPagamento === 'cartao' ? 'border-[#fed106] bg-pink-50/30 text-[#fed106]' : 'border-gray-100 text-gray-500 bg-white'}`}>
-                <span>💳</span> Cartão
-              </button>
+            <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-5 text-center">
+              <span className="text-3xl">📱</span>
+              <h4 className="text-emerald-800 font-bold text-sm mt-1">Liberação instantânea da sua vaga!</h4>
+              <p className="text-emerald-600 text-xs mt-1 max-w-md mx-auto">O código QR Code do Pix "Copia e Cola" será gerado assim que você finalizar a sua matrícula.</p>
             </div>
-
-            {metodoPagamento === 'pix' ? (
-              <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-5 text-center">
-                <span className="text-3xl">📱</span>
-                <h4 className="text-emerald-800 font-bold text-sm mt-1">Liberação instantânea da sua vaga!</h4>
-                <p className="text-emerald-600 text-xs mt-1 max-w-md mx-auto">O código QR Code do Pix "Copia e Cola" será gerado assim que você finalizar a sua matrícula.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="sm:col-span-3">
-                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Número do Cartão</label>
-                  <input type="text" name="cardNumber" value={formData.cardNumber} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#fed106] bg-gray-50/50 text-sm text-gray-800" placeholder="0000 0000 0000 0000" />
-                </div>
-                <div className="sm:col-span-3">
-                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Nome impresso no Cartão</label>
-                  <input type="text" name="cardName" value={formData.cardName} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#fed106] bg-gray-50/50 text-sm text-gray-800" placeholder="COMO ESTÁ NO CARTÃO" />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Validade</label>
-                  <input type="text" name="cardExpiry" value={formData.cardExpiry} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#fed106] bg-gray-50/50 text-sm text-gray-800" placeholder="MM/AA" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">CVV</label>
-                  <input type="text" name="cardCvv" value={formData.cardCvv} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#fed106] bg-gray-50/50 text-sm text-gray-800" placeholder="123" />
-                </div>
-                <div className="sm:col-span-3">
-                  <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Opções de Parcelamento</label>
-                  <select name="parcelas" value={formData.parcelas} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#fed106] bg-gray-50/50 text-sm text-gray-800 cursor-pointer">
-                    <option value="1">1x de R$ {valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (Sem juros)</option>
-                    <option value="2">2x de R$ {(valorTotal / 2).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (Sem juros)</option>
-                    <option value="3">3x de R$ {(valorTotal / 3).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (Sem juros)</option>
-                    <option value="12">12x de R$ {(valorTotal / 12).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (Sem juros)</option>
-                  </select>
-                </div>
-              </div>
-            )}
+            <p className="text-[11px] text-gray-400 text-center mt-4">Pagamento por cartão em breve.</p>
           </div>
           
           <button type="submit" className="w-full lg:hidden bg-[#fed106] hover:bg-[#000000] text-white py-4.5 rounded-2xl font-black uppercase tracking-wider text-sm shadow-lg shadow-pink-100 transition-all active:scale-[0.99] cursor-pointer text-center">
