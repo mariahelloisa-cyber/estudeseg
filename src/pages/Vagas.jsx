@@ -69,7 +69,7 @@ export default function Vagas() {
           <div className="w-full max-w-xl mx-auto bg-white rounded-[2.5rem] p-10 md:p-12 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.06)] border border-gray-100 text-center mt-10 md:mt-14 transition-all duration-300 animate-fade-in">
             
             {/* Ícone de Maleta / Carreira Executiva com gradiente suave */}
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#000000] to-[#000000] text-[#ffeea0] mb-6 shadow-inner">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#000000] to-[#000000] text-[#fed106] mb-6 shadow-inner">
               <svg 
                 className="w-8 h-8" 
                 fill="none" 

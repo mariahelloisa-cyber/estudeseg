@@ -93,7 +93,7 @@ export default function ValidacaoRastreio() {
               <div className="h-1.5 w-full bg-[#fed106]"></div>
               
               <div className="p-8 md:p-10 flex flex-col h-full">
-                <div className="w-12 h-12 bg-pink-50 text-[#fed106] rounded-xl flex items-center justify-center mb-6">
+                <div className="w-12 h-12 bg-blue-50 text-[#fed106] rounded-xl flex items-center justify-center mb-6">
                   <IconeEscudo />
                 </div>
                 <h2 className="text-[#0f1a30] text-xl font-bold mb-3 tracking-tight">Validar Certificado</h2>

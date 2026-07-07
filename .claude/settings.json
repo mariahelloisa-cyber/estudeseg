@@ -13,7 +13,8 @@
       "Bash(netstat -ano)",
       "Bash(curl -s \"http://localhost:5173/src/pages/Inicio.jsx\")",
       "Bash(chromium-cli --help)",
-      "Bash(node -e \"console.log\\(require.resolve\\('playwright'\\)\\)\")"
+      "Bash(node -e \"console.log\\(require.resolve\\('playwright'\\)\\)\")",
+      "Bash(npm audit *)"
     ]
   }
 }
