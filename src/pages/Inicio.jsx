@@ -463,13 +463,10 @@ export default function Inicio() {
               className="w-full h-full object-cover"
             />
             <div className="absolute right-0 top-[110px] translate-x-1/2 z-30 w-30 h-30 flex items-center justify-center">
-              <img 
-                src="meclogo.png" 
+              <img
+                src="/meclogo.png"
                 alt="Símbolo Oficial MEC"
                 className="w-full h-full object-contain drop-shadow-md"
-                onError={(e) => {
-                  e.target.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Bras%C3%A3o_do_Brasil.svg/1200px-Bras%C3%A3o_do_Brasil.svg.png";
-                }}
               />
             </div>
           </div>
