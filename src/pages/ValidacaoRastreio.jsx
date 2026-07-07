@@ -36,8 +36,6 @@ export default function ValidacaoRastreio() {
 
   return (
     <div className="w-full min-h-screen bg-[#F8F9FA] text-gray-900 font-sans antialiased pb-24">
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
-      
       <Navbar />
 
       {/* --- BANNER SUPERIOR COM DEGRADÊ --- */}
