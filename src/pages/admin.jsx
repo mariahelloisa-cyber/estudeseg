@@ -149,6 +149,7 @@ export default function Admin() {
   const [novoNomeAluno, setNovoNomeAluno] = useState("");
   const [novoInstagram, setNovoInstagram] = useState("");
   const [novoVideoUrl, setNovoVideoUrl] = useState("");
+  const [novoWhatsapp, setNovoWhatsapp] = useState("");
   const [novoNomeSelo, setNovoNomeSelo] = useState("");
   const [novoTituloDiferencial, setNovoTituloDiferencial] = useState("");
   const [novaNoticiaDestaque, setNovaNoticiaDestaque] = useState(false);
@@ -919,6 +920,7 @@ export default function Admin() {
           nome: novoNomeAluno,
           instagram: novoInstagram,
           video_url: novoVideoUrl,
+          whatsapp: novoWhatsapp,
           foto_url: urlData.publicUrl
         }
       ]);
@@ -929,6 +931,7 @@ export default function Admin() {
       setNovoNomeAluno("");
       setNovoInstagram("");
       setNovoVideoUrl("");
+      setNovoWhatsapp("");
       if (arquivoInput) arquivoInput.value = "";
       buscarDepoimentosDoSupabase();
     } catch (err) {
@@ -2263,6 +2266,10 @@ export default function Admin() {
                     <div>
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Link do Vídeo (YouTube/Drive)</label>
                       <input type="text" value={novoVideoUrl} onChange={(e) => setNovoVideoUrl(e.target.value)} placeholder="https://youtube.com/..." className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">WhatsApp (Opcional)</label>
+                      <input type="text" value={novoWhatsapp} onChange={(e) => setNovoWhatsapp(e.target.value)} placeholder="Ex: 27998392172" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
                     </div>
                     <div>
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Foto de Capa (Do PC)</label>

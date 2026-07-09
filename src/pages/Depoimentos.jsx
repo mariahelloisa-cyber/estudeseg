@@ -2,10 +2,19 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { supabase } from '../supabaseClient';
+import { obterUrlEmbedVideo } from '../utils/video';
+
+function montarLinkWhatsapp(numero) {
+  const apenasDigitos = (numero || '').replace(/\D/g, '');
+  if (!apenasDigitos) return null;
+  const comCodigoPais = apenasDigitos.startsWith('55') ? apenasDigitos : `55${apenasDigitos}`;
+  return `https://wa.me/${comCodigoPais}`;
+}
 
 export default function Depoimentos() {
   const [depoimentos, setDepoimentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const [depoimentoReproduzindoId, setDepoimentoReproduzindoId] = useState(null);
 
   useEffect(() => {
     async function buscarDepoimentos() {
@@ -73,36 +82,75 @@ export default function Depoimentos() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {depoimentos.map((item) => (
-              <a
-                key={`depoimento-${item.id}`}
-                href={item.video_url}
-                target="_blank"
-                rel="noreferrer"
-                style={{ backgroundImage: `url(${item.foto_url})` }}
-                className="w-full h-[440px] rounded-3xl bg-cover bg-center shadow-md relative overflow-hidden flex flex-col justify-between p-5 group cursor-pointer transform hover:-translate-y-1.5 transition-all duration-300"
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent z-10"></div>
-                <div></div>
-                <div className="relative z-20 flex justify-center items-center">
-                  <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex justify-center items-center group-hover:scale-110 group-hover:bg-[#fed106] transition-all duration-300 shadow-lg">
-                    <svg className="w-5 h-5 text-[#fed106] group-hover:text-white fill-current transform translate-x-0.5 transition-colors" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
+            {depoimentos.map((item) => {
+              const estaReproduzindo = depoimentoReproduzindoId === item.id;
+              const urlEmbed = obterUrlEmbedVideo(item.video_url);
+
+              if (estaReproduzindo && urlEmbed) {
+                return (
+                  <div
+                    key={`depoimento-${item.id}`}
+                    className="w-full h-[440px] rounded-3xl shadow-md relative overflow-hidden bg-black"
+                  >
+                    <iframe
+                      src={urlEmbed}
+                      className="w-full h-full"
+                      allow="autoplay; fullscreen"
+                      allowFullScreen
+                      title={`Depoimento de ${item.nome}`}
+                    />
+                  </div>
+                );
+              }
+
+              const linkWhatsapp = montarLinkWhatsapp(item.whatsapp);
+
+              return (
+                <div
+                  key={`depoimento-${item.id}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setDepoimentoReproduzindoId(item.id)}
+                  onKeyDown={(e) => e.key === 'Enter' && setDepoimentoReproduzindoId(item.id)}
+                  style={{ backgroundImage: `url(${item.foto_url})` }}
+                  className="w-full h-[440px] rounded-3xl bg-cover bg-center shadow-md relative overflow-hidden flex flex-col justify-between p-5 group cursor-pointer transform hover:-translate-y-1.5 transition-all duration-300 text-left"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent z-10"></div>
+                  <div></div>
+                  <div className="relative z-20 flex justify-center items-center">
+                    <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex justify-center items-center group-hover:scale-110 group-hover:bg-[#fed106] transition-all duration-300 shadow-lg">
+                      <svg className="w-5 h-5 text-[#fed106] group-hover:text-white fill-current transform translate-x-0.5 transition-colors" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="relative z-20 text-left">
+                    <h4 className="text-white text-base font-extrabold tracking-wide leading-tight">
+                      {item.nome}
+                    </h4>
+                    {item.instagram && (
+                      <p className="text-white/70 text-xs font-medium mt-0.5">
+                        {item.instagram}
+                      </p>
+                    )}
+                    {linkWhatsapp && (
+                      <a
+                        href={linkWhatsapp}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-2 inline-flex items-center gap-1.5 text-white hover:text-[#fed106] text-xs font-extrabold tracking-wide transition-colors"
+                      >
+                        Tire suas dúvidas já
+                        <svg className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </a>
+                    )}
                   </div>
                 </div>
-                <div className="relative z-20 text-left">
-                  <h4 className="text-white text-base font-extrabold tracking-wide leading-tight">
-                    {item.nome}
-                  </h4>
-                  {item.instagram && (
-                    <p className="text-white/70 text-xs font-medium mt-0.5">
-                      {item.instagram}
-                    </p>
-                  )}
-                </div>
-              </a>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

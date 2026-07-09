@@ -3,11 +3,63 @@ import Navbar from '../components/Navbar';
 import imagemInstitucional from '../assets/capa-video.png';
 import fundoHero from '../assets/fundoo.png';
 import selo6 from '../assets/selo6.png';
+import fotoMissao from '../assets/pilar-missao.jpg';
+import fotoVisao from '../assets/pilar-visao.png';
+import fotoValores from '../assets/pilar-valores.jpg';
+import seloAbed from '../assets/abed.png';
 
 const VIDEO_DRIVE_ID = '1PFZab6pHDCmfEseEQjoRVA8Rb1g1FE08';
 
+function IconePilar({ id, className }) {
+  if (id === 'missao') {
+    return (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="5" />
+        <circle cx="12" cy="12" r="1" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (id === 'visao') {
+    return (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="9" />
+        <path strokeLinecap="round" d="M3 12h18M12 3c2.5 2.5 3.5 5.5 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-5.5-3.5-9s1-6.5 3.5-9z" />
+      </svg>
+    );
+  }
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
+    </svg>
+  );
+}
+
+const PILARES = [
+  {
+    id: 'missao',
+    titulo: 'Missão',
+    texto: 'Garantir ao aluno a segurança total de estudar e pagar apenas por cursos verdadeiramente reconhecidos, enquanto fortalece a credibilidade das instituições sérias e comprometidas.',
+    imagem: fotoMissao
+  },
+  {
+    id: 'visao',
+    titulo: 'Visão',
+    texto: 'Ser o maior marketplace de cursos seguros do Brasil até 2028, tornando-se sinônimo de confiança e referência no setor educacional digital.',
+    imagem: fotoVisao
+  },
+  {
+    id: 'valores',
+    titulo: 'Valores',
+    texto: 'Estude Seguro se posiciona como "o Mercado Pago da Educação", com garantia e confiança para ambas as partes.',
+    imagem: fotoValores
+  }
+];
+
 export default function Sobre() {
   const [videoReproduzindo, setVideoReproduzindo] = useState(false);
+  const [pilarEmFoco, setPilarEmFoco] = useState(null);
 
   // Array completo com os 6 cards configurados
   const linhaDoTempo = [
@@ -123,13 +175,21 @@ export default function Sobre() {
             {/* Parágrafos de Conteúdo */}
             <div className="space-y-6 text-gray-700 text-sm md:text-[15px] font-medium leading-relaxed max-w-xl">
               <p>
-                A <strong className="text-gray-900 font-bold">Estude Seguro</strong> nasceu com a missão de tornar a educação técnica mais acessível, moderna e conectada às necessidades do mercado de trabalho. Integrante do Grupo LA Educação e sediada em <strong className="text-gray-900 font-bold">Aracruz-ES</strong>, a instituição foi criada para contribuir com o desenvolvimento econômico e social da região por meio da formação de profissionais qualificados.
+                A <strong className="text-gray-900 font-bold">Estude Seguro</strong> nasceu com o propósito de transformar a forma como os brasileiros se matriculam em cursos EAD. Localizada na maior metrópole da América Latina, na Avenida Paulista – São Paulo (SP), nossa equipe está preparada para oferecer o suporte que você precisa com <strong className="text-gray-900 font-bold">transparência, segurança e credibilidade.</strong>
+
               </p>
               <p>
-                Desde o início, acreditamos que a educação deve ser uma ponte entre os sonhos dos alunos e as oportunidades profissionais. Por isso, desenvolvemos uma metodologia de ensino a distância que combina flexibilidade, tecnologia e suporte humanizado, permitindo que cada estudante aprenda no seu próprio ritmo e alcance seus objetivos com mais facilidade.
+                Somos <strong className="text-gray-900 font-bold">intermediadores oficiais</strong> entre alunos e instituições de ensino credenciadas, garantindo que todo o processo — da matrícula até a certificação — aconteça com total segurança e respaldo jurídico.
+Aqui, <strong className="text-gray-900 font-bold">não trabalhamos com vendedores</strong>, mas sim com <strong className="text-gray-900 font-bold">consultores educacionais especializados</strong>, capacitados para esclarecer todas as suas dúvidas e orientá-lo de acordo com a  <strong className="text-gray-900 font-bold">legislação educacional vigente.</strong>
               </p>
               <p>
-                Hoje, a <strong className="text-gray-900 font-bold">Estude Seguro</strong> segue transformando vidas através da educação técnica, oferecendo cursos alinhados às demandas do mercado e preparando profissionais para construir careers sólidas e um futuro promissor.
+                Nosso compromisso é com o seu sonho.
+Por isso, <strong className="text-gray-900 font-bold">cada matrícula é protegida por lei</strong>, garantindo que seu investimento esteja seguro até o recebimento do diploma devidamente reconhecido.
+              </p>
+              <p>
+                Você pode <strong className="text-gray-900 font-bold">nos visitar</strong> ou <strong className="text-gray-900 font-bold">entrar em contato</strong> pelos nossos canais oficiais.
+A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-900 font-bold">é a sua garantia de estudar com confiança.</strong>
+
               </p>
             </div>
           </div>
@@ -173,6 +233,88 @@ export default function Sobre() {
             
           </div>
 
+        </div>
+      </section>
+
+      {/* 2.4 SEÇÃO CREDIBILIDADE (ABED / Reclame Aqui) */}
+      <section className="max-w-7xl mx-auto px-6 pb-16">
+        <div className="relative bg-gradient-to-br from-[#fed106]/70 to-[#f5a300]/90 rounded-[48px] overflow-hidden px-8 py-14 md:px-16 md:py-20">
+          {/* Formas decorativas estilo "pincelada" */}
+          <div className="absolute top-10 left-8 w-44 h-16 bg-[#ffdb4d] rounded-full opacity-70 -rotate-6 pointer-events-none hidden md:block"></div>
+          <div className="absolute bottom-10 left-16 w-56 h-20 bg-[#ffdb4d] rounded-full opacity-70 rotate-3 pointer-events-none hidden md:block"></div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center relative z-10">
+            {/* LADO ESQUERDO: TEXTOS */}
+            <div className="lg:col-span-7">
+              <h2 className="text-2xl md:text-4xl font-black text-white leading-tight mb-6 max-w-xl">
+                Compromisso com a Transparência e a Credibilidade
+              </h2>
+              <p className="text-white/90 text-sm md:text-base font-medium leading-relaxed mb-4 max-w-xl">
+                A Estude Seguro é associada à ABED – Associação Brasileira de Educação a Distância, reforçando nosso compromisso com a seriedade, a qualidade e as boas práticas do ensino a distância no Brasil.
+              </p>
+              <p className="text-white/90 text-sm md:text-base font-medium leading-relaxed max-w-xl">
+                Além disso, somos uma empresa verificada pelo Reclame Aqui, o maior e mais rigoroso site de reputação da América Latina, reconhecimento que reflete nossa dedicação à confiança e à satisfação de cada aluno.
+              </p>
+            </div>
+
+            {/* LADO DIREITO: ESPAÇO PARA IMAGEM */}
+            <div className="lg:col-span-5 flex justify-center relative">
+              <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0 p-2">
+                <img
+                  src={seloAbed}
+                  alt="Selo de Qualidade ABED - Educação a Distância"
+                  className="w-full h-full object-contain drop-shadow-lg"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2.5 SEÇÃO MISSÃO, VISÃO E VALORES */}
+      <section className="max-w-7xl mx-auto px-6 pb-24">
+        <div className="bg-gray-50 rounded-[48px] p-8 md:p-12">
+          <div className="flex flex-col md:flex-row gap-4 h-auto md:h-[440px]">
+            {PILARES.map((pilar) => {
+              const emFoco = pilarEmFoco === pilar.id;
+
+              return (
+                <div
+                  key={pilar.id}
+                  onMouseEnter={() => setPilarEmFoco(pilar.id)}
+                  onMouseLeave={() => setPilarEmFoco(null)}
+                  style={emFoco && pilar.imagem ? { backgroundImage: `url(${pilar.imagem})` } : undefined}
+                  className={`relative rounded-2xl overflow-hidden cursor-pointer border transition-all duration-500 ease-in-out bg-cover bg-center min-h-[220px] md:min-h-0 ${
+                    emFoco
+                      ? 'md:flex-[1.6] border-transparent bg-gradient-to-br from-black to-[#3a2f00]'
+                      : `md:flex-1 bg-white border-gray-100 ${pilarEmFoco ? 'md:opacity-50' : ''}`
+                  }`}
+                >
+                  {emFoco ? (
+                    <div className="absolute inset-0 flex flex-col justify-end items-start text-left p-6 md:p-8">
+                      <IconePilar id={pilar.id} className="relative z-10 w-12 h-12 text-[#fed106] -mb-12" />
+                      <div className="relative -left-6 -right-6 -bottom-6 md:-left-8 md:-right-8 md:-bottom-8 w-[calc(100%+3rem)] md:w-[calc(100%+4rem)] pt-6 px-6 pb-6 md:px-8 md:pb-8">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
+                        <span className="relative text-white text-2xl md:text-3xl font-black tracking-tight uppercase drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
+                          {pilar.titulo}
+                        </span>
+                        <p className="relative mt-2 text-white text-sm md:text-base font-bold leading-relaxed w-[300px] md:w-[400px] transition-none drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+                          {pilar.texto}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                      <IconePilar id={pilar.id} className="w-9 h-9 text-[#fed106]" />
+                      <span className="text-gray-800 text-xl md:text-2xl font-black tracking-tight uppercase">
+                        {pilar.titulo}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
