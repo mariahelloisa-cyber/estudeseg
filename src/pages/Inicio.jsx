@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -14,6 +14,16 @@ function montarLinkWhatsapp(numero) {
 
 export default function Inicio() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
+  const navigate = useNavigate();
+
+  // --- Busca de cursos (barra de pesquisa mobile) ---
+  const [buscaCursoMobile, setBuscaCursoMobile] = useState('');
+
+  const handleBuscarCursoMobile = (e) => {
+    e.preventDefault();
+    const termo = buscaCursoMobile.trim();
+    navigate(termo ? `/cursos?busca=${encodeURIComponent(termo)}` : '/cursos');
+  };
 
   // --- Estado para os Banners Dinâmicos do Supabase ---
   const [banners, setBanners] = useState([]);
@@ -394,6 +404,34 @@ export default function Inicio() {
             <p className="text-gray-700 font-bold text-sm md:text-[15px] leading-snug">Cursos Alinhados ao Mercado de Trabalho</p>
           </div>
         </div>
+
+        {/* Barra de pesquisa de cursos — só no mobile */}
+        <form
+          onSubmit={handleBuscarCursoMobile}
+          className="md:hidden mt-4 relative w-full bg-white rounded-full shadow-xl border border-gray-100 p-1 flex items-center"
+        >
+          <span className="pl-4 text-gray-400">
+            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
+          <input
+            type="text"
+            value={buscaCursoMobile}
+            onChange={(e) => setBuscaCursoMobile(e.target.value)}
+            placeholder="Pesquisar curso..."
+            className="w-full pl-2 pr-2 py-3 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none font-medium"
+          />
+          <button
+            type="submit"
+            aria-label="Pesquisar curso"
+            className="bg-[#000000] hover:bg-[#fed106] text-white p-2.5 rounded-full transition-all flex items-center justify-center shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+        </form>
       </div>
 
       {/* --- SEÇÃO 3: ESTEIRA DE SELOS --- */}

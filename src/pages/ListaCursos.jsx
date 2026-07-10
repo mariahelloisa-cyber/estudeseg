@@ -52,7 +52,9 @@ function CursoCardNovo({ curso }) {
 }
 
 export default function ListaCursos() {
-  const [pesquisa, setPesquisa] = useState('');
+  const [pesquisa, setPesquisa] = useState(
+    () => new URLSearchParams(window.location.search).get('busca') || ''
+  );
   const [categoriaSelecionada, setCategoriaSelecionada] = useState('Todas');
   const adicionarAoCarrinho = useCartStore((state) => state.adicionarAoCarrinho);
   const carrinho = useCartStore((state) => state.carrinho);
@@ -83,8 +85,10 @@ export default function ListaCursos() {
   }, []);
 
   const cursosCadastradosFiltrados = cursosCadastrados.filter((curso) => {
-    if (categoriaSelecionada === 'Todas') return true;
-    return (curso.categorias_cursos?.nome || 'Geral') === categoriaSelecionada;
+    const combinaTexto = (curso.titulo || '').toLowerCase().includes(pesquisa.toLowerCase());
+    const combinaCategoria = categoriaSelecionada === 'Todas' ||
+      (curso.categorias_cursos?.nome || 'Geral') === categoriaSelecionada;
+    return combinaTexto && combinaCategoria;
   });
 
   // Proteção contra dados vazios

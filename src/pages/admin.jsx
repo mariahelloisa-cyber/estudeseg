@@ -164,6 +164,13 @@ export default function Admin() {
   const [editTempoLeitura, setEditTempoLeitura] = useState("");
   const [editDestaque, setEditDestaque] = useState(false);
 
+  // --- Estados para Edição de Depoimentos ---
+  const [depoimentoEditando, setDepoimentoEditando] = useState(null);
+  const [editNomeAluno, setEditNomeAluno] = useState("");
+  const [editInstagram, setEditInstagram] = useState("");
+  const [editVideoUrl, setEditVideoUrl] = useState("");
+  const [editWhatsapp, setEditWhatsapp] = useState("");
+
   // --- Estados para o Gerenciador de FAQ ---
   const [faqsAdmin, setFaqsAdmin] = useState([]);
   const [novaPerguntafaq, setNovaPerguntaFaq] = useState("");
@@ -939,6 +946,71 @@ export default function Admin() {
     } catch (err) {
       console.error(err);
       setMensagemStatus("❌ Não foi possível salvar o depoimento. Tente novamente.");
+    }
+  }
+
+  // Função para Editar Depoimento
+  function iniciarEdicaoDepoimento(depoimento) {
+    setDepoimentoEditando(depoimento.id);
+    setEditNomeAluno(depoimento.nome || "");
+    setEditInstagram(depoimento.instagram || "");
+    setEditVideoUrl(depoimento.video_url || "");
+    setEditWhatsapp(depoimento.whatsapp || "");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelarEdicaoDepoimento() {
+    setDepoimentoEditando(null);
+    setEditNomeAluno("");
+    setEditInstagram("");
+    setEditVideoUrl("");
+    setEditWhatsapp("");
+  }
+
+  // Função para Salvar Edição de Depoimento
+  async function handleSalvarEdicaoDepoimento(e) {
+    e.preventDefault();
+
+    if (!editNomeAluno.trim() || !editVideoUrl.trim()) {
+      setMensagemStatus("⚠️ Nome do aluno e URL do vídeo são obrigatórios!");
+      return;
+    }
+
+    try {
+      setMensagemStatus("⏳ Atualizando depoimento...");
+      const arquivoInput = document.getElementById('capa-depoimento-edit');
+      const arquivo = arquivoInput?.files[0];
+
+      const dadosAtualizados = {
+        nome: editNomeAluno,
+        instagram: editInstagram,
+        video_url: editVideoUrl,
+        whatsapp: editWhatsapp,
+      };
+
+      if (arquivo) {
+        validarImagem(arquivo);
+        const nomeArquivo = `depoimento-${sanitizarNomeArquivo(arquivo.name)}`;
+        const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+        dadosAtualizados.foto_url = urlData.publicUrl;
+      }
+
+      const { error: updateError } = await supabase
+        .from('depoimentos')
+        .update(dadosAtualizados)
+        .eq('id', depoimentoEditando);
+
+      if (updateError) throw updateError;
+
+      setMensagemStatus("✅ Depoimento atualizado com sucesso!");
+      cancelarEdicaoDepoimento();
+      if (arquivoInput) arquivoInput.value = "";
+      buscarDepoimentosDoSupabase();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível atualizar o depoimento. Tente novamente.");
     }
   }
 
@@ -2281,29 +2353,75 @@ export default function Admin() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Novo Depoimento</h3>
-                  <form onSubmit={handleAdicionarDepoimento} className="flex flex-col gap-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
+                      {depoimentoEditando ? "✏️ Editar Depoimento" : "Novo Depoimento"}
+                    </h3>
+                    {depoimentoEditando && (
+                      <button
+                        type="button"
+                        onClick={cancelarEdicaoDepoimento}
+                        className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+                  <form onSubmit={depoimentoEditando ? handleSalvarEdicaoDepoimento : handleAdicionarDepoimento} className="flex flex-col gap-4">
                     <div>
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nome do Aluno</label>
-                      <input type="text" value={novoNomeAluno} onChange={(e) => setNovoNomeAluno(e.target.value)} placeholder="Ex: Maria Silva" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                      <input
+                        type="text"
+                        value={depoimentoEditando ? editNomeAluno : novoNomeAluno}
+                        onChange={(e) => depoimentoEditando ? setEditNomeAluno(e.target.value) : setNovoNomeAluno(e.target.value)}
+                        placeholder="Ex: Maria Silva"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
                     </div>
                     <div>
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Instagram (Opcional)</label>
-                      <input type="text" value={novoInstagram} onChange={(e) => setNovoInstagram(e.target.value)} placeholder="Ex: @maria_silva" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                      <input
+                        type="text"
+                        value={depoimentoEditando ? editInstagram : novoInstagram}
+                        onChange={(e) => depoimentoEditando ? setEditInstagram(e.target.value) : setNovoInstagram(e.target.value)}
+                        placeholder="Ex: @maria_silva"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
                     </div>
                     <div>
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Link do Vídeo (YouTube/Drive)</label>
-                      <input type="text" value={novoVideoUrl} onChange={(e) => setNovoVideoUrl(e.target.value)} placeholder="https://youtube.com/..." className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                      <input
+                        type="text"
+                        value={depoimentoEditando ? editVideoUrl : novoVideoUrl}
+                        onChange={(e) => depoimentoEditando ? setEditVideoUrl(e.target.value) : setNovoVideoUrl(e.target.value)}
+                        placeholder="https://youtube.com/..."
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
                     </div>
                     <div>
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">WhatsApp (Opcional)</label>
-                      <input type="text" value={novoWhatsapp} onChange={(e) => setNovoWhatsapp(e.target.value)} placeholder="Ex: 27998392172" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                      <input
+                        type="text"
+                        value={depoimentoEditando ? editWhatsapp : novoWhatsapp}
+                        onChange={(e) => depoimentoEditando ? setEditWhatsapp(e.target.value) : setNovoWhatsapp(e.target.value)}
+                        placeholder="Ex: 27998392172"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Foto de Capa (Do PC)</label>
-                      <input type="file" id="capa-depoimento" accept="image/*" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                        {depoimentoEditando ? "Nova Foto de Capa (Opcional)" : "Foto de Capa (Do PC)"}
+                      </label>
+                      <input
+                        type="file"
+                        id={depoimentoEditando ? "capa-depoimento-edit" : "capa-depoimento"}
+                        accept="image/*"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+                      />
                     </div>
-                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Depoimento</button>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
+                      {depoimentoEditando ? "💾 Salvar Alterações" : "➕ Publicar Depoimento"}
+                    </button>
                   </form>
                 </div>
                 <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
@@ -2319,6 +2437,7 @@ export default function Admin() {
                       {depoimentos.map((d) => (
                         <div key={d.id} className={`bg-gray-50 border rounded-xl overflow-hidden relative shadow-sm ${d.destaque ? 'border-[#fed106] ring-2 ring-[#fed106]/40' : 'border-gray-100'}`}>
                           <img src={d.foto_url} alt="" className="w-full h-40 object-cover" />
+                          <button onClick={() => iniciarEdicaoDepoimento(d)} title="Editar depoimento" className="absolute top-2 right-11 bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✎</button>
                           <button onClick={() => handleEliminarDepoimento(d.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
                           <button
                             onClick={() => handleAlternarDestaqueDepoimento(d)}
