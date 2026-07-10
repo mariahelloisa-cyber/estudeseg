@@ -406,9 +406,12 @@ export default function Inicio() {
         </div>
 
         {/* Barra de pesquisa de cursos — só no mobile */}
+        <p className="md:hidden mt-4 text-[#fed106] text-sm font-black uppercase tracking-wide">
+          Pesquise nossos cursos
+        </p>
         <form
           onSubmit={handleBuscarCursoMobile}
-          className="md:hidden mt-4 relative w-full bg-white rounded-full shadow-xl border border-gray-100 p-1 flex items-center"
+          className="md:hidden mt-2 relative w-full bg-white rounded-full shadow-xl border border-gray-100 p-1 flex items-center"
         >
           <span className="pl-4 text-gray-400">
             <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
