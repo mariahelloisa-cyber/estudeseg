@@ -237,7 +237,7 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
       </section>
 
       {/* 2.4 SEÇÃO CREDIBILIDADE (ABED / Reclame Aqui) */}
-      <section className="relative w-full bg-[#efc819] overflow-hidden">
+      <section className="relative w-full bg-[#fed106]/80 overflow-hidden">
         {/* Onda branca de transição no topo */}
         <svg
           className="absolute top-0 left-0 w-full h-16 md:h-24 text-white"
@@ -291,6 +291,9 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
 
         <div className="bg-black pt-8 pb-16 md:pt-20 md:pb-28">
           <div className="max-w-7xl mx-auto px-6 relative z-10">
+            <h2 className="text-2xl md:text-4xl font-black text-white text-center mb-8 md:mb-10 tracking-tight -mt-4 md:-mt-8">
+              Fundamentos da <span className="text-[#fed106]">Estude Seguro</span>
+            </h2>
             <div className="flex flex-col md:flex-row gap-4 h-auto md:h-[440px]">
             {PILARES.map((pilar) => {
               const emFoco = pilarEmFoco === pilar.id;

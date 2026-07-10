@@ -543,7 +543,7 @@ export default function Inicio() {
 )}
 
 {/* --- SEÇÃO 3.5: "ESTUDE FÁCIL / RÁPIDO / AGORA / SEGURO" --- */}
-      <div ref={estudeSecaoRef} className="w-full bg-gray-50 py-17 md:py-23 flex items-center justify-center overflow-hidden">
+      <div ref={estudeSecaoRef} className="w-full bg-gray-50 py-17 md:py-17 flex items-center justify-center overflow-hidden">
         <div className="flex items-center gap-6 md:gap-7 text-4xl sm:text-5xl md:text-6xl font-medium tracking-tight">
           <span className="text-black font-black">Estude</span>
           <div className="relative h-16 sm:h-20 md:h-24 overflow-y-hidden overflow-x-visible pr-2">
