@@ -406,35 +406,37 @@ export default function Inicio() {
         </div>
 
         {/* Barra de pesquisa de cursos — só no mobile */}
-        <p className="md:hidden mt-4 text-[#fed106] text-sm font-black uppercase tracking-wide">
-          Pesquise nossos cursos
-        </p>
-        <form
-          onSubmit={handleBuscarCursoMobile}
-          className="md:hidden mt-2 relative w-full bg-white rounded-full shadow-xl border border-gray-100 p-1 flex items-center"
-        >
-          <span className="pl-4 text-gray-400">
-            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </span>
-          <input
-            type="text"
-            value={buscaCursoMobile}
-            onChange={(e) => setBuscaCursoMobile(e.target.value)}
-            placeholder="Pesquisar curso..."
-            className="w-full pl-2 pr-2 py-3 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none font-medium"
-          />
-          <button
-            type="submit"
-            aria-label="Pesquisar curso"
-            className="bg-[#000000] hover:bg-[#fed106] text-white p-2.5 rounded-full transition-all flex items-center justify-center shrink-0"
+        <div className="md:hidden mt-8 bg-white rounded-3xl shadow-xl border border-gray-100 p-5 flex flex-col items-center text-center">
+          <p className="text-[#fed106] text-sm font-black uppercase tracking-wide mb-3">
+            Pesquise nossos cursos
+          </p>
+          <form
+            onSubmit={handleBuscarCursoMobile}
+            className="relative w-full bg-gray-50 rounded-full border border-gray-100 p-1 flex items-center"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
-        </form>
+            <span className="pl-4 text-gray-400">
+              <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              value={buscaCursoMobile}
+              onChange={(e) => setBuscaCursoMobile(e.target.value)}
+              placeholder="Pesquisar curso..."
+              className="w-full pl-2 pr-2 py-3 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none font-medium"
+            />
+            <button
+              type="submit"
+              aria-label="Pesquisar curso"
+              className="bg-[#000000] hover:bg-[#fed106] text-white p-2.5 rounded-full transition-all flex items-center justify-center shrink-0"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          </form>
+        </div>
       </div>
 
       {/* --- SEÇÃO 3: ESTEIRA DE SELOS --- */}
