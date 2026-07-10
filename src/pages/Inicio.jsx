@@ -35,7 +35,8 @@ export default function Inicio() {
     destino = Math.max(0, Math.min(destino, maxScroll));
     container.scrollTo({ left: destino, behavior: 'smooth' });
   };
-  const [noticiasDestaque, setNoticiasDestaque] = useState([]);
+  const [cursosMaisVendidos, setCursosMaisVendidos] = useState([]);
+  const [paginaMaisVendidos, setPaginaMaisVendidos] = useState(0);
   const [bannerLateral, setBannerLateral] = useState(null);
   const [depoimentos, setDepoimentos] = useState([]);
   const [depoimentoReproduzindoId, setDepoimentoReproduzindoId] = useState(null);
@@ -186,6 +187,8 @@ export default function Inicio() {
 
   // --- Fetch para Cursos em Destaque (marcados no painel admin) ---
   const MAX_CURSOS_DESTAQUE = 5;
+  const MAX_CURSOS_MAIS_VENDIDOS = 8;
+  const CARDS_POR_PAGINA_MAIS_VENDIDOS = 4;
 
   // Tamanho fixo dos cards do carrossel "Cursos em Destaque" (em px) — altere aqui
   const LARGURA_CARD_CURSO_DESTAQUE = 240;
@@ -262,33 +265,34 @@ export default function Inicio() {
     buscarDepoimentosDoSupabase();
   }, []);
 
-  // Buscar Notícias e Banner Lateral do Blog do Supabase
+  // Buscar Cursos Mais Vendidos e Banner Lateral do Blog do Supabase
   useEffect(() => {
-    async function buscarNoticiasDoSupabase() {
-    try {
-      const { data, error } = await supabase
-        .from('noticias')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
+    async function buscarCursosMaisVendidos() {
+      try {
+        const { data, error } = await supabase
+          .from('cursos_cadastrados')
+          .select('*, categorias_cursos(nome)')
+          .eq('mais_vendido', true)
+          .order('created_at', { ascending: false })
+          .limit(MAX_CURSOS_MAIS_VENDIDOS);
 
-      const dadosFormatados = (data || []).map(item => ({
-        id: item.id,
-        titulo: item.titulo,
-        resumo: item.resumo,
-        fotoUrl: item.imagem_url,
-        destaque: item.destaque,
-        dataCriacao: new Date(item.created_at).toLocaleDateString('pt-PT'),
-        tempoLeitura: item.tempo_leitura || 3,
-        slug: item.slug
-      }));
+        if (error) throw error;
 
-      setNoticiasDestaque(dadosFormatados);
-    } catch (err) {
-      console.error("Erro ao buscar notícias do Supabase:", err);
+        const dadosFormatados = (data || []).map(item => ({
+          id: item.id,
+          titulo: item.titulo || "Curso sem Título",
+          resumo: item.descricao ? item.descricao.substring(0, 110) + "..." : "",
+          categoria: (item.categorias_cursos?.nome || "Geral").toUpperCase(),
+          duracao: item.duracao || "Curta Duração",
+          preco: item.preco || 0,
+          fotoUrl: item.imagem_url,
+        }));
+
+        setCursosMaisVendidos(dadosFormatados);
+      } catch (err) {
+        console.error("Erro ao buscar cursos mais vendidos do Supabase:", err);
+      }
     }
-  }
 
     async function buscarBannerLateral() {
       try {
@@ -306,7 +310,7 @@ export default function Inicio() {
       }
     }
 
-    buscarNoticiasDoSupabase();
+    buscarCursosMaisVendidos();
     buscarBannerLateral();
   }, [API_URL]);
 
@@ -590,7 +594,7 @@ export default function Inicio() {
         </div>
       )}
 
-      {/* --- SEÇÃO: BLOG Estude seguro (100% DINÂMICA, DESIGN ORIGINAL) --- */}
+      {/* --- SEÇÃO: CURSOS MAIS VENDIDOS (100% DINÂMICA, DESIGN ORIGINAL DO BLOG) --- */}
 <section className="relative py-16 md:py-24 bg-[#fffff] w-full overflow-hidden">
   <div className="absolute top-20 left-10 hidden lg:block opacity-30">
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
@@ -616,163 +620,202 @@ export default function Inicio() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
         </svg>
         <span className="text-[10px] font-extrabold text-[#fed106] tracking-widest uppercase">
-          Blog Estude Seguro
+          Confira
         </span>
       </div>
 
       <h2 className="text-3xl md:text-5xl font-extrabold text-[#000000] mb-4 tracking-tight">
-        Conteúdos para <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#fed106] to-[#000000]">impulsionar <br className="hidden md:block" /> sua carreira.</span>
+        Os 8 cursos <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#fed106] to-[#000000]">mais vendidos <br className="hidden md:block" /> na estude seguro.</span>
       </h2>
       <p className="text-gray-500 text-sm md:text-base font-medium">
-        Fique por dentro das novidades, dicas e tendências do mundo educacional.
+        Confira os cursos mais procurados pelos nossos alunos.
       </p>
     </div>
 
     {(() => {
-      const destaques = (noticiasDestaque || []).filter((item) => item.destaque === true);
-
-      if (destaques.length === 0) {
+      if (cursosMaisVendidos.length === 0) {
         return (
           <p className="text-gray-400 text-sm py-12 text-center font-medium bg-white rounded-3xl border border-dashed border-slate-200">
-            Nenhuma notícia marcada como destaque para exibir aqui. Vá ao painel Admin e ative a estrela ⭐!
+            Nenhum curso marcado como mais vendido para exibir aqui. Vá ao painel Admin e marque até {MAX_CURSOS_MAIS_VENDIDOS} cursos!
           </p>
         );
       }
 
-      const [principal, segundo, terceiro, quarto] = destaques;
+      const totalPaginas = Math.ceil(cursosMaisVendidos.length / CARDS_POR_PAGINA_MAIS_VENDIDOS);
+      const inicio = paginaMaisVendidos * CARDS_POR_PAGINA_MAIS_VENDIDOS;
+      const [principal, segundo, terceiro, quarto] = cursosMaisVendidos.slice(inicio, inicio + CARDS_POR_PAGINA_MAIS_VENDIDOS);
 
       return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-          {/* CARD PRINCIPAL (grande, esquerda) */}
-          {principal && (
-            <a
-              href={`/blog/${principal.slug || principal.id}`}
-              className="relative bg-black rounded-3xl overflow-hidden group min-h-[400px] lg:min-h-[500px] flex flex-col cursor-pointer shadow-lg"
-            >
-              <img
-                src={principal.fotoUrl}
-                alt={principal.titulo}
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-90"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/60 to-transparent"></div>
-
-              <div className="relative z-10 mt-auto p-6 md:p-8 flex flex-col">
-                <span className="bg-[#fed106] text-white text-[10px] font-extrabold px-3 py-1.5 rounded-full uppercase tracking-wider mb-3 w-max">
-                  {principal.categoria || "Blog"}
-                </span>
-                <h3 className="text-white text-2xl md:text-3xl font-bold mb-3 leading-snug">
-                  {principal.titulo}
-                </h3>
-                <p className="text-gray-300 text-sm mb-6 max-w-md line-clamp-2">
-                  {principal.resumo}
-                </p>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-gray-300 text-xs font-medium">
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      {principal.tempoLeitura} min de leitura
-                    </span>
-                    <span className="w-px h-3 bg-gray-500"></span>
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                      {principal.dataCriacao}
-                    </span>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-[#000000] text-white flex items-center justify-center transform group-hover:bg-[#fed106] group-hover:translate-x-1 transition-all">
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </a>
-          )}
-
-          {/* COLUNA DA DIREITA: 2 cards médios + 1 card largo */}
-          <div className="flex flex-col gap-4 md:gap-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 flex-1">
-              {[segundo, terceiro].map((item, idx) =>
-                item ? (
-                  <a
-                    key={item.id}
-                    href={`/blog/${item.slug || item.id}`}
-                    className="relative bg-black rounded-3xl overflow-hidden group min-h-[240px] flex flex-col cursor-pointer shadow-lg"
-                  >
-                    <img
-                      src={item.fotoUrl}
-                      alt={item.titulo}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-90"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/70 to-transparent"></div>
-                    <div className="relative z-10 mt-auto p-5 flex flex-col h-full justify-end">
-                      <span className="bg-[#fed106] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider mb-2.5 w-max">
-                        {item.categoria || "Blog"}
-                      </span>
-                      <h3 className="text-white text-base md:text-lg font-bold mb-4 leading-snug">
-                        {item.titulo}
-                      </h3>
-                      <div className="flex items-center gap-2.5 text-gray-300 text-[11px] font-medium mt-auto">
-                        <span className="flex items-center gap-1">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                          {item.tempoLeitura} min de leitura
-                        </span>
-                        <span className="w-px h-3 bg-gray-500"></span>
-                        <span className="flex items-center gap-1">
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                          {item.dataCriacao}
-                        </span>
-                      </div>
-                    </div>
-                  </a>
-                ) : (
-                  <div key={`empty-${idx}`} className="hidden sm:block" />
-                )
-              )}
-            </div>
-
-            {quarto && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            {/* CARD PRINCIPAL (grande, esquerda) */}
+            {principal && (
               <a
-                href={`/blog/${quarto.slug || quarto.id}`}
-                className="relative bg-black rounded-3xl overflow-hidden group min-h-[220px] flex flex-col cursor-pointer shadow-lg flex-1"
+                href={`/cursos/${principal.id}`}
+                className="relative bg-black rounded-3xl overflow-hidden group min-h-[400px] lg:min-h-[500px] flex flex-col cursor-pointer shadow-lg"
               >
                 <img
-                  src={quarto.fotoUrl}
-                  alt={quarto.titulo}
+                  src={principal.fotoUrl}
+                  alt={principal.titulo}
                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-90"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/70 to-transparent"></div>
-                <div className="relative z-10 mt-auto p-6 flex flex-col h-full justify-end">
-                  <span className="bg-[#fed106] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider mb-3 w-max">
-                    {quarto.categoria || "Blog"}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/60 to-transparent"></div>
+
+                <div className="relative z-10 mt-auto p-6 md:p-8 flex flex-col">
+                  <span className="bg-[#fed106] text-white text-[10px] font-extrabold px-3 py-1.5 rounded-full uppercase tracking-wider mb-3 w-max">
+                    {principal.categoria || "Curso"}
                   </span>
-                  <h3 className="text-white text-lg md:text-xl font-bold mb-4 leading-snug max-w-lg">
-                    {quarto.titulo}
+                  <h3 className="text-white text-2xl md:text-3xl font-bold mb-3 leading-snug">
+                    {principal.titulo}
                   </h3>
-                  <div className="flex items-center gap-3 text-gray-300 text-xs font-medium mt-auto">
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      {quarto.tempoLeitura} min de leitura
-                    </span>
-                    <span className="w-px h-3 bg-gray-500"></span>
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                      {quarto.dataCriacao}
-                    </span>
+                  <p className="text-gray-300 text-sm mb-6 max-w-md line-clamp-2">
+                    {principal.resumo}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-gray-300 text-xs font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        {principal.duracao}
+                      </span>
+                      <span className="w-px h-3 bg-gray-500"></span>
+                      <span className="flex items-center gap-1.5">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .672-3 1.5S10.343 11 12 11s3 .672 3 1.5-1.343 1.5-3 1.5m0-6c1.11 0 2.08.402 2.599 1M12 8V6.5m0 7.5v1.5m0-9C8.686 6 6 8.686 6 12s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6z" /></svg>
+                        R$ {principal.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-[#000000] text-white flex items-center justify-center transform group-hover:bg-[#fed106] group-hover:translate-x-1 transition-all">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
               </a>
             )}
+
+            {/* COLUNA DA DIREITA: 2 cards médios + 1 card largo */}
+            <div className="flex flex-col gap-4 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 flex-1">
+                {[segundo, terceiro].map((item, idx) =>
+                  item ? (
+                    <a
+                      key={item.id}
+                      href={`/cursos/${item.id}`}
+                      className="relative bg-black rounded-3xl overflow-hidden group min-h-[240px] flex flex-col cursor-pointer shadow-lg"
+                    >
+                      <img
+                        src={item.fotoUrl}
+                        alt={item.titulo}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-90"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/70 to-transparent"></div>
+                      <div className="relative z-10 mt-auto p-5 flex flex-col">
+                        <span className="bg-[#fed106] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider mb-2.5 w-max">
+                          {item.categoria || "Curso"}
+                        </span>
+                        <h3 className="text-white text-base md:text-lg font-bold mb-4 leading-snug">
+                          {item.titulo}
+                        </h3>
+                        <div className="flex items-center gap-2.5 text-gray-300 text-[11px] font-medium">
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            {item.duracao}
+                          </span>
+                          <span className="w-px h-3 bg-gray-500"></span>
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .672-3 1.5S10.343 11 12 11s3 .672 3 1.5-1.343 1.5-3 1.5m0-6c1.11 0 2.08.402 2.599 1M12 8V6.5m0 7.5v1.5m0-9C8.686 6 6 8.686 6 12s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6z" /></svg>
+                            R$ {item.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+                    </a>
+                  ) : (
+                    <div key={`empty-${idx}`} className="hidden sm:block" />
+                  )
+                )}
+              </div>
+
+              {quarto && (
+                <a
+                  href={`/cursos/${quarto.id}`}
+                  className="relative bg-black rounded-3xl overflow-hidden group min-h-[220px] flex flex-col cursor-pointer shadow-lg flex-1"
+                >
+                  <img
+                    src={quarto.fotoUrl}
+                    alt={quarto.titulo}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-90"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/70 to-transparent"></div>
+                  <div className="relative z-10 mt-auto p-6 flex flex-col">
+                    <span className="bg-[#fed106] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider mb-3 w-max">
+                      {quarto.categoria || "Curso"}
+                    </span>
+                    <h3 className="text-white text-lg md:text-xl font-bold mb-4 leading-snug max-w-lg">
+                      {quarto.titulo}
+                    </h3>
+                    <div className="flex items-center gap-3 text-gray-300 text-xs font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        {quarto.duracao}
+                      </span>
+                      <span className="w-px h-3 bg-gray-500"></span>
+                      <span className="flex items-center gap-1.5">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .672-3 1.5S10.343 11 12 11s3 .672 3 1.5-1.343 1.5-3 1.5m0-6c1.11 0 2.08.402 2.599 1M12 8V6.5m0 7.5v1.5m0-9C8.686 6 6 8.686 6 12s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6z" /></svg>
+                        R$ {quarto.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </a>
+              )}
+            </div>
           </div>
-        </div>
+
+          {totalPaginas > 1 && (
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => setPaginaMaisVendidos((p) => Math.max(0, p - 1))}
+                disabled={paginaMaisVendidos === 0}
+                aria-label="Ver cursos anteriores"
+                className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-md transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#fed106]"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <div className="flex items-center gap-2">
+                {Array.from({ length: totalPaginas }).map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`w-2 h-2 rounded-full transition-colors ${idx === paginaMaisVendidos ? 'bg-[#fed106]' : 'bg-gray-200'}`}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPaginaMaisVendidos((p) => Math.min(totalPaginas - 1, p + 1))}
+                disabled={paginaMaisVendidos >= totalPaginas - 1}
+                aria-label="Ver mais cursos"
+                className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-md transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#fed106]"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </>
       );
     })()}
 
     <div className="mt-12 flex justify-center">
       <a
-        href="/blog"
+        href="/cursos"
         className="bg-[#fed106] hover:bg-[#000000] text-white font-extrabold text-sm py-4 px-8 rounded-full transition-colors flex items-center gap-2 shadow-md cursor-pointer"
       >
-        Ver todos os artigos
+        Ver todos os cursos
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
           <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
         </svg>

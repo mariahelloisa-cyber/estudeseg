@@ -54,11 +54,13 @@ const CURSO_FORM_INICIAL = {
   preco: "",
   seloMec: true,
   destaque: false,
+  maisVendido: false,
   gradeCurricular: [],
   blocosConteudo: [],
 };
 
 const MAX_CURSOS_DESTAQUE = 5;
+const MAX_CURSOS_MAIS_VENDIDOS = 8;
 
 // --- Validação de arquivos de imagem antes do upload para o Storage ---
 const TIPOS_IMAGEM_PERMITIDOS = ['image/png', 'image/jpeg', 'image/webp'];
@@ -1166,6 +1168,7 @@ export default function Admin() {
       preco: curso.preco != null ? String(curso.preco) : "",
       seloMec: curso.selo_mec ?? true,
       destaque: curso.destaque ?? false,
+      maisVendido: curso.mais_vendido ?? false,
       gradeCurricular: parseGradeCurricular(curso.grade_curricular),
       blocosConteudo: parseBlocosConteudo(curso.blocos_conteudo),
     });
@@ -1189,6 +1192,14 @@ export default function Admin() {
       const totalDestacados = cursosAdmin.filter((c) => c.destaque && c.id !== cursoEditando).length;
       if (totalDestacados >= MAX_CURSOS_DESTAQUE) {
         setMensagemStatus(`⚠️ Você já tem ${MAX_CURSOS_DESTAQUE} cursos em destaque. Remova um antes de adicionar outro.`);
+        return;
+      }
+    }
+
+    if (formCurso.maisVendido) {
+      const totalMaisVendidos = cursosAdmin.filter((c) => c.mais_vendido && c.id !== cursoEditando).length;
+      if (totalMaisVendidos >= MAX_CURSOS_MAIS_VENDIDOS) {
+        setMensagemStatus(`⚠️ Você já tem ${MAX_CURSOS_MAIS_VENDIDOS} cursos marcados como mais vendidos. Remova um antes de adicionar outro.`);
         return;
       }
     }
@@ -1228,6 +1239,7 @@ export default function Admin() {
         preco: parseFloat(formCurso.preco) || 0,
         selo_mec: formCurso.seloMec,
         destaque: formCurso.destaque,
+        mais_vendido: formCurso.maisVendido,
         grade_curricular: serializarGradeCurricular(formCurso.gradeCurricular),
         blocos_conteudo: serializarBlocosConteudo(formCurso.blocosConteudo),
       };
@@ -1434,6 +1446,7 @@ export default function Admin() {
                 <CardEstatistica label="Cursos Cadastrados" valor={cursosAdmin.length} Icon={AcademicCapIcon} cor="bg-indigo-500" />
                 <CardEstatistica label="Categorias" valor={categoriasCursos.length} Icon={TagIcon} cor="bg-[#fed106]" />
                 <CardEstatistica label="Em Destaque (Home)" valor={`${cursosAdmin.filter((c) => c.destaque).length}/${MAX_CURSOS_DESTAQUE}`} Icon={StarIcon} cor="bg-[#fed106]" />
+                <CardEstatistica label="Mais Vendidos (Home)" valor={`${cursosAdmin.filter((c) => c.mais_vendido).length}/${MAX_CURSOS_MAIS_VENDIDOS}`} Icon={StarIcon} cor="bg-emerald-500" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1606,6 +1619,16 @@ export default function Admin() {
                         />
                         <label htmlFor="curso-destaque" className="text-xs text-gray-500 font-bold uppercase">Destacar na Home (máx. {MAX_CURSOS_DESTAQUE})</label>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="curso-mais-vendido"
+                          checked={formCurso.maisVendido}
+                          onChange={(e) => atualizarCampoFormCurso('maisVendido', e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                        />
+                        <label htmlFor="curso-mais-vendido" className="text-xs text-gray-500 font-bold uppercase">Mais Vendido (máx. {MAX_CURSOS_MAIS_VENDIDOS})</label>
+                      </div>
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <label className="text-xs text-gray-500 font-bold uppercase">Grade Curricular</label>
@@ -1774,6 +1797,11 @@ export default function Admin() {
                               {curso.destaque && (
                                 <span className="text-[9px] font-extrabold bg-[#fed106]/15 text-[#8a6d00] px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
                                   ⭐ Destaque
+                                </span>
+                              )}
+                              {curso.mais_vendido && (
+                                <span className="text-[9px] font-extrabold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
+                                  🔥 Mais Vendido
                                 </span>
                               )}
                             </div>

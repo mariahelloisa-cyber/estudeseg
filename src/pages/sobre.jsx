@@ -283,8 +283,9 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
                   key={pilar.id}
                   onMouseEnter={() => setPilarEmFoco(pilar.id)}
                   onMouseLeave={() => setPilarEmFoco(null)}
+                  onClick={() => setPilarEmFoco((atual) => (atual === pilar.id ? null : pilar.id))}
                   style={emFoco && pilar.imagem ? { backgroundImage: `url(${pilar.imagem})` } : undefined}
-                  className={`relative rounded-2xl overflow-hidden cursor-pointer border transition-all duration-500 ease-in-out bg-cover bg-center min-h-[220px] md:min-h-0 ${
+                  className={`relative rounded-2xl overflow-hidden cursor-pointer border transition-none md:transition-all md:duration-500 md:ease-in-out bg-cover bg-center min-h-[220px] md:min-h-0 ${
                     emFoco
                       ? 'md:flex-[1.6] border-transparent bg-gradient-to-br from-black to-[#3a2f00]'
                       : `md:flex-1 bg-white border-gray-100 ${pilarEmFoco ? 'md:opacity-50' : ''}`
