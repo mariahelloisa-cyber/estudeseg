@@ -284,13 +284,18 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
                   onMouseEnter={() => setPilarEmFoco(pilar.id)}
                   onMouseLeave={() => setPilarEmFoco(null)}
                   onClick={() => setPilarEmFoco((atual) => (atual === pilar.id ? null : pilar.id))}
-                  style={emFoco && pilar.imagem ? { backgroundImage: `url(${pilar.imagem})` } : undefined}
-                  className={`relative rounded-2xl overflow-hidden cursor-pointer border transition-none md:transition-all md:duration-500 md:ease-in-out bg-cover bg-center min-h-[220px] md:min-h-0 ${
+                  className={`relative rounded-2xl overflow-hidden cursor-pointer border transition-none md:transition-all md:duration-500 md:ease-in-out min-h-[220px] md:min-h-0 ${
                     emFoco
-                      ? 'md:flex-[1.6] border-transparent bg-gradient-to-br from-black to-[#3a2f00]'
+                      ? 'md:flex-[1.6] border-transparent'
                       : `md:flex-1 bg-white border-gray-100 ${pilarEmFoco ? 'md:opacity-50' : ''}`
                   }`}
                 >
+                  {emFoco && (
+                    <div
+                      style={pilar.imagem ? { backgroundImage: `url(${pilar.imagem})` } : undefined}
+                      className="absolute inset-0 bg-cover bg-center bg-gradient-to-br from-black to-[#3a2f00]"
+                    />
+                  )}
                   {emFoco ? (
                     <div className="absolute inset-0 flex flex-col justify-end items-start text-left p-6 md:p-8">
                       <IconePilar id={pilar.id} className="relative z-10 w-12 h-12 text-[#fed106] -mb-12" />
@@ -340,12 +345,11 @@ Assista ao vídeo e descubra como estamos conectando conhecimento, oportunidades
           </p>
 
           {/* Espaço para o Vídeo / Player (SEM A BORDA BRANCA e um pouco mais largo: max-w-4xl) */}
-          <div className="relative w-full max-w-4xl aspect-video rounded-[32px] overflow-hidden shadow-2xl group">
+          <div className="relative w-full max-w-4xl aspect-[4/3] sm:aspect-video rounded-[32px] overflow-hidden shadow-2xl group">
             {videoReproduzindo ? (
               <iframe
                 src={`https://drive.google.com/file/d/${VIDEO_DRIVE_ID}/preview`}
-                className="absolute left-0 w-full"
-                style={{ top: '-56px', height: 'calc(100% + 56px)' }}
+                className="w-full h-full"
                 allow="autoplay; fullscreen"
                 allowFullScreen
                 title="Vídeo institucional Estude Seguro"
