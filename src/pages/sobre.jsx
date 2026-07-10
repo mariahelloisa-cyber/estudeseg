@@ -299,13 +299,13 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
                         <span className="relative text-white text-2xl md:text-3xl font-black tracking-tight uppercase drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
                           {pilar.titulo}
                         </span>
-                        <p className="relative mt-2 text-white text-sm md:text-base font-bold leading-relaxed w-[300px] md:w-[400px] transition-none drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+                        <p className="relative mt-2 text-white text-sm md:text-base font-bold leading-relaxed w-full max-w-[300px] md:max-w-[400px] transition-none drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
                           {pilar.texto}
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                       <IconePilar id={pilar.id} className="w-9 h-9 text-[#fed106]" />
                       <span className="text-gray-800 text-xl md:text-2xl font-black tracking-tight uppercase">
                         {pilar.titulo}
@@ -344,7 +344,8 @@ Assista ao vídeo e descubra como estamos conectando conhecimento, oportunidades
             {videoReproduzindo ? (
               <iframe
                 src={`https://drive.google.com/file/d/${VIDEO_DRIVE_ID}/preview`}
-                className="w-full h-full"
+                className="absolute left-0 w-full"
+                style={{ top: '-56px', height: 'calc(100% + 56px)' }}
                 allow="autoplay; fullscreen"
                 allowFullScreen
                 title="Vídeo institucional Estude Seguro"
