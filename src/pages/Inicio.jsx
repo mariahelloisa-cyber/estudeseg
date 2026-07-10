@@ -25,6 +25,39 @@ export default function Inicio() {
     navigate(termo ? `/cursos?busca=${encodeURIComponent(termo)}` : '/cursos');
   };
 
+  // --- Animação "Estude fácil/rápido/agora/seguro": só dispara ao entrar na tela ---
+  const estudeSecaoRef = useRef(null);
+  const [estudeAnimacaoAtiva, setEstudeAnimacaoAtiva] = useState(false);
+
+  useEffect(() => {
+    const elemento = estudeSecaoRef.current;
+    if (!elemento) return;
+
+    // Enquanto os dados do Supabase ainda não chegaram, as seções acima (banners,
+    // selos, diferenciais) ficam vazias e a página fica bem mais curta — o que pode
+    // colocar essa seção dentro da tela já no primeiro carregamento. Por isso só
+    // disparamos a animação depois de ver o elemento FORA da tela pelo menos uma vez
+    // (prova de que ele só entrou em vista por causa de um scroll de verdade).
+    let jaFicouForaDaTela = false;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          jaFicouForaDaTela = true;
+          return;
+        }
+        if (jaFicouForaDaTela) {
+          setEstudeAnimacaoAtiva(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.4 }
+    );
+
+    observer.observe(elemento);
+    return () => observer.disconnect();
+  }, []);
+
   // --- Estado para os Banners Dinâmicos do Supabase ---
   const [banners, setBanners] = useState([]);
   const [indexAtual, setIndexAtual] = useState(0);
@@ -508,6 +541,21 @@ export default function Inicio() {
     </div>
   </div>
 )}
+
+{/* --- SEÇÃO 3.5: "ESTUDE FÁCIL / RÁPIDO / AGORA / SEGURO" --- */}
+      <div ref={estudeSecaoRef} className="w-full bg-gray-50 py-17 md:py-23 flex items-center justify-center overflow-hidden">
+        <div className="flex items-center gap-6 md:gap-7 text-4xl sm:text-5xl md:text-6xl font-medium tracking-tight">
+          <span className="text-black font-black">Estude</span>
+          <div className="relative h-16 sm:h-20 md:h-24 overflow-y-hidden overflow-x-visible pr-2">
+            <div className={`flex flex-col ${estudeAnimacaoAtiva ? 'animate-word-cycle' : ''}`}>
+              <span className="h-16 sm:h-20 md:h-24 flex items-center justify-center text-[#ffeea0] sombra-3d-texto">Fácil</span>
+              <span className="h-16 sm:h-20 md:h-24 flex items-center justify-center text-[#ffeea0] sombra-3d-texto">Rápido</span>
+              <span className="h-16 sm:h-20 md:h-24 flex items-center justify-center text-[#ffeea0] sombra-3d-texto">Agora</span>
+              <span className="h-16 sm:h-20 md:h-24 flex items-center justify-center text-[#fed106] sombra-3d-texto">Seguro</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* --- SEÇÃO 5: CURSOS EM DESTAQUE --- */}
       {cursosDestaque.length > 0 && (

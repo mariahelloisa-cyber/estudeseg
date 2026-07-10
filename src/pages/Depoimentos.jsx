@@ -60,10 +60,10 @@ export default function Depoimentos() {
             <span>/</span>
             <span className="text-gray-900 font-semibold">Depoimentos</span>
           </div>
-          <h1 className="text-4xl md:text-[50px] font-black text-gray-900 tracking-tight leading-none mb-4">
+          <h1 className="text-4xl md:text-[50px] font-black text-gray-900 tracking-tight leading-none mb-4 text-center">
             Depoimentos
           </h1>
-          <p className="text-sm md:text-base text-gray-700 font-medium max-w-2xl">
+          <p className="text-sm md:text-base text-gray-700 font-medium max-w-2xl mx-auto text-center animate-fade-in-up">
             Descubra como a combinação de projetos reais, professores atuantes e uma plataforma completa mudou o jeito de aprender de quem já passou por aqui.
           </p>
         </div>
@@ -82,7 +82,7 @@ export default function Depoimentos() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {depoimentos.map((item) => {
+            {depoimentos.map((item, idx) => {
               const estaReproduzindo = depoimentoReproduzindoId === item.id;
               const urlEmbed = obterUrlEmbedVideo(item.video_url);
 
@@ -112,8 +112,8 @@ export default function Depoimentos() {
                   tabIndex={0}
                   onClick={() => setDepoimentoReproduzindoId(item.id)}
                   onKeyDown={(e) => e.key === 'Enter' && setDepoimentoReproduzindoId(item.id)}
-                  style={{ backgroundImage: `url(${item.foto_url})` }}
-                  className="w-full h-[440px] rounded-3xl bg-cover bg-center shadow-md relative overflow-hidden flex flex-col justify-between p-5 group cursor-pointer transform hover:-translate-y-1.5 transition-all duration-300 text-left"
+                  style={{ backgroundImage: `url(${item.foto_url})`, animationDelay: `${idx * 0.08}s` }}
+                  className="w-full h-[440px] rounded-3xl bg-cover bg-center shadow-md relative overflow-hidden flex flex-col justify-between p-5 group cursor-pointer transform hover:-translate-y-1.5 transition-all duration-300 text-left animate-fade-in-up"
                 >
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent z-10"></div>
                   <div></div>

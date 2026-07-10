@@ -20,3 +20,36 @@ html {
 .animate-slide-in-right {
   animation: slideInRight 0.3s ease-out forwards;
 }
+
+/* Rolagem vertical das palavras "fácil / rápido / agora / seguro" — roda 1x e para em "seguro" */
+@keyframes wordCycle {
+  0%, 16% { transform: translateY(0%); }
+  25%, 41% { transform: translateY(-25%); }
+  50%, 66% { transform: translateY(-50%); }
+  75%, 100% { transform: translateY(-75%); }
+}
+
+.animate-word-cycle {
+  animation: wordCycle 4.8s ease-in-out 1 forwards;
+}
+
+/* Sombra 3D inclinada atrás das palavras animadas */
+.sombra-3d-texto {
+  text-shadow:
+    1px 1px 0 rgba(0, 0, 0, 0.22),
+    2px 2px 0 rgba(0, 0, 0, 0.19),
+    3px 3px 0 rgba(0, 0, 0, 0.16),
+    4px 4px 0 rgba(0, 0, 0, 0.13),
+    5px 5px 0 rgba(0, 0, 0, 0.10),
+    6px 6px 0 rgba(0, 0, 0, 0.07);
+}
+
+/* Entrada de baixo pra cima com fade (texto e cards) */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.7s ease-out both;
+}

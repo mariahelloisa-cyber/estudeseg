@@ -237,22 +237,28 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
       </section>
 
       {/* 2.4 SEÇÃO CREDIBILIDADE (ABED / Reclame Aqui) */}
-      <section className="max-w-7xl mx-auto px-6 pb-16">
-        <div className="relative bg-gradient-to-br from-[#fed106]/70 to-[#f5a300]/90 rounded-[48px] overflow-hidden px-8 py-14 md:px-16 md:py-20">
-          {/* Formas decorativas estilo "pincelada" */}
-          <div className="absolute top-10 left-8 w-44 h-16 bg-[#ffdb4d] rounded-full opacity-70 -rotate-6 pointer-events-none hidden md:block"></div>
-          <div className="absolute bottom-10 left-16 w-56 h-20 bg-[#ffdb4d] rounded-full opacity-70 rotate-3 pointer-events-none hidden md:block"></div>
+      <section className="relative w-full bg-[#efc819] overflow-hidden">
+        {/* Onda branca de transição no topo */}
+        <svg
+          className="absolute top-0 left-0 w-full h-16 md:h-24 text-white"
+          viewBox="0 0 1440 100"
+          preserveAspectRatio="none"
+          fill="currentColor"
+        >
+          <path d="M0,50 C160,90 320,10 480,50 C640,90 800,10 960,50 C1120,90 1280,10 1440,50 L1440,0 L0,0 Z" />
+        </svg>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center relative z-10">
+        <div className="max-w-7xl mx-auto px-6 pt-28 pb-20 md:pt-32 md:pb-33 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
             {/* LADO ESQUERDO: TEXTOS */}
-            <div className="lg:col-span-7">
-              <h2 className="text-2xl md:text-4xl font-black text-white leading-tight mb-6 max-w-xl">
+            <div className="lg:col-span-7 text-left">
+              <h2 className="text-2xl md:text-4xl font-black text-white leading-tight mb-6 max-w-xl drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)]">
                 Compromisso com a Transparência e a Credibilidade
               </h2>
-              <p className="text-white/90 text-sm md:text-base font-medium leading-relaxed mb-4 max-w-xl">
+              <p className="text-white/90 text-sm md:text-base font-medium leading-relaxed mb-4 max-w-xl drop-shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
                 A Estude Seguro é associada à ABED – Associação Brasileira de Educação a Distância, reforçando nosso compromisso com a seriedade, a qualidade e as boas práticas do ensino a distância no Brasil.
               </p>
-              <p className="text-white/90 text-sm md:text-base font-medium leading-relaxed max-w-xl">
+              <p className="text-white/90 text-sm md:text-base font-medium leading-relaxed max-w-xl drop-shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
                 Além disso, somos uma empresa verificada pelo Reclame Aqui, o maior e mais rigoroso site de reputação da América Latina, reconhecimento que reflete nossa dedicação à confiança e à satisfação de cada aluno.
               </p>
             </div>
@@ -272,9 +278,20 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
       </section>
 
       {/* 2.5 SEÇÃO MISSÃO, VISÃO E VALORES */}
-      <section className="max-w-7xl mx-auto px-6 pb-24">
-        <div className="bg-gray-50 rounded-[48px] p-8 md:p-12">
-          <div className="flex flex-col md:flex-row gap-4 h-auto md:h-[440px]">
+      <section className="relative w-full overflow-hidden -mt-10 md:-mt-16">
+        {/* Onda preta sobrepondo o fim da seção amarela */}
+        <svg
+          className="relative block w-full h-16 md:h-24 text-black"
+          viewBox="0 0 1440 100"
+          preserveAspectRatio="none"
+          fill="currentColor"
+        >
+          <path d="M0,50 C160,10 320,90 480,50 C640,10 800,90 960,50 C1120,10 1280,90 1440,50 L1440,100 L0,100 Z" />
+        </svg>
+
+        <div className="bg-black pt-8 pb-16 md:pt-20 md:pb-28">
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
+            <div className="flex flex-col md:flex-row gap-4 h-auto md:h-[440px]">
             {PILARES.map((pilar) => {
               const emFoco = pilarEmFoco === pilar.id;
 
@@ -322,8 +339,9 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
             })}
           </div>
         </div>
+        </div>
       </section>
-
+      <br></br>
       {/* 3. SEÇÃO MANIFESTO (Container mais largo e vídeo sem borda) */}
       {/* Alterado para w-full e max-w-[1440px] para ocupar mais espaço nas laterais */}
       <section className="w-full max-w-[1440px] mx-auto px-4 md:px-6 pb-24">
