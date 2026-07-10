@@ -78,7 +78,7 @@ export default function Inicio() {
         }
       }
       .animate-marquee {
-        animation: marquee 30s linear infinite;
+        animation: marquee 15s linear infinite;
         will-change: transform;
       }
       .hide-scrollbar {
@@ -403,12 +403,12 @@ export default function Inicio() {
           <div className="relative w-full overflow-hidden bg-white py-4">
             <div className="flex animate-marquee">
               {listaSelos.map((selo, i) => (
-                <div key={`selo-${i}`} className="flex-shrink-0 px-8 flex items-center justify-center" style={{ minWidth: '320px' }}>
+                <div key={`selo-${i}`} className="flex-shrink-0 px-8 flex items-center justify-center" style={{ minWidth: '270px' }}>
                   <img src={selo.imagem_url} alt={selo.nome} className="h-14 md:h-20 w-auto object-contain transition-transform hover:scale-105 duration-400" />
                 </div>
               ))}
               {listaSelos.map((selo, i) => (
-                <div key={`selo-dup-${i}`} className="flex-shrink-0 px-8 flex items-center justify-center" style={{ minWidth: '150px' }}>
+                <div key={`selo-dup-${i}`} className="flex-shrink-0 px-8 flex items-center justify-center" style={{ minWidth: '270px' }}>
                   <img src={selo.imagem_url} alt={selo.nome} className="h-14 md:h-20 w-auto object-contain transition-transform hover:scale-105 duration-400" />
                 </div>
               ))}

@@ -2,11 +2,10 @@
 
 @theme {
   /* Criamos a animação da esteira (marquee) no Tailwind v4 */
-  --animate-marquee: marquee 25s linear infinite;
 
   @keyframes marquee {
     from { transform: translateX(0%); }
-    to { transform: translateX(-100%); }
+    to { transform: translateX(-100%); } 
   }
 }
 html {
