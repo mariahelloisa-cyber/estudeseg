@@ -7,6 +7,7 @@ const LINKS = [
   { to: '/', label: 'Início' },
   { to: '/sobre', label: 'Sobre Nós' },
   { to: '/cursos', label: 'Cursos' },
+  { to: '/aproveitamento', label: 'Aproveitamento' },
   { to: '/depoimentos', label: 'Depoimentos' },
   { to: '/blog', label: 'Blog' },
   { to: '/vagas', label: 'Vagas' },

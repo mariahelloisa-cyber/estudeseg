@@ -505,23 +505,23 @@ export default function Inicio() {
       <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Por que escolher a Estude Seguro para impulsionar o seu futuro profissional?</p>
     </div>
     <div className="w-full flex flex-col items-center">
-      <div className="w-full min-h-[320px] flex items-center justify-center relative overflow-hidden px-2 py-6 gap-3 md:gap-6">
+      <div className="w-full min-h-[460px] flex items-center justify-center relative overflow-x-hidden overflow-y-visible px-2 py-10 gap-3 md:gap-6">
         {[0, 1, 2, 3, 4].map((posicaoFisica) => {
           const itemData = obterDadoDoCard(posicaoFisica);
           if (!itemData) return null;
           let estiloDestaque = posicaoFisica === 2 ? "scale-110 md:scale-115 opacity-100 z-30 shadow-2xl ring-4 ring-[#fed106]/100" : (posicaoFisica === 1 || posicaoFisica === 3 ? "opacity-40 scale-95 z-20 shadow-md" : "opacity-10 scale-85 z-10 hidden sm:flex");
-          
+
           const urlImagem = itemData.fotoUrl || itemData.imagem_url || itemData.foto_url;
 
           return (
-            <div 
-              key={`card-fisico-${posicaoFisica}`} 
+            <div
+              key={`card-fisico-${posicaoFisica}`}
               style={{ backgroundImage: `url('${urlImagem}')` }}
-              className={`w-[18%] min-w-[200px] md:min-w-[250px] h-[300px] rounded-2xl relative bg-cover bg-center transition-all duration-500 ease-in-out transform flex flex-col justify-end p-5 overflow-hidden ${estiloDestaque}`}
+              className={`w-[22%] min-w-[220px] md:min-w-[300px] h-[360px] rounded-2xl relative bg-cover bg-center transition-all duration-500 ease-in-out transform flex flex-col justify-end p-6 overflow-hidden ${estiloDestaque}`}
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10"></div>
               <div className="relative z-20 text-left pl-1 pr-2 pb-1">
-                <h4 className="text-white text-sm md:text-base font-extrabold tracking-wide leading-snug uppercase">{itemData.titulo}</h4>
+                <h4 className="text-white text-base md:text-lg font-extrabold tracking-wide leading-snug uppercase">{itemData.titulo}</h4>
               </div>
             </div>
           );
@@ -544,14 +544,14 @@ export default function Inicio() {
 
 {/* --- SEÇÃO 3.5: "ESTUDE FÁCIL / RÁPIDO / AGORA / SEGURO" --- */}
       <div ref={estudeSecaoRef} className="w-full bg-gray-50 py-17 md:py-17 flex items-center justify-center overflow-hidden">
-        <div className="flex items-center gap-6 md:gap-7 text-4xl sm:text-5xl md:text-6xl font-medium tracking-tight">
+        <div className="flex items-center gap-6 md:gap-7 text-6xl sm:text-7xl md:text-8xl font-medium tracking-tight">
           <span className="text-black font-black">Estude</span>
-          <div className="relative h-16 sm:h-20 md:h-24 overflow-y-hidden overflow-x-visible pr-2">
+          <div className="relative h-28 sm:h-32 md:h-36 overflow-hidden pr-2">
             <div className={`flex flex-col ${estudeAnimacaoAtiva ? 'animate-word-cycle' : ''}`}>
-              <span className="h-16 sm:h-20 md:h-24 flex items-center justify-center text-[#ffeea0] sombra-3d-texto">Fácil</span>
-              <span className="h-16 sm:h-20 md:h-24 flex items-center justify-center text-[#ffeea0] sombra-3d-texto">Rápido</span>
-              <span className="h-16 sm:h-20 md:h-24 flex items-center justify-center text-[#ffeea0] sombra-3d-texto">Agora</span>
-              <span className="h-16 sm:h-20 md:h-24 flex items-center justify-center text-[#fed106] sombra-3d-texto">Seguro</span>
+              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Fácil</span>
+              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Rápido</span>
+              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Agora</span>
+              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#fed106] sombra-3d-texto">Seguro</span>
             </div>
           </div>
         </div>

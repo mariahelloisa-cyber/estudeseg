@@ -21,6 +21,7 @@ import Depoimentos from './pages/Depoimentos';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Admin from './pages/admin';
+import Aproveitamento from './pages/Aproveitamento';
 
 
 function LayoutGlobal() {
@@ -46,6 +47,7 @@ function LayoutGlobal() {
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/aproveitamento" element={<Aproveitamento />} />
       </Routes>
 
       {/* O Footer, o carrinho e o WhatsApp só aparecem nas páginas públicas, não no login/admin */}
