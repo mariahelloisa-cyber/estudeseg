@@ -259,7 +259,36 @@ export default function Aproveitamento() {
         </div>
       </section>
 
-      <div className="h-4 md:h-6" />
+      {/* --- INFO CARDS --- */}
+      <section className="bg-[#f8f9fa] pt-6 pb-6 md:pt-8 md:pb-8">
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:items-center">
+          <div className="aspect-square sm:max-w-[220px] sm:mx-auto w-full rounded-2xl bg-black text-white p-6 flex flex-col items-center justify-center text-center shadow-lg">
+            <div className="w-12 h-12 mb-3 rounded-2xl bg-white/10 text-[#fed106] flex items-center justify-center">
+              <IconClock className="w-5 h-5" />
+            </div>
+            <h5 className="font-bold text-sm">Economize Tempo</h5>
+            <p className="text-xs text-white/60 mt-1">Reduza o tempo da sua graduação aproveitando disciplinas do técnico.</p>
+          </div>
+
+          <div className="rounded-2xl bg-black text-white p-7 text-center shadow-2xl">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/10 text-[#fed106] flex items-center justify-center">
+              <IconBolt className="w-6 h-6" />
+            </div>
+            <h5 className="font-bold text-base">Como funciona?</h5>
+            <p className="text-sm text-white/60 mt-1">
+              Selecione um curso técnico ou uma graduação ao lado para descobrir as equivalências disponíveis. Você pode eliminar matérias e acelerar sua formação!
+            </p>
+          </div>
+
+          <div className="aspect-square sm:max-w-[220px] sm:mx-auto w-full rounded-2xl bg-black text-white p-6 flex flex-col items-center justify-center text-center shadow-lg">
+            <div className="w-12 h-12 mb-3 rounded-2xl bg-white/10 text-[#fed106] flex items-center justify-center">
+              <IconCoin className="w-5 h-5" />
+            </div>
+            <h5 className="font-bold text-sm">Economize Dinheiro</h5>
+            <p className="text-xs text-white/60 mt-1">Menos semestres significa menos mensalidades a pagar.</p>
+          </div>
+        </div>
+      </section>
 
       {/* --- MAIN CONTENT --- */}
       <section className="pb-16">
@@ -269,12 +298,12 @@ export default function Aproveitamento() {
             <h2 className="flex items-center gap-2 font-bold text-base mb-4">
               {modo === 'tec' ? (
                 <>
-                  <IconCog className="w-5 h-5 text-green-700" />
+                  <IconCog className="w-5 h-5 text-[#fed106]" />
                   Selecione seu Curso Técnico:
                 </>
               ) : (
                 <>
-                  <IconAcademicCap className="w-5 h-5 text-blue-700" />
+                  <IconAcademicCap className="w-5 h-5 text-[#fed106]" />
                   Selecione a Graduação desejada:
                 </>
               )}
@@ -299,7 +328,7 @@ export default function Aproveitamento() {
                         ativo ? 'border-[#fee600] bg-[#FFFDEF] shadow-[0_8px_25px_rgba(254,230,0,0.15)]' : 'border-transparent hover:border-[#fee600]'
                       }`}
                     >
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 ${modo === 'tec' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                      <div className="w-11 h-11 rounded-xl bg-[#fed106]/10 text-[#fed106] flex items-center justify-center mb-3">
                         {modo === 'tec' ? <IconCog className="w-5 h-5" /> : <IconAcademicCap className="w-5 h-5" />}
                       </div>
                       <h6 className="font-bold text-sm mb-1 pr-6">{nome}</h6>
@@ -327,12 +356,12 @@ export default function Aproveitamento() {
                 <h4 className="flex items-center gap-2 font-extrabold text-lg">
                   {modo === 'tec' ? (
                     <>
-                      <IconAcademicCap className="w-5 h-5 text-blue-700" />
+                      <IconAcademicCap className="w-5 h-5 text-[#fed106]" />
                       Graduações disponíveis
                     </>
                   ) : (
                     <>
-                      <IconCog className="w-5 h-5 text-green-700" />
+                      <IconCog className="w-5 h-5 text-[#fed106]" />
                       Técnicos aceitos
                     </>
                   )}
@@ -354,7 +383,7 @@ export default function Aproveitamento() {
 
                       return (
                         <div key={item} className="flex items-center gap-3 rounded-xl border border-gray-100 p-3 hover:bg-[#FFFDEF] hover:border-[#fee600] transition-colors">
-                          <div className={`w-10 h-10 shrink-0 rounded-lg flex items-center justify-center ${modo === 'tec' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                          <div className="w-10 h-10 shrink-0 rounded-lg bg-[#fed106]/10 text-[#fed106] flex items-center justify-center">
                             {modo === 'tec' ? <IconAcademicCap className="w-4.5 h-4.5" /> : <IconCog className="w-4.5 h-4.5" />}
                           </div>
                           <span className="text-sm font-semibold">{item}</span>
@@ -377,33 +406,7 @@ export default function Aproveitamento() {
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 bg-white rounded-2xl p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-green-100 text-green-700 flex items-center justify-center">
-                    <IconBolt className="w-7 h-7" />
-                  </div>
-                  <h5 className="font-bold">Como funciona?</h5>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Selecione um curso técnico ou uma graduação ao lado para descobrir as equivalências disponíveis. Você pode eliminar matérias e acelerar sua formação!
-                  </p>
-                </div>
-                <div className="bg-white rounded-2xl p-6 text-center shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-orange-100 text-orange-700 flex items-center justify-center">
-                    <IconClock className="w-7 h-7" />
-                  </div>
-                  <h5 className="font-bold text-sm">Economize Tempo</h5>
-                  <p className="text-xs text-gray-500 mt-1">Reduza o tempo da sua graduação aproveitando disciplinas do técnico.</p>
-                </div>
-                <div className="bg-white rounded-2xl p-6 text-center shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center">
-                    <IconCoin className="w-7 h-7" />
-                  </div>
-                  <h5 className="font-bold text-sm">Economize Dinheiro</h5>
-                  <p className="text-xs text-gray-500 mt-1">Menos semestres significa menos mensalidades a pagar.</p>
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       </section>
