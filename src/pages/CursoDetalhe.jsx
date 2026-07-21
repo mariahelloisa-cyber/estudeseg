@@ -166,12 +166,18 @@ function CursoRelacionadoCard({ curso }) {
       className="flex flex-col sm:flex-row bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 group"
     >
       <div className="relative w-full sm:w-48 h-40 sm:h-auto shrink-0 overflow-hidden bg-gray-100">
-        <img
-          src={curso.imagem_url}
-          alt={curso.titulo}
-          loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        {curso.imagem_url ? (
+          <img
+            src={curso.imagem_url}
+            alt={curso.titulo}
+            loading="lazy"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-300">
+            <BookOpenIcon className="w-8 h-8" />
+          </div>
+        )}
       </div>
       <div className="p-5 flex flex-col flex-grow">
         <h4 className="text-sm font-black text-gray-900 mb-1.5 uppercase leading-snug">{curso.titulo}</h4>
@@ -196,7 +202,13 @@ function CardCompra({ curso, precoAtual, precoOriginal, valorParcela, percentual
   return (
     <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
       <div className="relative w-full h-48 sm:h-52 bg-gray-800">
-        <img src={curso.imagem_url} alt={curso.titulo} className="w-full h-full object-cover" />
+        {curso.imagem_url ? (
+          <img src={curso.imagem_url} alt={curso.titulo} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-500">
+            <BookOpenIcon className="w-12 h-12" />
+          </div>
+        )}
         {curso.selo_mec && (
           <span className="absolute top-3 left-3 bg-white text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5">
             <svg className="w-3.5 h-3.5 text-[#fed106]" fill="currentColor" viewBox="0 0 20 20">

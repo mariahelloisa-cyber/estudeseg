@@ -16,7 +16,13 @@ function CursoCardNovo({ curso }) {
       className="flex flex-col bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 group"
     >
       <div className="relative w-full h-44 overflow-hidden bg-gray-100">
-        <img src={curso.imagem_url} alt={curso.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        {curso.imagem_url ? (
+          <img src={curso.imagem_url} alt={curso.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-300">
+            <BookOpenIcon className="w-10 h-10" />
+          </div>
+        )}
         {curso.selo_mec && (
           <span className="absolute top-3 left-3 bg-white text-gray-800 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
             <svg className="w-3 h-3 text-[#fed106]" fill="currentColor" viewBox="0 0 20 20">

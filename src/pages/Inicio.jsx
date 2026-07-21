@@ -328,7 +328,7 @@ export default function Inicio() {
           categoria: (item.categorias_cursos?.nome || "Geral").toUpperCase(),
           duracao: item.duracao || "Curta Duração",
           preco: item.preco || 0,
-          fotoUrl: item.imagem_url,
+          fotoUrl: item.imagem_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600",
         }));
 
         setCursosMaisVendidos(dadosFormatados);
