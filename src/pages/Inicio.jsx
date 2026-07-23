@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import LinhaDivisoriaEsteira from '../components/LinhaDivisoriaEsteira';
 import { obterUrlEmbedVideo } from '../utils/video';
 
 function montarLinkWhatsapp(numero) {
@@ -131,6 +132,23 @@ export default function Inicio() {
       }
       .hide-scrollbar::-webkit-scrollbar {
         display: none;
+      }
+      /* Seta do botão "Faça já sua matrícula": repete sozinha, sem parar, o mesmo
+         vai-e-vem que ela faria ao passar e tirar o cursor (só que contínuo). */
+      @keyframes setaVaiVem {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(4px); }
+      }
+      .animate-seta-vaivem {
+        animation: setaVaiVem 1.1s ease-in-out infinite;
+      }
+      /* Botão "Faça já sua matrícula": pulsa aumentando e diminuindo levemente, sem parar. */
+      @keyframes botaoPulsar {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+      .animate-botao-pulsar {
+        animation: botaoPulsar 1.8s ease-in-out infinite;
       }
     `;
     document.head.appendChild(style);
@@ -500,11 +518,11 @@ export default function Inicio() {
       {/* --- CTA: BOTÃO DE MATRÍCULA (acima da seção de Diferenciais) --- */}
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12 flex justify-center">
         <a
-          href="/cursos"
-          className="group inline-flex items-center gap-2.5 bg-[#000000] hover:bg-[#fed106] text-white font-black text-sm uppercase tracking-wider px-8 py-4 rounded-full shadow-md shadow-[#fed106]/20 transition-all active:scale-[0.98]"
+          href="/matricula"
+          className="group inline-flex items-center gap-2.5 bg-[#000000] hover:bg-[#fed106] text-white font-black text-sm uppercase tracking-wider px-8 py-4 rounded-full shadow-md shadow-[#fed106]/20 transition-all active:scale-[0.98] animate-botao-pulsar"
         >
           Faça já sua matrícula
-          <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+          <svg className="w-4 h-4 animate-seta-vaivem" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
             <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
         </a>
@@ -540,16 +558,34 @@ export default function Inicio() {
           );
         })}
       </div>
-      <div className="flex justify-between items-center w-full max-w-xs mt-6 px-4">
-        <div className="flex gap-1.5">
+      <div className="mt-6 flex items-center justify-center gap-4">
+        <button
+          type="button"
+          onClick={irParaEsquerda}
+          aria-label="Ver diferencial anterior"
+          className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-md transition-all cursor-pointer"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <div className="flex items-center gap-2">
           {listaDiferenciais.map((_, idx) => (
-            <span key={idx} className={`h-2 rounded-full transition-all duration-300 ${idx === indiceAtivo ? 'w-5 bg-[#fed106]' : 'w-2 bg-gray-300'}`} />
+            <span key={idx} className={`w-2 h-2 rounded-full transition-colors ${idx === indiceAtivo ? 'bg-[#fed106]' : 'bg-gray-200'}`} />
           ))}
         </div>
-        <div className="flex gap-2">
-          <button onClick={irParaEsquerda} className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-[#000000] text-white flex items-center justify-center shadow transition-all cursor-pointer font-bold z-40">&#10094;</button>
-          <button onClick={irParaDireita} className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-[#000000] text-white flex items-center justify-center shadow transition-all cursor-pointer font-bold z-40">&#10095;</button>
-        </div>
+
+        <button
+          type="button"
+          onClick={irParaDireita}
+          aria-label="Ver próximo diferencial"
+          className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-md transition-all cursor-pointer"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
     </div>
   </div>
@@ -699,7 +735,7 @@ export default function Inicio() {
       )}
 
       {/* --- SEÇÃO: CURSOS MAIS VENDIDOS (100% DINÂMICA, DESIGN ORIGINAL DO BLOG) --- */}
-<section className="relative py-16 md:py-24 bg-[#fffff] w-full overflow-hidden">
+<section className="relative py-16 md:py-15 bg-[#fffff] w-full overflow-hidden">
   <div className="absolute top-20 left-10 hidden lg:block opacity-30">
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
       <pattern id="dots1" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
@@ -928,20 +964,11 @@ export default function Inicio() {
   </div>
 </section>
 
+      <LinhaDivisoriaEsteira />
+
       {/* --- SEÇÃO DEPOIMENTOS --- */}
       {depoimentos.length > 0 && (
-        <div className="w-full bg-[#fed106]/5 relative overflow-hidden py-16 md:py-20 mt-12">
-          <svg 
-            className="absolute -right-60 -top-55 w-[700px] md:w-[1200px] h-[1200px] md:h-[1200px] text-[#ffeea0]/55 pointer-events-none z-0" 
-            viewBox="0 0 1000 1000" 
-            xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="none"
-          >
-            <path 
-              fill="currentColor" 
-              d="M851 588.5Q711 677 641.5 794t-190 57.5Q331 792 182.5 731T48 505.5Q62 341 211 299t255-125.5Q572 90 661.5 190T871 395q120 105-20 193.5Z"
-            />
-          </svg>
+        <div className="w-full bg-gray-50 relative overflow-hidden py-10 md:py-10">
 
           <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="text-left mb-10 w-full">
@@ -962,7 +989,7 @@ export default function Inicio() {
                   return (
                     <div
                       key={`depoimento-${item.id}`}
-                      className="w-full h-[440px] rounded-3xl shadow-md relative overflow-hidden bg-black"
+                      className="w-full h-[290px] md:h-[320px] rounded-3xl shadow-md relative overflow-hidden bg-black"
                     >
                       <iframe
                         src={urlEmbed}
@@ -985,7 +1012,7 @@ export default function Inicio() {
                     onClick={() => setDepoimentoReproduzindoId(item.id)}
                     onKeyDown={(e) => e.key === 'Enter' && setDepoimentoReproduzindoId(item.id)}
                     style={{ backgroundImage: `url(${item.foto_url})` }}
-                    className="w-full h-[440px] rounded-3xl bg-cover bg-center shadow-md relative overflow-hidden flex flex-col justify-between p-5 group cursor-pointer transform hover:-translate-y-1.5 transition-all duration-300 text-left"
+                    className="w-full h-[290px] md:h-[320px] rounded-3xl bg-cover bg-center shadow-md relative overflow-hidden flex flex-col justify-between p-5 group cursor-pointer transform hover:-translate-y-1.5 transition-all duration-300 text-left"
                   >
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent z-10"></div>
                     <div></div>
@@ -1036,6 +1063,8 @@ export default function Inicio() {
           </div>
         </div>
       )}
+
+      <LinhaDivisoriaEsteira />
 
       {/* --- SEÇÃO: FORMULÁRIO DE CONTATO --- */}
       <section className="relative py-16 md:py-20 bg-black w-full overflow-hidden border-t border-gray-100">

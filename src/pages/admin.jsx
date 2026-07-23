@@ -41,6 +41,7 @@ const ITENS_MENU = [
   { id: 'depoimentos', label: 'Depoimentos', Icon: ChatBubbleLeftRightIcon },
   { id: 'popups', label: 'Pop-ups', Icon: MegaphoneIcon },
   { id: 'contatos', label: 'Contatos', Icon: EnvelopeIcon },
+  { id: 'matriculas', label: 'Matrículas', Icon: DocumentTextIcon },
 ];
 
 const CURSO_FORM_INICIAL = {
@@ -201,6 +202,10 @@ export default function Admin() {
 
   // --- Estados para o Gerenciador de Contatos (formulário da Home) ---
   const [contatosAdmin, setContatosAdmin] = useState([]);
+
+  // --- Estados para o Gerenciador de Matrículas (formulário público /matricula) ---
+  const [matriculasAdmin, setMatriculasAdmin] = useState([]);
+  const [matriculaExpandidaId, setMatriculaExpandidaId] = useState(null);
 
   // --- Estados para o Gerenciador de Pop-ups ---
   const [popupsAdmin, setPopupsAdmin] = useState([]);
@@ -745,6 +750,47 @@ export default function Admin() {
     }
   }
 
+  // --- FUNÇÕES DE MATRÍCULAS (formulário público /matricula) ---
+  async function buscarMatriculasAdmin() {
+    try {
+      const { data, error } = await supabase
+        .from('matriculas')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setMatriculasAdmin(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar matrículas:", err);
+    }
+  }
+
+  async function handleDeletarMatricula(id) {
+    if (!window.confirm("Tem certeza que deseja excluir esta matrícula?")) return;
+    try {
+      const { error } = await supabase.from('matriculas').delete().eq('id', id);
+      if (error) throw error;
+      setMatriculasAdmin((prev) => prev.filter((m) => m.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível eliminar a matrícula. Tente novamente.");
+    }
+  }
+
+  // Os anexos ficam num bucket privado: gera um link temporário válido por 60s para abrir/baixar
+  async function handleAbrirAnexoMatricula(caminhoArquivo) {
+    try {
+      const { data, error } = await supabase.storage
+        .from('matriculas-anexos')
+        .createSignedUrl(caminhoArquivo, 60);
+      if (error) throw error;
+      window.open(data.signedUrl, '_blank', 'noreferrer');
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível abrir o anexo. Tente novamente.");
+    }
+  }
+
   // --- FUNÇÕES DE POP-UPS ---
   async function buscarPopupsAdmin() {
     try {
@@ -843,6 +889,7 @@ export default function Admin() {
       buscarFaqsAdmin();
       buscarVagasAdmin();
       buscarContatosAdmin();
+      buscarMatriculasAdmin();
     }
   }, [modoAdmin]);
 
@@ -1490,6 +1537,7 @@ export default function Admin() {
                 <CardEstatistica label="Depoimentos" valor={depoimentos.length} subtitulo="Publicados" Icon={ChatBubbleLeftRightIcon} cor="bg-orange-500" />
                 <CardEstatistica label="Contatos" valor={contatosAdmin.length} subtitulo="Recebidos pela Home" Icon={EnvelopeIcon} cor="bg-teal-500" />
                 <CardEstatistica label="Pop-ups" valor={popupsAdmin.length} subtitulo={`${popupsAdmin.filter((p) => p.ativo).length} ativo(s)`} Icon={MegaphoneIcon} cor="bg-rose-500" />
+                <CardEstatistica label="Matrículas" valor={matriculasAdmin.length} subtitulo="Recebidas pelo formulário" Icon={DocumentTextIcon} cor="bg-violet-500" />
               </div>
 
               <h2 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -1506,6 +1554,7 @@ export default function Admin() {
                 <CartaoAcaoRapida titulo="Gerenciar Depoimentos" descricao="Depoimentos em vídeo de alunos" Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" onClick={() => irParaAba('depoimentos')} />
                 <CartaoAcaoRapida titulo="Gerenciar Contatos" descricao="Mensagens recebidas pelo formulário da Home" Icon={EnvelopeIcon} cor="bg-teal-500" onClick={() => irParaAba('contatos')} />
                 <CartaoAcaoRapida titulo="Gerenciar Pop-ups" descricao="Avisos e promoções exibidos no site" Icon={MegaphoneIcon} cor="bg-rose-500" onClick={() => irParaAba('popups')} />
+                <CartaoAcaoRapida titulo="Gerenciar Matrículas" descricao="Matrículas enviadas pelo formulário público" Icon={DocumentTextIcon} cor="bg-violet-500" onClick={() => irParaAba('matriculas')} />
               </div>
             </>
           )}
@@ -2603,6 +2652,104 @@ export default function Admin() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ================= MATRÍCULAS (formulário público /matricula) ================= */}
+          {abaAtiva === 'matriculas' && (
+            <>
+              <CabecalhoPagina titulo="Matrículas" subtitulo="Matrículas enviadas pelo formulário público de matrícula" Icon={DocumentTextIcon} />
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <CardEstatistica label="Total de Matrículas" valor={matriculasAdmin.length} Icon={DocumentTextIcon} cor="bg-violet-500" />
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Matrículas Recebidas ({matriculasAdmin.length})</h3>
+                {matriculasAdmin.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <DocumentTextIcon className="w-10 h-10 text-gray-300 mb-3" />
+                    <p className="font-black text-gray-700 text-sm">Nenhuma matrícula recebida ainda</p>
+                    <p className="text-xs text-gray-400 mt-1">Envios do formulário /matricula aparecerão aqui</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[48rem] overflow-y-auto">
+                    {matriculasAdmin.map((m) => {
+                      const expandida = matriculaExpandidaId === m.id;
+                      return (
+                        <div key={m.id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 relative shadow-sm">
+                          <div className="flex gap-2 absolute top-3 right-3">
+                            <button
+                              onClick={() => setMatriculaExpandidaId(expandida ? null : m.id)}
+                              className="text-blue-600 hover:text-blue-700 text-xs font-bold uppercase cursor-pointer"
+                            >
+                              {expandida ? 'Fechar' : 'Ver detalhes'}
+                            </button>
+                            <button
+                              onClick={() => handleDeletarMatricula(m.id)}
+                              className="text-red-500 hover:text-red-600 text-xs font-bold uppercase cursor-pointer"
+                            >
+                              Excluir
+                            </button>
+                          </div>
+                          <div className="pr-28">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <strong className="text-sm text-gray-900 font-black">{m.nome_completo}</strong>
+                              {m.curso && (
+                                <span className="text-[9px] font-extrabold bg-[#fed106]/15 text-[#8a6d00] px-2 py-0.5 rounded-full uppercase tracking-wide">
+                                  {m.curso}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 font-medium">
+                              {m.email} {m.telefone ? `• ${m.telefone}` : ''} {m.cpf ? `• CPF ${m.cpf}` : ''}
+                            </p>
+                            <p className="text-[10px] text-gray-400 font-semibold mt-2">
+                              {m.created_at ? new Date(m.created_at).toLocaleString('pt-BR') : ''}
+                            </p>
+                          </div>
+
+                          {expandida && (
+                            <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs text-gray-700">
+                              <p><span className="font-bold text-gray-500 uppercase block text-[10px]">Data de Nascimento</span>{m.data_nascimento || '-'}</p>
+                              <p><span className="font-bold text-gray-500 uppercase block text-[10px]">RG</span>{m.rg || '-'}</p>
+                              <p><span className="font-bold text-gray-500 uppercase block text-[10px]">Órgão Emissor</span>{m.orgao_emissor || '-'}</p>
+                              <p><span className="font-bold text-gray-500 uppercase block text-[10px]">Data de Emissão</span>{m.data_emissao || '-'}</p>
+                              <p><span className="font-bold text-gray-500 uppercase block text-[10px]">Naturalidade</span>{m.naturalidade || '-'}</p>
+                              <p><span className="font-bold text-gray-500 uppercase block text-[10px]">Raça/Cor</span>{m.raca_cor || '-'}</p>
+                              <p><span className="font-bold text-gray-500 uppercase block text-[10px]">Estado Civil</span>{m.estado_civil || '-'}</p>
+                              <p><span className="font-bold text-gray-500 uppercase block text-[10px]">Pai</span>{m.pai || '-'}</p>
+                              <p><span className="font-bold text-gray-500 uppercase block text-[10px]">Mãe</span>{m.mae || '-'}</p>
+                              <p className="sm:col-span-2 lg:col-span-3"><span className="font-bold text-gray-500 uppercase block text-[10px]">Endereço</span>{[m.rua, m.numero, m.complemento, m.bairro, m.cidade, m.estado, m.cep].filter(Boolean).join(', ') || '-'}</p>
+                              {m.observacoes && (
+                                <p className="sm:col-span-2 lg:col-span-3"><span className="font-bold text-gray-500 uppercase block text-[10px]">Observações</span>{m.observacoes}</p>
+                              )}
+                              <div className="sm:col-span-2 lg:col-span-3">
+                                <span className="font-bold text-gray-500 uppercase block text-[10px] mb-1.5">Anexos</span>
+                                {(!m.anexos || m.anexos.length === 0) ? (
+                                  <span className="text-gray-400 italic">Nenhum anexo enviado.</span>
+                                ) : (
+                                  <div className="flex flex-wrap gap-2">
+                                    {m.anexos.map((caminho, idx) => (
+                                      <button
+                                        key={caminho}
+                                        onClick={() => handleAbrirAnexoMatricula(caminho)}
+                                        className="bg-white border border-gray-200 hover:border-[#fed106] text-gray-700 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                      >
+                                        📎 Anexo {idx + 1}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

@@ -69,19 +69,24 @@ export default function ListaCursos() {
   // --- Cursos cadastrados pelo admin (Supabase), exibidos em cards, acima da lista antiga ---
   const [cursosCadastrados, setCursosCadastrados] = useState([]);
   const [categoriasCadastradas, setCategoriasCadastradas] = useState([]);
+  const [paginaCadastrados, setPaginaCadastrados] = useState(0);
+  const CARDS_POR_PAGINA_CADASTRADOS = 15;
 
   useEffect(() => {
     async function buscarCursosCadastrados() {
       try {
         const [{ data: cursos, error: erroCursos }, { data: categorias, error: erroCategorias }] = await Promise.all([
-          supabase.from('cursos_cadastrados').select('*, categorias_cursos(nome)').order('created_at', { ascending: false }),
+          supabase.from('cursos_cadastrados').select('*, categorias_cursos(nome)'),
           supabase.from('categorias_cursos').select('*').order('nome', { ascending: true }),
         ]);
 
         if (erroCursos) throw erroCursos;
         if (erroCategorias) throw erroCategorias;
 
-        setCursosCadastrados(cursos || []);
+        const cursosOrdenadosAlfabeticamente = (cursos || []).slice().sort((a, b) =>
+          (a.titulo || '').localeCompare(b.titulo || '', 'pt-BR', { sensitivity: 'base' })
+        );
+        setCursosCadastrados(cursosOrdenadosAlfabeticamente);
         setCategoriasCadastradas(categorias || []);
       } catch (err) {
         console.error('Erro ao buscar cursos cadastrados pelo admin:', err);
@@ -96,6 +101,10 @@ export default function ListaCursos() {
       (curso.categorias_cursos?.nome || 'Geral') === categoriaSelecionada;
     return combinaTexto && combinaCategoria;
   });
+
+  const totalPaginasCadastrados = Math.max(1, Math.ceil(cursosCadastradosFiltrados.length / CARDS_POR_PAGINA_CADASTRADOS));
+  const inicioPaginaCadastrados = paginaCadastrados * CARDS_POR_PAGINA_CADASTRADOS;
+  const cursosCadastradosDaPagina = cursosCadastradosFiltrados.slice(inicioPaginaCadastrados, inicioPaginaCadastrados + CARDS_POR_PAGINA_CADASTRADOS);
 
   // Proteção contra dados vazios
   const dadosCursos = Array.isArray(listaCursosGiga) ? listaCursosGiga : [];
@@ -162,11 +171,18 @@ export default function ListaCursos() {
     const categoriaCurso = curso.categoriaNome || "";
 
     const combinaTexto = nomeCurso.toLowerCase().includes(pesquisa.toLowerCase());
-    const combinaCategoria = categoriaSelecionada === 'Todas' || 
+    const combinaCategoria = categoriaSelecionada === 'Todas' ||
                              categoriaCurso.toLowerCase() === categoriaSelecionada.toLowerCase();
 
     return combinaTexto && combinaCategoria;
   });
+
+  // Quando a lista antiga (em formato de lista) também aparece na tela, o total exibido soma
+  // os cards cadastrados pelo admin + os cursos dessa lista antiga; quando a categoria é
+  // exclusiva dos cadastrados (ex.: Tecnólogos), a lista antiga fica oculta e não entra na conta.
+  const totalCursosEncontrados = categoriaEhNova
+    ? cursosCadastradosFiltrados.length
+    : cursosCadastradosFiltrados.length + cursosFiltrados.length;
 
   return (
     <div className="w-full min-h-screen bg-[#fafafa] text-gray-900 antialiased pb-20 flex flex-col">
@@ -221,7 +237,7 @@ export default function ListaCursos() {
                 type="text"
                 placeholder="Pesquisar curso por nome, área ou palavra-chave..."
                 value={pesquisa}
-                onChange={(e) => setPesquisa(e.target.value)}
+                onChange={(e) => { setPesquisa(e.target.value); setPaginaCadastrados(0); }}
                 className="w-full pl-2 pr-4 py-3 bg-transparent text-xs md:text-sm text-gray-700 placeholder-gray-400 focus:outline-none font-medium"
               />
               <button className="bg-[#000000] hover:bg-[#fed106] text-white p-2.5 md:p-3 rounded-full transition-all flex items-center justify-center shrink-0">
@@ -245,7 +261,7 @@ export default function ListaCursos() {
             return (
               <button
                 key={`btn-filtro-${cat}`}
-                onClick={() => setCategoriaSelecionada(cat)}
+                onClick={() => { setCategoriaSelecionada(cat); setPaginaCadastrados(0); }}
                 className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 border flex items-center gap-2 cursor-pointer ${
                   isSelected
                     ? 'bg-[#fed106] text-white border-[#fed106] shadow-sm'
@@ -259,25 +275,60 @@ export default function ListaCursos() {
           })}
         </div>
 
+        {/* Quantidade de cursos encontrados na categoria/busca filtrada */}
+        <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-bold mb-4 uppercase tracking-wider">
+          <svg className="w-3.5 h-3.5 text-[#000000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+          </svg>
+          <span className="text-[#000000] font-extrabold">{totalCursosEncontrados}</span> cursos encontrados
+        </div>
+
         {/* CURSOS CADASTRADOS PELO ADMIN (EM CARDS), sempre acima da lista quando aparecem */}
         {cursosCadastradosFiltrados.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-            {cursosCadastradosFiltrados.map((curso) => (
-              <CursoCardNovo key={`curso-cadastrado-${curso.id}`} curso={curso} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+              {cursosCadastradosDaPagina.map((curso) => (
+                <CursoCardNovo key={`curso-cadastrado-${curso.id}`} curso={curso} />
+              ))}
+            </div>
+
+            {totalPaginasCadastrados > 1 && (
+              <div className="mb-10 flex items-center justify-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setPaginaCadastrados((p) => Math.max(0, p - 1))}
+                  disabled={paginaCadastrados === 0}
+                  aria-label="Página anterior"
+                  className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-md transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#fed106]"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                <span className="text-xs font-bold text-gray-500">
+                  Página {paginaCadastrados + 1} de {totalPaginasCadastrados}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setPaginaCadastrados((p) => Math.min(totalPaginasCadastrados - 1, p + 1))}
+                  disabled={paginaCadastrados >= totalPaginasCadastrados - 1}
+                  aria-label="Próxima página"
+                  className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-md transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#fed106]"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Quando a categoria escolhida é exclusiva dos cursos cadastrados, não mostra a lista antiga */}
         {!categoriaEhNova && (
           <>
-        {/* Quantidade Encontrada */}
-        <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-bold mb-4 uppercase tracking-wider">
-          <svg className="w-3.5 h-3.5 text-[#000000]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
-          <span className="text-[#000000] font-extrabold">{cursosFiltrados.length}</span> cursos encontrados
-        </div>
 
         {/* 3. LISTAGEM DE CURSOS */}
         <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-10">
