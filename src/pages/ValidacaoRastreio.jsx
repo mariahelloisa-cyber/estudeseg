@@ -42,14 +42,14 @@ export default function ValidacaoRastreio() {
       <div className="w-full bg-gradient-to-r from-[#fed106] via-[#fed106] to-[#fffff] pt-24 pb-24 px-4 text-center flex flex-col items-center" style={{ fontFamily: "'Inter', sans-serif" }}>
         
         {/* Ícone de Escudo no topo do Banner */}
-        <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-white mb-5 backdrop-blur-sm border border-white/20">
+        <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-black mb-5 backdrop-blur-sm border border-white/20">
           <IconeEscudo />
         </div>
         
-        <h1 className="text-white font-extrabold text-3xl md:text-[40px] tracking-tight mb-3">
+        <h1 className="text-black font-extrabold text-3xl md:text-[40px] tracking-tight mb-3">
           Validação e Rastreio
         </h1>
-        <p className="text-white/80 text-sm md:text-base max-w-2xl font-medium tracking-wide">
+        <p className="text-black text-sm md:text-base max-w-2xl font-medium tracking-wide">
           Consulte a autenticidade e o status de emissão do seu certificado ou diploma LA. Educação.
         </p>
       </div>
@@ -81,7 +81,7 @@ export default function ValidacaoRastreio() {
                   className="w-full bg-[#fed106] hover:bg-[#000000] text-white font-bold py-3.5 rounded-xl transition-colors tracking-wide text-sm"
                 >
                   RASTREAR AGORA
-                </button>
+                </button> hedhd dhhd  te  dye  
               </div>
             </div>
 

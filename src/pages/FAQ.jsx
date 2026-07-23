@@ -65,17 +65,17 @@ export default function FAQ() {
       <div className="w-full bg-gradient-to-r from-[#fed106] via-[#fed106] to-[#fffff] pt-20 pb-28 px-4 text-center relative flex flex-col items-center" style={{ fontFamily: "'Inter', sans-serif" }}>
         
         {/* NOVO ÍCONE DE AJUDA MODERNO (Balão de Mensagem + Interrogação) */}
-        <div className="text-white/80 mb-4 transition-transform hover:scale-105 duration-200">
+        <div className="text-black mb-4 transition-transform hover:scale-105 duration-200">
           <svg className="w-11 h-11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             <circle cx="12" cy="17" r="0.5" fill="currentColor" />
           </svg>
         </div>
         
-        <h1 className="text-white font-extrabold text-3xl md:text-[38px] tracking-tight mb-2.5">
+        <h1 className="text-black font-extrabold text-3xl md:text-[38px] tracking-tight mb-2.5">
           Como podemos ajudar?
         </h1>
-        <p className="text-white/75 text-xs md:text-sm max-w-xl font-medium tracking-wide">
+        <p className="text-black text-xs md:text-sm max-w-xl font-medium tracking-wide">
           Tire suas dúvidas sobre nossos cursos, formas de ingresso e metodologia de ensino.
         </p>
 

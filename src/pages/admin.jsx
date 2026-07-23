@@ -61,6 +61,7 @@ const CURSO_FORM_INICIAL = {
 
 const MAX_CURSOS_DESTAQUE = 5;
 const MAX_CURSOS_MAIS_VENDIDOS = 8;
+const MAX_DEPOIMENTOS_DESTAQUE = 10;
 
 // --- Validação de arquivos de imagem antes do upload para o Storage ---
 const TIPOS_IMAGEM_PERMITIDOS = ['image/png', 'image/jpeg', 'image/webp'];
@@ -1027,11 +1028,11 @@ export default function Admin() {
     }
   }
 
-  // Função para Destacar/Remover Destaque de um Depoimento (máx. 4 na Home)
+  // Função para Destacar/Remover Destaque de um Depoimento (máx. MAX_DEPOIMENTOS_DESTAQUE)
   async function handleAlternarDestaqueDepoimento(depoimento) {
     const totalDestacados = depoimentos.filter((d) => d.destaque).length;
-    if (!depoimento.destaque && totalDestacados >= 4) {
-      alert("Você já tem 4 depoimentos em destaque. Remova um antes de adicionar outro.");
+    if (!depoimento.destaque && totalDestacados >= MAX_DEPOIMENTOS_DESTAQUE) {
+      alert(`Você já tem ${MAX_DEPOIMENTOS_DESTAQUE} depoimentos em destaque. Remova um antes de adicionar outro.`);
       return;
     }
     try {
@@ -2348,7 +2349,7 @@ export default function Admin() {
                 <CardEstatistica label="Total de Depoimentos" valor={depoimentos.length} Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" />
                 <CardEstatistica label="Com Vídeo" valor={depoimentosComVideo} Icon={SparklesIcon} cor="bg-emerald-500" />
                 <CardEstatistica label="Sem Vídeo" valor={depoimentos.length - depoimentosComVideo} Icon={NewspaperIcon} cor="bg-slate-500" />
-                <CardEstatistica label="Em Destaque (Home)" valor={`${depoimentosDestacados}/4`} Icon={StarIcon} cor="bg-[#fed106]" />
+                <CardEstatistica label="Em Destaque (Home)" valor={`${depoimentosDestacados}/${MAX_DEPOIMENTOS_DESTAQUE}`} Icon={StarIcon} cor="bg-[#fed106]" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -2441,7 +2442,7 @@ export default function Admin() {
                           <button onClick={() => handleEliminarDepoimento(d.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
                           <button
                             onClick={() => handleAlternarDestaqueDepoimento(d)}
-                            title={d.destaque ? 'Remover destaque' : 'Destacar na Home (máx. 4)'}
+                            title={d.destaque ? 'Remover destaque' : `Destacar na Home (máx. ${MAX_DEPOIMENTOS_DESTAQUE})`}
                             className={`absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer shadow-sm transition-colors ${
                               d.destaque ? 'bg-[#fed106] text-black' : 'bg-white/90 text-gray-400 hover:text-[#fed106]'
                             }`}
