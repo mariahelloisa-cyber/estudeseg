@@ -81,7 +81,7 @@ export default function ValidacaoRastreio() {
                   className="w-full bg-[#fed106] hover:bg-[#000000] text-white font-bold py-3.5 rounded-xl transition-colors tracking-wide text-sm"
                 >
                   RASTREAR AGORA
-                </button> hedhd dhhd  te  dye  
+                </button>  
               </div>
             </div>
 

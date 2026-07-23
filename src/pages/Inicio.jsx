@@ -497,6 +497,19 @@ export default function Inicio() {
         </div>
       )}
 
+      {/* --- CTA: BOTÃO DE MATRÍCULA (acima da seção de Diferenciais) --- */}
+      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12 flex justify-center">
+        <a
+          href="/cursos"
+          className="group inline-flex items-center gap-2.5 bg-[#000000] hover:bg-[#fed106] text-white font-black text-sm uppercase tracking-wider px-8 py-4 rounded-full shadow-md shadow-[#fed106]/20 transition-all active:scale-[0.98]"
+        >
+          Faça já sua matrícula
+          <svg className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </a>
+      </div>
+
       {/* --- SEÇÃO 4: DIFERENCIAIS --- */}
 {listaDiferenciais.length > 0 && (
   <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-16 pb-16">
