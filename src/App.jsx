@@ -9,8 +9,9 @@ import PopupAvisos from './components/PopupAvisos';
 // Importação das tuas páginas
 import Inicio from './pages/Inicio';
 import Blog from './pages/Blog';
-import Vagas from './pages/Vagas';
-import Ouvidoria from './pages/ouvidoria';
+// Desativadas temporariamente — reativar quando as páginas entrarem no ar
+// import Vagas from './pages/Vagas';
+// import Ouvidoria from './pages/ouvidoria';
 import PostDetalhe from './pages/PostDetalhe';
 import FAQ from './pages/FAQ';
 import ValidacaoRastreio from './pages/ValidacaoRastreio';
@@ -37,8 +38,8 @@ function LayoutGlobal() {
         <Route path="/" element={<Inicio />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:id" element={<PostDetalhe />} />
-        <Route path="/vagas" element={<Vagas />} />
-        <Route path="/ouvidoria" element={<Ouvidoria />} />
+        {/* <Route path="/vagas" element={<Vagas />} /> */}
+        {/* <Route path="/ouvidoria" element={<Ouvidoria />} /> */}
         <Route path="/faq" element={<FAQ />} />
         <Route path="/validacaoRastreio" element={<ValidacaoRastreio />} />
         <Route path="/sobre" element={<Sobre />} />

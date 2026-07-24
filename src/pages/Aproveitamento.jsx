@@ -124,8 +124,9 @@ export default function Aproveitamento() {
     : [];
 
   return (
-    <div className="w-full min-h-screen bg-[#f8f9fa] text-gray-900 font-sans antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <>
       <Navbar />
+      <div className="w-full min-h-screen bg-[#f8f9fa] text-gray-900 font-sans antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* --- HERO --- */}
       <section className="relative overflow-hidden bg-black text-white pt-8 pb-16 md:pt-10 md:pb-20">
@@ -298,6 +299,7 @@ export default function Aproveitamento() {
           )}
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

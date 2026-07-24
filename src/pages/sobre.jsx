@@ -108,9 +108,9 @@ export default function Sobre() {
   ];
 
   return (
-    <div className="w-full bg-white font-sans antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
-      
+    <>
       <Navbar />
+      <div className="w-full bg-white font-sans antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* 1. SEÇÃO HERO */}
       <section className="relative w-full min-h-[70vh] flex items-center bg-gray-900 overflow-hidden">
@@ -476,6 +476,7 @@ Assista ao vídeo e descubra como estamos conectando conhecimento, oportunidades
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

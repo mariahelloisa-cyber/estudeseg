@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import logo from '../assets/logo-estud.png';
 import { useCartStore } from '../store/cartStore';
 
@@ -7,19 +7,22 @@ const LINKS = [
   { to: '/', label: 'Início' },
   { to: '/sobre', label: 'Sobre Nós' },
   { to: '/cursos', label: 'Cursos' },
-  { to: '/aproveitamento', label: 'Aproveitamento' },
+  { to: '/aproveitamento', label: 'Téc./Tecnólogo' },
   { to: '/depoimentos', label: 'Depoimentos' },
   { to: '/blog', label: 'Blog' },
-  { to: '/vagas', label: 'Vagas' },
-  { to: '/ouvidoria', label: 'Ouvidoria' },
+  // Desativado temporariamente — reativar quando as páginas entrarem no ar
+  // { to: '/vagas', label: 'Vagas' },
+  // { to: '/ouvidoria', label: 'Ouvidoria' },
   { to: '/validacaoRastreio', label: 'Validação e Rastreio' },
-  { to: '/faq', label: 'FAQ' },
 ];
 
 export default function Navbar() {
   const carrinho = useCartStore((state) => state.carrinho);
   const setCarrinhoAberto = useCartStore((state) => state.setCarrinhoAberto);
   const [menuAberto, setMenuAberto] = useState(false);
+  const location = useLocation();
+
+  const linkEstaAtivo = (to) => (to === '/' ? location.pathname === '/' : location.pathname.startsWith(to));
 
   return (
     <div className="w-full">
@@ -57,7 +60,9 @@ export default function Navbar() {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="text-gray-700 hover:text-[#fed106] font-medium text-sm transition-colors"
+                  className={`hover:text-[#fed106] font-medium text-sm transition-colors ${
+                    linkEstaAtivo(link.to) ? 'text-[#fed106]' : 'text-gray-700'
+                  }`}
                 >
                   {link.label}
                 </Link>
@@ -86,6 +91,17 @@ export default function Navbar() {
                   </span>
                 )}
               </button>
+
+              {/* ÍCONE DO FAQ */}
+              <Link
+                to="/faq"
+                className="relative p-2 text-gray-800 hover:text-black transition-colors cursor-pointer flex items-center justify-center rounded-full hover:bg-gray-100 shrink-0"
+                title="Perguntas Frequentes"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                </svg>
+              </Link>
 
               {/* BOTÃO HAMBÚRGUER (MOBILE) */}
               <button
@@ -130,7 +146,9 @@ export default function Navbar() {
                   key={link.to}
                   to={link.to}
                   onClick={() => setMenuAberto(false)}
-                  className="text-gray-700 hover:text-[#fed106] hover:bg-gray-50 font-medium text-sm transition-colors px-3 py-3 rounded-lg"
+                  className={`hover:text-[#fed106] hover:bg-gray-50 font-medium text-sm transition-colors px-3 py-3 rounded-lg ${
+                    linkEstaAtivo(link.to) ? 'text-[#fed106]' : 'text-gray-700'
+                  }`}
                 >
                   {link.label}
                 </Link>

@@ -20,6 +20,7 @@ import {
   MegaphoneIcon,
   ChartBarIcon,
   ArrowTopRightOnSquareIcon,
+  ChatBubbleBottomCenterTextIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -34,6 +35,7 @@ const ITENS_MENU = [
   { id: 'cursos', label: 'Cursos e Categorias', Icon: AcademicCapIcon },
   { id: 'banners', label: 'Banners (Home)', Icon: PhotoIcon },
   { id: 'selos', label: 'Selos', Icon: ShieldCheckIcon },
+  { id: 'frases', label: 'Frases (Esteira)', Icon: ChatBubbleBottomCenterTextIcon },
   { id: 'diferenciais', label: 'Diferenciais', Icon: SparklesIcon },
   { id: 'blog', label: 'Blog', Icon: NewspaperIcon },
   { id: 'vagas', label: 'Vagas', Icon: BriefcaseIcon },
@@ -190,6 +192,8 @@ export default function Admin() {
 
   // --- Estados para as restantes seções ---
   const [listaSelos, setListaSelos] = useState([]);
+  const [listaFrases, setListaFrases] = useState([]);
+  const [novoTextoFrase, setNovoTextoFrase] = useState("");
   const [listaDiferenciais, setListaDiferenciais] = useState([]);
   const [depoimentos, setDepoimentos] = useState([]);
   const [noticiasDestaque, setNoticiasDestaque] = useState([]);
@@ -406,8 +410,58 @@ export default function Admin() {
     }
   }
 
+  // Função para Adicionar uma Nova Frase da Esteira
+  async function handleAdicionarFrase(e) {
+    e.preventDefault();
+    if (!novoTextoFrase.trim()) {
+      setMensagemStatus("⚠️ Escreva o texto da frase!");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('frases').insert([{ texto: novoTextoFrase.trim() }]);
+      if (error) throw error;
+
+      setMensagemStatus("✅ Frase publicada com sucesso!");
+      setNovoTextoFrase("");
+      buscarFrasesDoSupabase();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar a frase. Tente novamente.");
+    }
+  }
+
+  // Função para Eliminar uma Frase
+  async function handleEliminarFrase(id) {
+    if (!window.confirm("Tem a certeza que quer eliminar esta frase?")) return;
+    try {
+      const { error } = await supabase.from('frases').delete().eq('id', id);
+      if (error) throw error;
+      buscarFrasesDoSupabase();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível eliminar a frase. Tente novamente.");
+    }
+  }
+
+  // Buscar Frases da Esteira do SUPABASE
+  async function buscarFrasesDoSupabase() {
+    try {
+      const { data, error } = await supabase
+        .from('frases')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setListaFrases(data || []);
+    } catch (err) {
+      console.error("Erro na conexão com as frases do Supabase:", err);
+    }
+  }
+
   useEffect(() => {
     buscarSelosDoSupabase();
+    buscarFrasesDoSupabase();
   }, []);
 
   // 3. Buscar Diferenciais do SUPABASE
@@ -1548,6 +1602,7 @@ export default function Admin() {
                 <CartaoAcaoRapida titulo="Gerenciar Banners" descricao="Atualizar banners e imagens da Home" Icon={PhotoIcon} cor="bg-[#fed106]" onClick={() => irParaAba('banners')} />
                 <CartaoAcaoRapida titulo="Gerenciar Blog" descricao="Criar e editar notícias e artigos" Icon={NewspaperIcon} cor="bg-emerald-500" onClick={() => irParaAba('blog')} />
                 <CartaoAcaoRapida titulo="Gerenciar Selos" descricao="Selos de confiança e reconhecimento" Icon={ShieldCheckIcon} cor="bg-blue-500" onClick={() => irParaAba('selos')} />
+                <CartaoAcaoRapida titulo="Gerenciar Frases" descricao="Frases da esteira animada da Home" Icon={ChatBubbleBottomCenterTextIcon} cor="bg-cyan-500" onClick={() => irParaAba('frases')} />
                 <CartaoAcaoRapida titulo="Gerenciar Diferenciais" descricao="Cards de diferenciais da Home" Icon={SparklesIcon} cor="bg-purple-500" onClick={() => irParaAba('diferenciais')} />
                 <CartaoAcaoRapida titulo="Gerenciar Vagas" descricao="Publicar e remover vagas abertas" Icon={BriefcaseIcon} cor="bg-slate-600" onClick={() => irParaAba('vagas')} />
                 <CartaoAcaoRapida titulo="Gerenciar FAQ" descricao="Perguntas frequentes do site" Icon={QuestionMarkCircleIcon} cor="bg-orange-500" onClick={() => irParaAba('faq')} />
@@ -2027,6 +2082,40 @@ export default function Admin() {
                         <p className="text-[11px] font-bold text-gray-600 text-center truncate w-full mt-2">{s.nome}</p>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= FRASES (ESTEIRA) ================= */}
+          {abaAtiva === 'frases' && (
+            <>
+              <CabecalhoPagina titulo="Gerenciar Frases" subtitulo="Frases exibidas na esteira animada da Home" Icon={ChatBubbleBottomCenterTextIcon} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Nova Frase</h3>
+                  <form onSubmit={handleAdicionarFrase} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Texto da Frase</label>
+                      <input type="text" value={novoTextoFrase} onChange={(e) => setNovoTextoFrase(e.target.value)} placeholder="Ex: Certificado reconhecido pelo MEC" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                    </div>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Frase</button>
+                  </form>
+                </div>
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Frases Ativas ({listaFrases.length})</h3>
+                  <div className="space-y-2">
+                    {listaFrases.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">Nenhuma frase cadastrada ainda.</p>
+                    ) : (
+                      listaFrases.map((f) => (
+                        <div key={f.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 shadow-xs">
+                          <p className="text-sm font-bold text-gray-700 truncate pr-4">{f.texto}</p>
+                          <button onClick={() => handleEliminarFrase(f.id)} className="shrink-0 bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>

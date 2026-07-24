@@ -125,7 +125,7 @@ export default function Blog() {
   <div className="absolute left-[10%] bottom-[-5%] w-[85%] h-[90%] bg-gradient-to-tr from-[#ffeea0] to-[#fed106] rounded-[60%_40%_70%_30%/40%_50%_30%_70%] opacity-90 pointer-events-none z-10"></div>
 
             {/* Imagem Recortada da Aluna */}
-            <div className="relative z-20 w-[90%] md:w-[80%] aspect-[1.25/1] overflow-hidden bottom-0 items-end flex">
+            <div className="relative z-20 w-[100%] md:w-[92%] aspect-[1.25/1] overflow-hidden bottom-0 items-end flex">
               {/* ========================================================== */}
               {/* ESPAÇO PARA ADICIONAR A FOTO NA HEADER:                    */}
               {/* Cole o caminho da sua imagem da estudante no 'src' abaixo  */}
@@ -133,7 +133,7 @@ export default function Blog() {
               <img 
                 src={logo} 
                 alt="logo" 
-                className="w-full h-full object-cover object-top filter drop-shadow-[0_20px_35px_rgba(0,0,0,0.15)]"
+                className="w-full h-full object-contain object-center filter drop-shadow-[0_20px_35px_rgba(0,0,0,0.15)]"
               />
             </div>
           </div>

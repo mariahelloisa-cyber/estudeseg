@@ -65,6 +65,7 @@ export default function Inicio() {
   
   // --- Estados para as restantes seções do Strapi ---
   const [listaSelos, setListaSelos] = useState([]);
+  const [listaFrases, setListaFrases] = useState([]);
   const [listaDiferenciais, setListaDiferenciais] = useState([]);
   const [indiceAtivo, setIndiceAtivo] = useState(0);
   const [cursosDestaque, setCursosDestaque] = useState([]);
@@ -124,6 +125,12 @@ export default function Inicio() {
       }
       .animate-marquee {
         animation: marquee 15s linear infinite;
+        will-change: transform;
+      }
+      /* Esteira das frases: mesma lógica do marquee, só que mais lenta pra dar
+         tempo de ler o texto grande enquanto ele rola e sai pela esquerda. */
+      .animate-marquee-frases {
+        animation: marquee 22s linear infinite;
         will-change: transform;
       }
       .hide-scrollbar {
@@ -191,6 +198,25 @@ export default function Inicio() {
 
   useEffect(() => {
     buscarSelosDoSupabase();
+  }, []);
+
+  // 2B. Buscar Frases da Esteira do SUPABASE
+  async function buscarFrasesDoSupabase() {
+    try {
+      const { data, error } = await supabase
+        .from('frases')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setListaFrases(data || []);
+    } catch (err) {
+      console.error("Erro na conexão com as frases do Supabase:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarFrasesDoSupabase();
   }, []);
 
   // 3. Buscar Diferenciais do SUPABASE
@@ -427,35 +453,8 @@ export default function Inicio() {
         </div>
       )}
 
-      {/* --- SEÇÃO 2: BENEFÍCIOS DO LATEC --- */}
+      {/* --- SEÇÃO 2: BUSCA DE CURSOS (MOBILE) --- */}
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 -mt-2 md:mt-4 relative z-10 pb-6">
-        <div className="bg-white rounded-2xl md:rounded-full shadow-xl border border-gray-100 p-6 md:py-6 md:px-8 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-0 items-center">
-          <div className="flex items-center gap-4 md:px-6">
-            <div className="w-12 h-12 rounded-full bg-[#fed106]/10 flex items-center justify-center text-[#fed106] shrink-0 shadow-sm">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-              </svg>
-            </div>
-            <p className="text-gray-700 font-bold text-sm md:text-[15px] leading-snug">Certificado Técnico Autorizado pelo MEC</p>
-          </div>
-          <div className="flex items-center gap-4 md:px-8 md:border-l md:border-gray-200">
-            <div className="w-12 h-12 rounded-full bg-[#fed106]/10 flex items-center justify-center text-[#fed106] shrink-0 shadow-sm">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="text-gray-700 font-bold text-sm md:text-[15px] leading-snug">Educação Acessível e Flexibilidade Total de Horários</p>
-          </div>
-          <div className="flex items-center gap-4 md:px-8 md:border-l md:border-gray-200">
-            <div className="w-12 h-12 rounded-full bg-[#fed106]/10 flex items-center justify-center text-[#fed106] shrink-0 shadow-sm">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <p className="text-gray-700 font-bold text-sm md:text-[15px] leading-snug">Cursos Alinhados ao Mercado de Trabalho</p>
-          </div>
-        </div>
-
         {/* Barra de pesquisa de cursos — só no mobile */}
         <div className="md:hidden mt-8 bg-white rounded-3xl shadow-xl border border-gray-100 p-5 flex flex-col items-center text-center">
           <p className="text-[#fed106] text-sm font-black uppercase tracking-wide mb-3">
@@ -490,7 +489,32 @@ export default function Inicio() {
         </div>
       </div>
 
-      {/* --- SEÇÃO 3: ESTEIRA DE SELOS --- */}
+      {/* --- SEÇÃO 3: ESTEIRA DE FRASES --- */}
+      {listaFrases.length > 0 && (
+        <div className="w-full bg-white mt-4 pb-4 border-b border-gray-100 shadow-inner">
+          <div className="w-full bg-[#000000] py-4 mb-2 flex justify-center items-center shadow-md">
+            <h2 className="text-white text-base md:text-xl font-black uppercase tracking-[0.2em] text-center px-4">
+              -EDITÁVEL ADMIN-6778
+            </h2>
+          </div>
+          <div className="relative w-full overflow-hidden bg-white py-2">
+            <div className={`flex items-center w-max ${listaFrases.length > 1 ? 'animate-marquee-frases' : 'mx-auto'}`}>
+              {listaFrases.map((frase, i) => (
+                <div key={`frase-${i}`} className="flex-shrink-0 px-125 flex items-center justify-center h-[60px] md:h-[86px] min-w-[420px] md:min-w-[620px]">
+                  <span className="text-red-600 font-black text-2xl md:text-4xl uppercase tracking-wide text-center leading-[1.05] w-[380px] md:w-[560px] line-clamp-2">{frase.texto}</span>
+                </div>
+              ))}
+              {listaFrases.length > 1 && listaFrases.map((frase, i) => (
+                <div key={`frase-dup-${i}`} className="flex-shrink-0 px-125 flex items-center justify-center h-[53px] md:h-[79px] min-w-[420px] md:min-w-[620px]">
+                  <span className="text-red-600 font-black text-2xl md:text-4xl uppercase tracking-wide text-center leading-[1.05] w-[380px] md:w-[560px] line-clamp-2">{frase.texto}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- SEÇÃO 3B: ESTEIRA DE SELOS (DUPLICATA) — desativada, descomente para reativar ---
       {listaSelos.length > 0 && (
         <div className="w-full bg-white mt-4 pb-8 border-b border-gray-100 shadow-inner">
           <div className="w-full bg-[#000000] py-4 mb-8 flex justify-center items-center shadow-md">
@@ -501,12 +525,12 @@ export default function Inicio() {
           <div className="relative w-full overflow-hidden bg-white py-4">
             <div className="flex animate-marquee">
               {listaSelos.map((selo, i) => (
-                <div key={`selo-${i}`} className="flex-shrink-0 px-8 flex items-center justify-center" style={{ minWidth: '270px' }}>
+                <div key={`selo-b-${i}`} className="flex-shrink-0 px-8 flex items-center justify-center" style={{ minWidth: '270px' }}>
                   <img src={selo.imagem_url} alt={selo.nome} className="h-14 md:h-20 w-auto object-contain transition-transform hover:scale-105 duration-400" />
                 </div>
               ))}
               {listaSelos.map((selo, i) => (
-                <div key={`selo-dup-${i}`} className="flex-shrink-0 px-8 flex items-center justify-center" style={{ minWidth: '270px' }}>
+                <div key={`selo-b-dup-${i}`} className="flex-shrink-0 px-8 flex items-center justify-center" style={{ minWidth: '270px' }}>
                   <img src={selo.imagem_url} alt={selo.nome} className="h-14 md:h-20 w-auto object-contain transition-transform hover:scale-105 duration-400" />
                 </div>
               ))}
@@ -514,6 +538,7 @@ export default function Inicio() {
           </div>
         </div>
       )}
+      --- */}
 
       {/* --- CTA: BOTÃO DE MATRÍCULA (acima da seção de Diferenciais) --- */}
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12 flex justify-center">
