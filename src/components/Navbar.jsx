@@ -69,8 +69,12 @@ export default function Navbar() {
               ))}
             </div>
 
-            {/* Botão Fale Conosco + Ícone do Carrinho */}
+            {/* Botão Matricule-se + Botão Fale Conosco + Ícone do Carrinho */}
             <div className="flex items-center gap-2 sm:gap-4">
+              <Link to="/matricula" className="hidden sm:inline-block bg-[#000000] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#fed106] hover:text-black transition-all shadow-sm whitespace-nowrap">
+                Matricule-se
+              </Link>
+
               <a href="https://wa.me/5527998392172" target="_blank" rel="noreferrer" className="hidden sm:inline-block bg-[#fed106] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#000000] transition-all shadow-sm whitespace-nowrap">
                 Fale Conosco
               </a>
