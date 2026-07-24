@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import PopupModalShell from './popups/PopupModalShell';
+import { obterModeloPopup, popupTemDadosMinimos } from './popups/registry';
 
 export default function PopupAvisos() {
   const [popups, setPopups] = useState([]);
@@ -15,8 +17,13 @@ export default function PopupAvisos() {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        // O pop-up é exclusivamente a imagem: descarta os que não têm imagem cadastrada
-        setPopups((data || []).filter((p) => p.imagem_url));
+
+        // Só exibe pop-ups cujo modelo já tem os campos obrigatórios preenchidos
+        // (evita mostrar, por exemplo, um modelo "Imagem" sem imagem cadastrada).
+        const popupsValidos = (data || []).filter((popup) =>
+          popupTemDadosMinimos(obterModeloPopup(popup.modelo), popup.dados)
+        );
+        setPopups(popupsValidos);
       } catch (err) {
         console.error('Erro ao buscar pop-ups:', err);
       }
@@ -29,42 +36,12 @@ export default function PopupAvisos() {
   if (!popupAtual) return null;
 
   const fecharPopup = () => setIndiceAtual((prev) => prev + 1);
-
-  // Só aceita links http(s): bloqueia esquemas perigosos como javascript:
-  const linkSeguro = /^https?:\/\//i.test(popupAtual.link_redirecionamento || '')
-    ? popupAtual.link_redirecionamento
-    : null;
-
-  const imagem = (
-    <img
-      src={popupAtual.imagem_url}
-      alt={popupAtual.titulo || 'Aviso'}
-      className="block w-full h-full object-contain rounded-xl"
-    />
-  );
+  const modelo = obterModeloPopup(popupAtual.modelo);
+  const ComponenteModelo = modelo.Componente;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
-      <div className="relative w-[92vw] sm:w-[85vw] md:w-[75vw] max-w-4xl h-[85vh]">
-        <button
-          type="button"
-          onClick={fecharPopup}
-          aria-label="Fechar"
-          className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-sm text-white/90 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
-        {linkSeguro ? (
-          <a href={linkSeguro} target="_blank" rel="noreferrer" className="block w-full h-full">
-            {imagem}
-          </a>
-        ) : (
-          imagem
-        )}
-      </div>
-    </div>
+    <PopupModalShell variante={modelo.variante} onFechar={fecharPopup}>
+      <ComponenteModelo dados={popupAtual.dados || {}} onFechar={fecharPopup} popupId={popupAtual.id} />
+    </PopupModalShell>
   );
 }

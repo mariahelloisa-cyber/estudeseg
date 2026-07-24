@@ -28,6 +28,9 @@ import { listaCursosGiga } from './cursosData';
 import logo from '../assets/logo-estud.png';
 import { parseGradeCurricular, serializarGradeCurricular } from '../utils/gradeCurricular';
 import { parseBlocosConteudo, serializarBlocosConteudo } from '../utils/blocosConteudo';
+import { MODELOS_POPUP, obterModeloPopup } from '../components/popups/registry';
+import CampoFormulario from '../components/popups/CampoFormulario';
+import PopupModalShell from '../components/popups/PopupModalShell';
 
 // --- Itens do menu lateral: só seções com dados reais no Supabase ---
 const ITENS_MENU = [
@@ -65,6 +68,8 @@ const CURSO_FORM_INICIAL = {
 const MAX_CURSOS_DESTAQUE = 5;
 const MAX_CURSOS_MAIS_VENDIDOS = 8;
 const MAX_DEPOIMENTOS_DESTAQUE = 10;
+
+const POPUP_FORM_INICIAL = { titulo: "", modelo: null, dados: {}, ativo: false };
 
 // --- Validação de arquivos de imagem antes do upload para o Storage ---
 const TIPOS_IMAGEM_PERMITIDOS = ['image/png', 'image/jpeg', 'image/webp'];
@@ -213,8 +218,10 @@ export default function Admin() {
 
   // --- Estados para o Gerenciador de Pop-ups ---
   const [popupsAdmin, setPopupsAdmin] = useState([]);
-  const [novoTituloPopup, setNovoTituloPopup] = useState("");
-  const [novoLinkPopup, setNovoLinkPopup] = useState("");
+  const [formPopup, setFormPopup] = useState(POPUP_FORM_INICIAL);
+  const [popupEditando, setPopupEditando] = useState(null);
+  const [mostrarSeletorModeloPopup, setMostrarSeletorModeloPopup] = useState(false);
+  const [mostrarPreviewPopup, setMostrarPreviewPopup] = useState(false);
 
   // --- Estados para o Gerenciador de Cursos Cadastrados ---
   const [cursosAdmin, setCursosAdmin] = useState([]);
@@ -864,46 +871,104 @@ export default function Admin() {
     buscarPopupsAdmin();
   }, []);
 
-  async function handleAdicionarPopup(e) {
-    e.preventDefault();
+  // Abre o formulário em branco já com o modelo escolhido no seletor visual
+  function iniciarNovoPopup(modeloChave) {
+    const modelo = obterModeloPopup(modeloChave);
+    const dadosIniciais = {};
+    modelo.campos.forEach((campo) => { dadosIniciais[campo.nome] = ''; });
+    setFormPopup({ titulo: '', modelo: modelo.chave, dados: dadosIniciais, ativo: false });
+    setPopupEditando(null);
+    setMostrarSeletorModeloPopup(false);
+  }
 
-    if (!novoTituloPopup.trim()) {
+  // Carrega um pop-up já cadastrado no formulário (o modelo fica fixo; pra trocar de
+  // modelo é preciso excluir e criar de novo, já que os campos não são compatíveis entre si)
+  function iniciarEdicaoPopup(popup) {
+    setFormPopup({
+      titulo: popup.titulo || '',
+      modelo: popup.modelo,
+      dados: { ...(popup.dados || {}) },
+      ativo: popup.ativo,
+    });
+    setPopupEditando(popup.id);
+    setMostrarSeletorModeloPopup(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelarFormularioPopup() {
+    setFormPopup(POPUP_FORM_INICIAL);
+    setPopupEditando(null);
+    setMostrarSeletorModeloPopup(false);
+  }
+
+  function atualizarCampoDadosPopup(nomeCampo, valor) {
+    setFormPopup((prev) => ({ ...prev, dados: { ...prev.dados, [nomeCampo]: valor } }));
+  }
+
+  // Cria ou atualiza um pop-up: valida os campos obrigatórios do modelo escolhido, faz
+  // upload de qualquer campo do tipo "imagem" que tenha um arquivo novo selecionado, e
+  // salva tudo em `dados` (JSON) — igual ao padrão já usado em handleSubmitCurso.
+  async function handleSubmitPopup(e) {
+    e.preventDefault();
+    const modelo = obterModeloPopup(formPopup.modelo);
+
+    if (!formPopup.titulo.trim()) {
       setMensagemStatus("⚠️ O nome interno do pop-up é obrigatório!");
       return;
     }
 
-    const arquivoInput = document.getElementById('imagem-popup');
-    const arquivo = arquivoInput?.files[0];
+    const campoFaltando = modelo.campos.find((campo) => {
+      if (!campo.obrigatorio) return false;
+      if (campo.tipo === 'imagem') {
+        const jaTemImagem = !!formPopup.dados[campo.nome];
+        const arquivoSelecionado = document.getElementById(`popup-campo-${campo.nome}`)?.files?.[0];
+        return !jaTemImagem && !arquivoSelecionado;
+      }
+      return !String(formPopup.dados[campo.nome] || '').trim();
+    });
 
-    if (!arquivo) {
-      setMensagemStatus("⚠️ O pop-up é exibido apenas como imagem: selecione um arquivo!");
+    if (campoFaltando) {
+      setMensagemStatus(`⚠️ Preencha o campo obrigatório: ${campoFaltando.rotulo}`);
       return;
     }
 
     try {
-      validarImagem(arquivo);
-      setMensagemStatus("⏳ Salvando pop-up...");
-      const nomeArquivo = `popup-${sanitizarNomeArquivo(arquivo.name)}`;
-      const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
-      const urlImagem = urlData.publicUrl;
+      setMensagemStatus(popupEditando ? "⏳ Atualizando pop-up..." : "⏳ Publicando pop-up...");
 
-      const { error: insertError } = await supabase.from('popups').insert([
-        {
-          titulo: novoTituloPopup,
-          imagem_url: urlImagem,
-          link_redirecionamento: novoLinkPopup.trim() || null,
-          ativo: false,
-        }
-      ]);
+      const dadosFinais = { ...formPopup.dados };
 
-      if (insertError) throw insertError;
+      for (const campo of modelo.campos) {
+        if (campo.tipo !== 'imagem') continue;
+        const arquivoInput = document.getElementById(`popup-campo-${campo.nome}`);
+        const arquivo = arquivoInput?.files?.[0];
+        if (!arquivo) continue;
 
-      setMensagemStatus("✅ Pop-up criado com sucesso! Ative-o na lista para exibir no site.");
-      setNovoTituloPopup("");
-      setNovoLinkPopup("");
-      if (arquivoInput) arquivoInput.value = "";
+        validarImagem(arquivo);
+        const nomeArquivo = `popup-${sanitizarNomeArquivo(arquivo.name)}`;
+        const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+        dadosFinais[campo.nome] = urlData.publicUrl;
+      }
+
+      const registroPopup = {
+        titulo: formPopup.titulo,
+        modelo: modelo.chave,
+        dados: dadosFinais,
+        ativo: formPopup.ativo,
+      };
+
+      if (popupEditando) {
+        const { error } = await supabase.from('popups').update(registroPopup).eq('id', popupEditando);
+        if (error) throw error;
+        setMensagemStatus("✅ Pop-up atualizado com sucesso!");
+      } else {
+        const { error } = await supabase.from('popups').insert([registroPopup]);
+        if (error) throw error;
+        setMensagemStatus("✅ Pop-up criado com sucesso! Ative-o na lista para exibir no site.");
+      }
+
+      cancelarFormularioPopup();
       buscarPopupsAdmin();
     } catch (err) {
       console.error(err);
@@ -930,6 +995,7 @@ export default function Admin() {
     try {
       const { error } = await supabase.from('popups').delete().eq('id', id);
       if (error) throw error;
+      if (popupEditando === id) cancelarFormularioPopup();
       buscarPopupsAdmin();
     } catch (err) {
       console.error(err);
@@ -1477,6 +1543,7 @@ export default function Admin() {
   const noticiasDestacadas = noticiasDestaque.filter((n) => n.destaque).length;
   const depoimentosComVideo = depoimentos.filter((d) => d.video_url).length;
   const depoimentosDestacados = depoimentos.filter((d) => d.destaque).length;
+  const modeloPopupAtual = formPopup.modelo ? obterModeloPopup(formPopup.modelo) : null;
 
   // --- SE MODO ADMIN ESTIVER ATIVO, EXIBE O PAINEL ---
   return (
@@ -2606,69 +2673,166 @@ export default function Admin() {
           {/* ================= POP-UPS ================= */}
           {abaAtiva === 'popups' && (
             <>
-              <CabecalhoPagina titulo="Gerenciar Pop-ups" subtitulo="O pop-up é exibido apenas como imagem, sem textos. Apenas os marcados como 'Ativo' aparecem para os visitantes." Icon={MegaphoneIcon} />
+              <CabecalhoPagina titulo="Gerenciar Pop-ups" subtitulo="Escolha um modelo, preencha os dados e ative para exibir no site." Icon={MegaphoneIcon} />
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Novo Pop-up</h3>
-                  <form onSubmit={handleAdicionarPopup} className="flex flex-col gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <CardEstatistica label="Pop-ups Cadastrados" valor={popupsAdmin.length} Icon={MegaphoneIcon} cor="bg-rose-500" />
+                <CardEstatistica label="Ativos" valor={popupsAdmin.filter((p) => p.ativo).length} Icon={MegaphoneIcon} cor="bg-[#fed106]" />
+                <CardEstatistica label="Modelos Disponíveis" valor={MODELOS_POPUP.length} Icon={SparklesIcon} cor="bg-indigo-500" />
+              </div>
+
+              {!formPopup.modelo && !mostrarSeletorModeloPopup && (
+                <button
+                  type="button"
+                  onClick={() => setMostrarSeletorModeloPopup(true)}
+                  className="mb-6 inline-flex items-center gap-2 bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs px-5 py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  ➕ Novo Pop-up
+                </button>
+              )}
+
+              {/* SELETOR DE MODELOS: cada card usa o componente real do modelo (em miniatura),
+                  então a prévia aqui é sempre fiel ao que vai aparecer no site */}
+              {mostrarSeletorModeloPopup && (
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">Escolha um modelo</h3>
+                    <button type="button" onClick={() => setMostrarSeletorModeloPopup(false)} className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer">
+                      Cancelar
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {MODELOS_POPUP.map((modelo) => (
+                      // A miniatura renderiza o Componente real do modelo (que pode ter seu próprio
+                      // <button> interno, ex. o CTA) — por isso o card clicável usa role="button" em
+                      // vez de <button>, evitando aninhar elementos interativos (HTML inválido).
+                      <div
+                        key={modelo.chave}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => iniciarNovoPopup(modelo.chave)}
+                        onKeyDown={(e) => e.key === 'Enter' && iniciarNovoPopup(modelo.chave)}
+                        className="flex flex-col text-left bg-gray-50 hover:bg-white border border-gray-200 hover:border-[#fed106] rounded-2xl overflow-hidden transition-all cursor-pointer group"
+                      >
+                        <div className="relative h-40 bg-gray-100 overflow-hidden flex items-center justify-center">
+                          <div className="origin-top scale-[0.4] w-[340px] pointer-events-none mt-2">
+                            <modelo.Componente dados={modelo.dadosExemplo} />
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <modelo.Icon className="w-4 h-4 text-[#8a6d00] shrink-0" />
+                            <p className="text-sm font-black text-gray-900">{modelo.rotulo}</p>
+                          </div>
+                          <p className="text-xs text-gray-500 leading-relaxed">{modelo.descricao}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* FORMULÁRIO DO MODELO ESCOLHIDO: os campos são gerados a partir do registry,
+                  então nenhum modelo novo precisa de JSX específico aqui */}
+              {modeloPopupAtual && (
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide flex items-center gap-2">
+                      <modeloPopupAtual.Icon className="w-4 h-4 text-[#8a6d00]" />
+                      {popupEditando ? `Editar Pop-up — ${modeloPopupAtual.rotulo}` : `Novo Pop-up — ${modeloPopupAtual.rotulo}`}
+                    </h3>
+                    <button type="button" onClick={cancelarFormularioPopup} className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer">
+                      Cancelar
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSubmitPopup} className="flex flex-col gap-4 max-w-lg">
                     <div>
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nome Interno (não aparece no site)</label>
                       <input
                         type="text"
-                        value={novoTituloPopup}
-                        onChange={(e) => setNovoTituloPopup(e.target.value)}
+                        value={formPopup.titulo}
+                        onChange={(e) => setFormPopup((prev) => ({ ...prev, titulo: e.target.value }))}
                         placeholder="Ex: Matrículas Abertas!"
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
                       />
                     </div>
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Imagem do Pop-up</label>
-                      <input
-                        type="file"
-                        id="imagem-popup"
-                        accept="image/*"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+
+                    {modeloPopupAtual.campos.map((campo) => (
+                      <CampoFormulario
+                        key={campo.nome}
+                        campo={campo}
+                        valor={formPopup.dados[campo.nome]}
+                        onChange={(valor) => atualizarCampoDadosPopup(campo.nome, valor)}
+                        idPrefix="popup-campo"
                       />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Link de Redirecionamento (Opcional)</label>
+                    ))}
+
+                    <div className="flex items-center gap-2">
                       <input
-                        type="text"
-                        value={novoLinkPopup}
-                        onChange={(e) => setNovoLinkPopup(e.target.value)}
-                        placeholder="https://..."
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                        type="checkbox"
+                        id="popup-ativo"
+                        checked={formPopup.ativo}
+                        onChange={(e) => setFormPopup((prev) => ({ ...prev, ativo: e.target.checked }))}
+                        className="w-4 h-4 rounded border-gray-300 cursor-pointer"
                       />
+                      <label htmlFor="popup-ativo" className="text-xs text-gray-500 font-bold uppercase">Exibir no site (ativo)</label>
                     </div>
-                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Criar Pop-up</button>
+
+                    <div className="flex flex-col sm:flex-row gap-3 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setMostrarPreviewPopup(true)}
+                        className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        👁️ Pré-visualizar
+                      </button>
+                      <button type="submit" className="flex-1 bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
+                        {popupEditando ? '💾 Salvar Alterações' : '➕ Criar Pop-up'}
+                      </button>
+                    </div>
                   </form>
                 </div>
+              )}
 
-                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Pop-ups Cadastrados ({popupsAdmin.length})</h3>
-                  {popupsAdmin.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                      <MegaphoneIcon className="w-10 h-10 text-gray-300 mb-3" />
-                      <p className="font-black text-gray-700 text-sm">Nenhum pop-up cadastrado</p>
-                      <p className="text-xs text-gray-400 mt-1">Crie um pop-up e ative-o para exibir no site</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {popupsAdmin.map((p) => (
+              {/* PRÉVIA: usa o mesmo PopupModalShell + Componente do site público, com os
+                  dados atuais do formulário (ainda não salvos) — é sempre fiel ao resultado final */}
+              {mostrarPreviewPopup && modeloPopupAtual && (
+                <PopupModalShell variante={modeloPopupAtual.variante} onFechar={() => setMostrarPreviewPopup(false)}>
+                  <modeloPopupAtual.Componente
+                    dados={formPopup.dados}
+                    onFechar={() => setMostrarPreviewPopup(false)}
+                    somenteVisualizacao
+                  />
+                </PopupModalShell>
+              )}
+
+              {/* LISTA DE POP-UPS CADASTRADOS */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Pop-ups Cadastrados ({popupsAdmin.length})</h3>
+                {popupsAdmin.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <MegaphoneIcon className="w-10 h-10 text-gray-300 mb-3" />
+                    <p className="font-black text-gray-700 text-sm">Nenhum pop-up cadastrado</p>
+                    <p className="text-xs text-gray-400 mt-1">Crie um pop-up e ative-o para exibir no site</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {popupsAdmin.map((p) => {
+                      const modeloDoItem = obterModeloPopup(p.modelo);
+                      const imagemDoItem = p.dados?.imagem_url;
+                      return (
                         <div key={p.id} className={`bg-gray-50 border rounded-xl overflow-hidden relative shadow-sm flex items-center p-3 gap-4 ${p.ativo ? 'border-[#fed106] ring-2 ring-[#fed106]/40' : 'border-gray-100'}`}>
-                          {p.imagem_url ? (
-                            <img src={p.imagem_url} alt="" className="w-16 h-16 object-cover rounded-lg bg-gray-200 shrink-0" />
+                          {imagemDoItem ? (
+                            <img src={imagemDoItem} alt="" className="w-16 h-16 object-cover rounded-lg bg-gray-200 shrink-0" />
                           ) : (
                             <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center shrink-0">
-                              <MegaphoneIcon className="w-6 h-6 text-gray-400" />
+                              <modeloDoItem.Icon className="w-6 h-6 text-gray-400" />
                             </div>
                           )}
                           <div className="flex-1 min-w-0 text-left">
                             <p className="text-sm font-black text-gray-800 truncate">{p.titulo}</p>
-                            {p.link_redirecionamento && (
-                              <p className="text-[11px] text-gray-400 truncate">{p.link_redirecionamento}</p>
-                            )}
+                            <p className="text-[11px] text-[#8a6d00] font-bold uppercase tracking-wide">{modeloDoItem.rotulo}</p>
                           </div>
                           <button
                             type="button"
@@ -2681,16 +2845,24 @@ export default function Admin() {
                             {p.ativo ? 'Ativo' : 'Inativo'}
                           </button>
                           <button
+                            type="button"
+                            onClick={() => iniciarEdicaoPopup(p)}
+                            title="Editar pop-up"
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer shrink-0"
+                          >
+                            ✏️
+                          </button>
+                          <button
                             onClick={() => handleEliminarPopup(p.id)}
                             className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer shrink-0"
                           >
                             ✕
                           </button>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </>
           )}
