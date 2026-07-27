@@ -64,7 +64,7 @@ export default function ValidacaoRastreio() {
           </svg>
         </div>
         <h1 className="text-black font-extrabold text-3xl md:text-[40px] tracking-tight mb-3">
-          Acompanhe sua Matrícula
+          Acompanhe sua Tragetória
         </h1>
         <p className="text-black text-sm md:text-base max-w-2xl font-medium tracking-wide">
           Consulte em tempo real o andamento da sua matrícula, do cadastro até a certificação.

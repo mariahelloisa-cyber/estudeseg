@@ -133,7 +133,7 @@ export default function Vagas() {
                   </p>
 
                   <a 
-                    href={`https://wa.me/5527998392172?text=${encodeURIComponent(`Olá! Gostaria de me candidatar à vaga de ${vaga.titulo}.`)}`} 
+                    href={`https://wa.me/5511995987197?text=${encodeURIComponent(`Olá! Gostaria de me candidatar à vaga de ${vaga.titulo}.`)}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="w-full text-center bg-gray-50 hover:bg-[#fed106] text-gray-700 hover:text-white font-bold text-sm uppercase tracking-wider py-4 rounded-full transition-all duration-300 shadow-inner mt-auto"

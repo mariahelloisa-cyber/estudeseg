@@ -43,6 +43,24 @@ export default function CampoFormulario({ campo, valor, onChange, idPrefix }) {
     );
   }
 
+  if (campo.tipo === 'video') {
+    return (
+      <div>
+        {rotulo}
+        {valor && (
+          <video src={valor} className="w-32 h-20 object-cover rounded-lg mb-2 border border-gray-200" muted />
+        )}
+        <input
+          type="file"
+          id={id}
+          accept="video/*"
+          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+        />
+        {valor && <p className="text-[10px] text-gray-400 mt-1">Selecione um novo arquivo para substituir o vídeo atual.</p>}
+      </div>
+    );
+  }
+
   // 'texto' | 'url'
   return (
     <div>

@@ -7,7 +7,7 @@ const CONTAINER_POR_VARIANTE = {
   // Sem largura/altura fixas nem aspect-ratio: o container se ajusta ao formato original
   // da imagem (que já vem limitada a esse tamanho máximo — ver CLASSE_IMAGEM_VARIANTE_IMAGEM
   // nos templates de pop-up), em vez de esticar ou cortar a imagem para caber numa caixa fixa.
-  imagem: 'max-w-[92vw] sm:max-w-[85vw] md:max-w-2xl max-h-[85vh]',
+  imagem: 'max-w-[92vw] sm:max-w-[85vw] md:max-w-2xl max-h-[92vh]',
   cartao: 'w-[92vw] max-w-md',
   dividido: 'w-[92vw] sm:w-[85vw] md:w-[65vw] md:min-w-[600px] max-w-[700px] flex',
 };

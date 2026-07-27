@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Navbar from '../components/Navbar';
 import { tecToGrad } from './aproveitamentoData';
 
-const WHATSAPP_NUMERO = '5527998392172';
+const WHATSAPP_NUMERO = '5511995987197';
 
 const HERO_COUNT_DURATION = 1600;
 

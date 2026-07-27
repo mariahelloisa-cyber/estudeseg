@@ -29,6 +29,7 @@ import { listaCursosGiga } from './cursosData';
 import logo from '../assets/logo-estud.png';
 import { parseGradeCurricular, serializarGradeCurricular } from '../utils/gradeCurricular';
 import { parseBlocosConteudo, serializarBlocosConteudo } from '../utils/blocosConteudo';
+import { GRUPOS_HOME_CURSO, MAX_CURSOS_POR_GRUPO_HOME } from '../utils/gruposHomeCurso';
 import { MODELOS_POPUP, obterModeloPopup } from '../components/popups/registry';
 import CampoFormulario from '../components/popups/CampoFormulario';
 import PopupModalShell from '../components/popups/PopupModalShell';
@@ -49,7 +50,8 @@ import {
 // --- Itens do menu lateral: só seções com dados reais no Supabase ---
 const ITENS_MENU = [
   { id: 'dashboard', label: 'Dashboard', Icon: Squares2X2Icon },
-  { id: 'cursos', label: 'Cursos e Categorias', Icon: AcademicCapIcon },
+  { id: 'cursos', label: 'Cursos', Icon: AcademicCapIcon },
+  { id: 'categorias-cursos', label: 'Categorias', Icon: TagIcon },
   { id: 'banners', label: 'Banners (Home)', Icon: PhotoIcon },
   { id: 'selos', label: 'Selos', Icon: ShieldCheckIcon },
   { id: 'frases', label: 'Frases (Esteira)', Icon: ChatBubbleBottomCenterTextIcon },
@@ -76,6 +78,7 @@ const CURSO_FORM_INICIAL = {
   seloMec: true,
   destaque: false,
   maisVendido: false,
+  grupoHome: '',
   gradeCurricular: [],
   blocosConteudo: [],
 };
@@ -104,6 +107,19 @@ function validarImagem(arquivo) {
   }
   if (arquivo.size > TAMANHO_MAXIMO_MB * 1024 * 1024) {
     throw new Error(`Arquivo muito grande (máx. ${TAMANHO_MAXIMO_MB}MB).`);
+  }
+}
+
+// --- Validação de arquivos de vídeo antes do upload para o Storage ---
+const TIPOS_VIDEO_PERMITIDOS = ['video/mp4', 'video/webm', 'video/quicktime'];
+const TAMANHO_MAXIMO_VIDEO_MB = 50;
+
+function validarVideo(arquivo) {
+  if (!TIPOS_VIDEO_PERMITIDOS.includes(arquivo.type)) {
+    throw new Error('Formato não suportado. Envie um vídeo MP4, WebM ou MOV.');
+  }
+  if (arquivo.size > TAMANHO_MAXIMO_VIDEO_MB * 1024 * 1024) {
+    throw new Error(`Arquivo muito grande (máx. ${TAMANHO_MAXIMO_VIDEO_MB}MB).`);
   }
 }
 
@@ -255,6 +271,8 @@ export default function Admin() {
   // --- Estados para o Gerenciador de Categorias de Cursos ---
   const [categoriasCursos, setCategoriasCursos] = useState([]);
   const [novaCategoriaCursoNome, setNovaCategoriaCursoNome] = useState("");
+  const [categoriaCursoEditandoId, setCategoriaCursoEditandoId] = useState(null);
+  const [categoriaCursoEditandoNome, setCategoriaCursoEditandoNome] = useState("");
 
   // --- Estados para o Gerenciador de Contatos (formulário da Home) ---
   const [contatosAdmin, setContatosAdmin] = useState([]);
@@ -285,6 +303,9 @@ export default function Admin() {
   const [cursosAdmin, setCursosAdmin] = useState([]);
   const [cursoEditando, setCursoEditando] = useState(null);
   const [formCurso, setFormCurso] = useState(CURSO_FORM_INICIAL);
+  const [mostrarModalCurso, setMostrarModalCurso] = useState(false);
+  const [buscaCursoAdmin, setBuscaCursoAdmin] = useState("");
+  const [filtroCategoriaCursoAdmin, setFiltroCategoriaCursoAdmin] = useState("");
 
   // Marca quando o logout foi pedido pelo próprio botão "Sair do Painel",
   // para diferenciar de uma sessão que expirou sozinha
@@ -1181,10 +1202,10 @@ export default function Admin() {
 
     const campoFaltando = modelo.campos.find((campo) => {
       if (!campo.obrigatorio) return false;
-      if (campo.tipo === 'imagem') {
-        const jaTemImagem = !!formPopup.dados[campo.nome];
+      if (campo.tipo === 'imagem' || campo.tipo === 'video') {
+        const jaTemArquivo = !!formPopup.dados[campo.nome];
         const arquivoSelecionado = document.getElementById(`popup-campo-${campo.nome}`)?.files?.[0];
-        return !jaTemImagem && !arquivoSelecionado;
+        return !jaTemArquivo && !arquivoSelecionado;
       }
       return !String(formPopup.dados[campo.nome] || '').trim();
     });
@@ -1200,12 +1221,13 @@ export default function Admin() {
       const dadosFinais = { ...formPopup.dados };
 
       for (const campo of modelo.campos) {
-        if (campo.tipo !== 'imagem') continue;
+        if (campo.tipo !== 'imagem' && campo.tipo !== 'video') continue;
         const arquivoInput = document.getElementById(`popup-campo-${campo.nome}`);
         const arquivo = arquivoInput?.files?.[0];
         if (!arquivo) continue;
 
-        validarImagem(arquivo);
+        if (campo.tipo === 'video') validarVideo(arquivo);
+        else validarImagem(arquivo);
         const nomeArquivo = `popup-${sanitizarNomeArquivo(arquivo.name)}`;
         const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
         if (uploadError) throw uploadError;
@@ -1235,7 +1257,7 @@ export default function Admin() {
       buscarPopupsAdmin();
     } catch (err) {
       console.error(err);
-      setMensagemStatus("❌ Não foi possível salvar o pop-up. Tente novamente.");
+      setMensagemStatus(`❌ ${err.message || 'Não foi possível salvar o pop-up. Tente novamente.'}`);
     }
   }
 
@@ -1549,6 +1571,34 @@ export default function Admin() {
     }
   }
 
+  function iniciarEdicaoCategoriaCurso(categoria) {
+    setCategoriaCursoEditandoId(categoria.id);
+    setCategoriaCursoEditandoNome(categoria.nome);
+  }
+
+  function cancelarEdicaoCategoriaCurso() {
+    setCategoriaCursoEditandoId(null);
+    setCategoriaCursoEditandoNome("");
+  }
+
+  async function handleSalvarEdicaoCategoriaCurso(id) {
+    if (!categoriaCursoEditandoNome.trim()) {
+      setMensagemStatus("⚠️ O nome da categoria é obrigatório!");
+      return;
+    }
+    try {
+      const { error } = await supabase.from('categorias_cursos').update({ nome: categoriaCursoEditandoNome.trim() }).eq('id', id);
+      if (error) throw error;
+      setMensagemStatus("✅ Categoria atualizada com sucesso!");
+      cancelarEdicaoCategoriaCurso();
+      buscarCategoriasCursos();
+      buscarCursosAdmin();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível atualizar a categoria. Tente novamente.");
+    }
+  }
+
   // --- CURSOS CADASTRADOS ---
   async function buscarCursosAdmin() {
     try {
@@ -1673,15 +1723,23 @@ export default function Admin() {
       seloMec: curso.selo_mec ?? true,
       destaque: curso.destaque ?? false,
       maisVendido: curso.mais_vendido ?? false,
+      grupoHome: curso.grupo_home || '',
       gradeCurricular: parseGradeCurricular(curso.grade_curricular),
       blocosConteudo: parseBlocosConteudo(curso.blocos_conteudo),
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setMostrarModalCurso(true);
+  }
+
+  function iniciarNovoCurso() {
+    setCursoEditando(null);
+    setFormCurso(CURSO_FORM_INICIAL);
+    setMostrarModalCurso(true);
   }
 
   function cancelarEdicaoCurso() {
     setCursoEditando(null);
     setFormCurso(CURSO_FORM_INICIAL);
+    setMostrarModalCurso(false);
   }
 
   async function handleSubmitCurso(e) {
@@ -1704,6 +1762,15 @@ export default function Admin() {
       const totalMaisVendidos = cursosAdmin.filter((c) => c.mais_vendido && c.id !== cursoEditando).length;
       if (totalMaisVendidos >= MAX_CURSOS_MAIS_VENDIDOS) {
         setMensagemStatus(`⚠️ Você já tem ${MAX_CURSOS_MAIS_VENDIDOS} cursos marcados como mais vendidos. Remova um antes de adicionar outro.`);
+        return;
+      }
+    }
+
+    if (formCurso.grupoHome) {
+      const totalNoGrupo = cursosAdmin.filter((c) => c.grupo_home === formCurso.grupoHome && c.id !== cursoEditando).length;
+      if (totalNoGrupo >= MAX_CURSOS_POR_GRUPO_HOME) {
+        const grupo = GRUPOS_HOME_CURSO.find((g) => g.chave === formCurso.grupoHome);
+        setMensagemStatus(`⚠️ Você já tem ${MAX_CURSOS_POR_GRUPO_HOME} cursos em "${grupo?.rotulo}". Remova um antes de adicionar outro.`);
         return;
       }
     }
@@ -1744,6 +1811,7 @@ export default function Admin() {
         selo_mec: formCurso.seloMec,
         destaque: formCurso.destaque,
         mais_vendido: formCurso.maisVendido,
+        grupo_home: formCurso.grupoHome || null,
         grade_curricular: serializarGradeCurricular(formCurso.gradeCurricular),
         blocos_conteudo: serializarBlocosConteudo(formCurso.blocosConteudo),
       };
@@ -1945,10 +2013,19 @@ export default function Admin() {
             </>
           )}
 
-          {/* ================= CURSOS E CATEGORIAS ================= */}
+          {/* ================= CURSOS ================= */}
           {abaAtiva === 'cursos' && (
             <>
-              <CabecalhoPagina titulo="Cursos e Categorias" subtitulo="Cursos cadastrados aqui aparecem em cards na página /cursos, junto do catálogo antigo" Icon={AcademicCapIcon} />
+              <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
+                <CabecalhoPagina titulo="Cursos" subtitulo="Cursos cadastrados aqui aparecem em cards na página /cursos, junto do catálogo antigo" Icon={AcademicCapIcon} />
+                <button
+                  type="button"
+                  onClick={iniciarNovoCurso}
+                  className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs px-5 py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0"
+                >
+                  + Novo Curso
+                </button>
+              </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <CardEstatistica label="Cursos Cadastrados" valor={cursosAdmin.length} Icon={AcademicCapIcon} cor="bg-indigo-500" />
@@ -1957,60 +2034,109 @@ export default function Admin() {
                 <CardEstatistica label="Mais Vendidos (Home)" valor={`${cursosAdmin.filter((c) => c.mais_vendido).length}/${MAX_CURSOS_MAIS_VENDIDOS}`} Icon={StarIcon} cor="bg-emerald-500" />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* --- COLUNA ESQUERDA: CATEGORIAS + FORMULÁRIO DE CURSO --- */}
-                <div className="md:col-span-1 flex flex-col gap-6">
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Lista</h3>
 
-                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide flex items-center gap-2">
-                      <TagIcon className="w-4 h-4 text-[#8a6d00]" /> Categorias
-                    </h3>
-                    <form onSubmit={handleAdicionarCategoriaCurso} className="flex gap-2 mb-4">
-                      <input
-                        type="text"
-                        value={novaCategoriaCursoNome}
-                        onChange={(e) => setNovaCategoriaCursoNome(e.target.value)}
-                        placeholder="Ex: EJA, Técnico, Livre"
-                        className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                      />
-                      <button type="submit" className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs px-4 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0">
-                        ➕
-                      </button>
-                    </form>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {categoriasCursos.length === 0 ? (
-                        <p className="text-xs text-gray-400 italic">Nenhuma categoria criada ainda.</p>
-                      ) : (
-                        categoriasCursos.map((cat) => (
-                          <div key={cat.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
-                            <span className="text-xs font-bold text-gray-700">{cat.nome}</span>
+                <div className="flex flex-col sm:flex-row gap-3 mb-5">
+                  <input
+                    type="text"
+                    value={buscaCursoAdmin}
+                    onChange={(e) => setBuscaCursoAdmin(e.target.value)}
+                    placeholder="Buscar por nome..."
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                  />
+                  <select
+                    value={filtroCategoriaCursoAdmin}
+                    onChange={(e) => setFiltroCategoriaCursoAdmin(e.target.value)}
+                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] sm:w-56 shrink-0"
+                  >
+                    <option value="">Todas as categorias</option>
+                    <option value="sem-categoria">Sem categoria</option>
+                    {categoriasCursos.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {cursosAdmin.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <AcademicCapIcon className="w-10 h-10 text-gray-300 mb-3" />
+                    <p className="font-black text-gray-700 text-sm">Nenhum curso cadastrado</p>
+                    <p className="text-xs text-gray-400 mt-1">Clique em "+ Novo Curso" para publicar o primeiro</p>
+                  </div>
+                ) : (() => {
+                  const termoBusca = buscaCursoAdmin.trim().toLowerCase();
+                  const cursosFiltradosAdmin = cursosAdmin.filter((curso) => {
+                    const combinaBusca = !termoBusca || (curso.titulo || '').toLowerCase().includes(termoBusca);
+                    const combinaCategoria = !filtroCategoriaCursoAdmin
+                      || (filtroCategoriaCursoAdmin === 'sem-categoria' ? !curso.categoria_id : String(curso.categoria_id) === filtroCategoriaCursoAdmin);
+                    return combinaBusca && combinaCategoria;
+                  });
+
+                  if (cursosFiltradosAdmin.length === 0) {
+                    return <p className="text-sm text-gray-400 text-center py-12">Nenhum curso corresponde à busca.</p>;
+                  }
+
+                  return (
+                    <div className="max-h-[42rem] overflow-y-auto divide-y divide-gray-100">
+                      {cursosFiltradosAdmin.map((curso) => (
+                        <div key={curso.id} className="flex items-center gap-4 py-4 first:pt-0">
+                          <img src={curso.imagem_url} alt="" className="w-14 h-14 object-cover rounded-lg bg-gray-100 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-800 truncate flex items-center gap-1.5">
+                              {curso.titulo}
+                              {curso.destaque && <span title="Destaque na Home">⭐</span>}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                              <span className="text-[10px] font-extrabold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
+                                {curso.categorias_cursos?.nome || 'Sem categoria'}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {curso.duracao || '-'} · R$ {(curso.preco || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
                             <button
-                              onClick={() => handleEliminarCategoriaCurso(cat.id)}
-                              className="text-red-500 hover:text-red-600 text-xs font-bold cursor-pointer"
+                              onClick={() => iniciarEdicaoCurso(curso)}
+                              aria-label="Editar curso"
+                              className="bg-blue-600 hover:bg-blue-700 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
                             >
-                              ✕
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleEliminarCurso(curso.id)}
+                              aria-label="Eliminar curso"
+                              className="bg-red-600 hover:bg-red-700 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                            >
+                              🗑️
                             </button>
                           </div>
-                        ))
-                      )}
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                  );
+                })()}
+              </div>
 
-                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
-                        {cursoEditando ? "✏️ Editar Curso" : "🎓 Novo Curso"}
-                      </h3>
-                      {cursoEditando && (
-                        <button
-                          type="button"
-                          onClick={cancelarEdicaoCurso}
-                          className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
-                        >
-                          Cancelar
-                        </button>
-                      )}
-                    </div>
+              {mostrarModalCurso && (
+                <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4" onClick={cancelarEdicaoCurso}>
+                  <div
+                    className="relative bg-white rounded-3xl shadow-2xl w-[95vw] max-w-2xl max-h-[92vh] overflow-y-auto p-6 md:p-8"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      onClick={cancelarEdicaoCurso}
+                      aria-label="Fechar"
+                      className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors cursor-pointer z-10"
+                    >
+                      ✕
+                    </button>
+
+                    <h2 className="text-lg font-black text-gray-900 mb-6">
+                      {cursoEditando ? "✏️ Editar Curso" : "🎓 Novo Curso"}
+                    </h2>
 
                     <form onSubmit={handleSubmitCurso} className="flex flex-col gap-4">
                       <div>
@@ -2136,6 +2262,22 @@ export default function Admin() {
                           className="w-4 h-4 rounded border-gray-300 cursor-pointer"
                         />
                         <label htmlFor="curso-mais-vendido" className="text-xs text-gray-500 font-bold uppercase">Mais Vendido (máx. {MAX_CURSOS_MAIS_VENDIDOS})</label>
+                      </div>
+                      <div>
+                        <label htmlFor="curso-grupo-home" className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                          Seção "Quero..." na Home (máx. {MAX_CURSOS_POR_GRUPO_HOME} por grupo)
+                        </label>
+                        <select
+                          id="curso-grupo-home"
+                          value={formCurso.grupoHome}
+                          onChange={(e) => atualizarCampoFormCurso('grupoHome', e.target.value)}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                        >
+                          <option value="">Não exibir nessa seção</option>
+                          {GRUPOS_HOME_CURSO.map((grupo) => (
+                            <option key={grupo.chave} value={grupo.chave}>{grupo.rotulo}</option>
+                          ))}
+                        </select>
                       </div>
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -2279,70 +2421,73 @@ export default function Admin() {
                     </form>
                   </div>
                 </div>
+              )}
+            </>
+          )}
 
-                {/* --- COLUNA DIREITA: CURSOS CADASTRADOS --- */}
-                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Cursos Cadastrados ({cursosAdmin.length})</h3>
-                  {cursosAdmin.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                      <AcademicCapIcon className="w-10 h-10 text-gray-300 mb-3" />
-                      <p className="font-black text-gray-700 text-sm">Nenhum curso cadastrado</p>
-                      <p className="text-xs text-gray-400 mt-1">Use o formulário ao lado para publicar o primeiro curso</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3 max-h-[42rem] overflow-y-auto">
-                      {cursosAdmin.map((curso) => (
-                        <div key={curso.id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex items-start gap-4 relative shadow-sm">
-                          <img src={curso.imagem_url} alt="" className="w-20 h-20 object-cover rounded-lg bg-gray-200 shrink-0" />
-                          <div className="flex-1 min-w-0 text-left">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <p className="text-sm font-bold text-gray-800 truncate">{curso.titulo}</p>
-                              {curso.categorias_cursos?.nome && (
-                                <span className="text-[9px] font-extrabold bg-white text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
-                                  {curso.categorias_cursos.nome}
-                                </span>
-                              )}
-                              {curso.destaque && (
-                                <span className="text-[9px] font-extrabold bg-[#fed106]/15 text-[#8a6d00] px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
-                                  ⭐ Destaque
-                                </span>
-                              )}
-                              {curso.mais_vendido && (
-                                <span className="text-[9px] font-extrabold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
-                                  🔥 Mais Vendido
-                                </span>
-                              )}
+          {/* ================= CATEGORIAS DE CURSOS ================= */}
+          {abaAtiva === 'categorias-cursos' && (
+            <>
+              <CabecalhoPagina titulo="Categorias" subtitulo="Organize as áreas de cursos do site." Icon={TagIcon} />
+
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm max-w-2xl">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Lista</h3>
+
+                <form onSubmit={handleAdicionarCategoriaCurso} className="flex gap-2 mb-5">
+                  <input
+                    type="text"
+                    value={novaCategoriaCursoNome}
+                    onChange={(e) => setNovaCategoriaCursoNome(e.target.value)}
+                    placeholder="Ex: EJA, Técnico, Livre"
+                    className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                  />
+                  <button type="submit" className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs px-4 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0">
+                    + Nova categoria
+                  </button>
+                </form>
+
+                {categoriasCursos.length === 0 ? (
+                  <p className="text-xs text-gray-400 italic">Nenhuma categoria criada ainda.</p>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {categoriasCursos.map((cat) => {
+                      const totalCursos = cursosAdmin.filter((c) => c.categoria_id === cat.id).length;
+                      const estaEditando = categoriaCursoEditandoId === cat.id;
+                      return (
+                        <div key={cat.id} className="flex items-center justify-between gap-3 py-3">
+                          {estaEditando ? (
+                            <input
+                              type="text"
+                              autoFocus
+                              value={categoriaCursoEditandoNome}
+                              onChange={(e) => setCategoriaCursoEditandoNome(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && handleSalvarEdicaoCategoriaCurso(cat.id)}
+                              className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                            />
+                          ) : (
+                            <div>
+                              <p className="text-sm font-bold text-gray-800">{cat.nome}</p>
+                              <p className="text-xs text-gray-400">{totalCursos} curso{totalCursos === 1 ? '' : 's'}</p>
                             </div>
-                            <p className="text-xs text-gray-500 line-clamp-2">{curso.descricao}</p>
-                            <div className="flex gap-2 mt-2 text-[11px] text-gray-500 flex-wrap">
-                              <span>{curso.duracao || '-'}</span>
-                              <span>•</span>
-                              <span>{curso.carga_horaria || '-'}</span>
-                              <span>•</span>
-                              <span>{curso.modalidade}</span>
-                              <span>•</span>
-                              <span className="font-bold text-gray-700">R$ {(curso.preco || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                            </div>
-                          </div>
+                          )}
                           <div className="flex gap-2 shrink-0">
-                            <button
-                              onClick={() => iniciarEdicaoCurso(curso)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              onClick={() => handleEliminarCurso(curso.id)}
-                              className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
-                            >
-                              ✕
-                            </button>
+                            {estaEditando ? (
+                              <>
+                                <button onClick={() => handleSalvarEdicaoCategoriaCurso(cat.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✓</button>
+                                <button onClick={cancelarEdicaoCategoriaCurso} className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+                              </>
+                            ) : (
+                              <>
+                                <button onClick={() => iniciarEdicaoCategoriaCurso(cat)} className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✏️</button>
+                                <button onClick={() => handleEliminarCategoriaCurso(cat.id)} className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">🗑️</button>
+                              </>
+                            )}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </>
           )}

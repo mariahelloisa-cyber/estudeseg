@@ -5,6 +5,12 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import LinhaDivisoriaEsteira from '../components/LinhaDivisoriaEsteira';
 import { obterUrlEmbedVideo } from '../utils/video';
+import { GRUPOS_HOME_CURSO, MAX_CURSOS_POR_GRUPO_HOME } from '../utils/gruposHomeCurso';
+
+// Desliga a seção "Cursos mais vendidos" sem apagar o código — troque para `true` pra reativar.
+const SECAO_CURSOS_MAIS_VENDIDOS_ATIVA = false;
+// Desliga a seção "Cursos em Destaque" sem apagar o código — troque para `true` pra reativar.
+const SECAO_CURSOS_DESTAQUE_ATIVA = false;
 
 function montarLinkWhatsapp(numero) {
   const apenasDigitos = (numero || '').replace(/\D/g, '');
@@ -82,6 +88,7 @@ export default function Inicio() {
   };
   const [cursosMaisVendidos, setCursosMaisVendidos] = useState([]);
   const [paginaMaisVendidos, setPaginaMaisVendidos] = useState(0);
+  const [cursosPorGrupoHome, setCursosPorGrupoHome] = useState({});
   const [bannerLateral, setBannerLateral] = useState(null);
   const [depoimentos, setDepoimentos] = useState([]);
   const [depoimentoReproduzindoId, setDepoimentoReproduzindoId] = useState(null);
@@ -401,6 +408,43 @@ export default function Inicio() {
     buscarBannerLateral();
   }, [API_URL]);
 
+  // Busca os cursos marcados (no admin) para cada grupo da seção "Quero terminar meus estudos
+  // em EAD... / técnico EAD... / técnico por competência EAD...". Um único SELECT traz todos
+  // os cursos com grupo definido; a separação por coluna acontece no cliente.
+  useEffect(() => {
+    async function buscarCursosPorGrupoHome() {
+      try {
+        const { data, error } = await supabase
+          .from('cursos_cadastrados')
+          .select('*, categorias_cursos(nome)')
+          .not('grupo_home', 'is', null)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const agrupados = {};
+        for (const grupo of GRUPOS_HOME_CURSO) {
+          agrupados[grupo.chave] = (data || [])
+            .filter((item) => item.grupo_home === grupo.chave)
+            .slice(0, MAX_CURSOS_POR_GRUPO_HOME)
+            .map((item) => ({
+              id: item.id,
+              titulo: item.titulo || "Curso sem Título",
+              categoria: (item.categorias_cursos?.nome || "Curso").toUpperCase(),
+              duracao: item.duracao || "Curta Duração",
+              preco: item.preco || 0,
+              fotoUrl: item.imagem_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600",
+            }));
+        }
+        setCursosPorGrupoHome(agrupados);
+      } catch (err) {
+        console.error("Erro ao buscar cursos da seção 'Quero...' da Home:", err);
+      }
+    }
+
+    buscarCursosPorGrupoHome();
+  }, []);
+
   // --- RENDERIZAÇÃO NORMAL DO SITE PÚBLICO (COM TODOS OS COMPONENTES INTACTOS) ---
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
@@ -494,7 +538,7 @@ export default function Inicio() {
         <div className="w-full bg-white mt-4 pb-4 border-b border-gray-100 shadow-inner">
           <div className="w-full bg-[#000000] py-4 mb-2 flex justify-center items-center shadow-md">
             <h2 className="text-white text-base md:text-xl font-black uppercase tracking-[0.2em] text-center px-4">
-              -EDITÁVEL ADMIN-6778
+              -EDITÁVEL ADMIN-
             </h2>
           </div>
           <div className="relative w-full overflow-hidden bg-white py-2">
@@ -543,7 +587,9 @@ export default function Inicio() {
       {/* --- CTA: BOTÃO DE MATRÍCULA (acima da seção de Diferenciais) --- */}
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12 flex justify-center">
         <a
-          href="/matricula"
+          href="https://wa.me/5511995987197?text=Ol%C3%A1!%20Gostaria%20de%20fazer%20minha%20matr%C3%ADcula."
+          target="_blank"
+          rel="noreferrer"
           className="group inline-flex items-center gap-2.5 bg-[#000000] hover:bg-[#fed106] text-white font-black text-sm uppercase tracking-wider px-8 py-4 rounded-full shadow-md shadow-[#fed106]/20 transition-all active:scale-[0.98] animate-botao-pulsar"
         >
           Faça já sua matrícula
@@ -553,6 +599,21 @@ export default function Inicio() {
         </a>
       </div>
 
+      {/* --- SEÇÃO 3.5: "ESTUDE FÁCIL / RÁPIDO / AGORA / SEGURO" --- */}
+      <div ref={estudeSecaoRef} className="w-full bg-gray-50 py-17 md:py-17 flex items-center justify-center overflow-hidden">
+        <div className="flex items-center gap-6 md:gap-7 text-6xl sm:text-7xl md:text-8xl font-medium tracking-tight">
+          <span className="text-black font-black">Estude</span>
+          <div className="relative h-28 sm:h-32 md:h-36 overflow-hidden pr-2">
+            <div className={`flex flex-col ${estudeAnimacaoAtiva ? 'animate-word-cycle' : ''}`}>
+              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Fácil</span>
+              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Rápido</span>
+              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Agora</span>
+              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#fed106] sombra-3d-texto">Seguro</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* --- SEÇÃO 4: DIFERENCIAIS --- */}
 {listaDiferenciais.length > 0 && (
   <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-16 pb-16">
@@ -616,23 +677,9 @@ export default function Inicio() {
   </div>
 )}
 
-{/* --- SEÇÃO 3.5: "ESTUDE FÁCIL / RÁPIDO / AGORA / SEGURO" --- */}
-      <div ref={estudeSecaoRef} className="w-full bg-gray-50 py-17 md:py-17 flex items-center justify-center overflow-hidden">
-        <div className="flex items-center gap-6 md:gap-7 text-6xl sm:text-7xl md:text-8xl font-medium tracking-tight">
-          <span className="text-black font-black">Estude</span>
-          <div className="relative h-28 sm:h-32 md:h-36 overflow-hidden pr-2">
-            <div className={`flex flex-col ${estudeAnimacaoAtiva ? 'animate-word-cycle' : ''}`}>
-              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Fácil</span>
-              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Rápido</span>
-              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Agora</span>
-              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#fed106] sombra-3d-texto">Seguro</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* --- SEÇÃO 5: CURSOS EM DESTAQUE --- */}
-      {cursosDestaque.length > 0 && (
+      {/* --- SEÇÃO 5: CURSOS EM DESTAQUE — desativada, troque SECAO_CURSOS_DESTAQUE_ATIVA
+      pra `true` no topo do arquivo pra reativar --- */}
+      {SECAO_CURSOS_DESTAQUE_ATIVA && cursosDestaque.length > 0 && (
         <div className="w-full bg-[#fed106]/5 relative overflow-hidden mt-0">
           <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-[30vw] z-10">
             <img 
@@ -759,7 +806,9 @@ export default function Inicio() {
         </div>
       )}
 
-      {/* --- SEÇÃO: CURSOS MAIS VENDIDOS (100% DINÂMICA, DESIGN ORIGINAL DO BLOG) --- */}
+      {/* --- SEÇÃO: CURSOS MAIS VENDIDOS (100% DINÂMICA, DESIGN ORIGINAL DO BLOG) —
+      desativada, troque SECAO_CURSOS_MAIS_VENDIDOS_ATIVA pra `true` no topo do arquivo pra reativar --- */}
+      {SECAO_CURSOS_MAIS_VENDIDOS_ATIVA && (
 <section className="relative py-16 md:py-15 bg-[#fffff] w-full overflow-hidden">
   <div className="absolute top-20 left-10 hidden lg:block opacity-30">
     <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
@@ -988,6 +1037,94 @@ export default function Inicio() {
     </div>
   </div>
 </section>
+      )}
+
+      {/* --- SEÇÃO: "QUERO..." (3 colunas de cursos marcados no admin, uma por grupo) --- */}
+      <section className="relative py-16 md:py-20 bg-white w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
+            {GRUPOS_HOME_CURSO.map((grupo) => {
+              const cursosDoGrupo = cursosPorGrupoHome[grupo.chave] || [];
+
+              return (
+                <div key={grupo.chave} className="flex flex-col">
+                  <h3 className="text-xl md:text-2xl font-extrabold text-[#000000] tracking-tight text-center mb-6">
+                    {grupo.linhas.map((linha, idx) => {
+                      const indiceDestaque = linha.indexOf(grupo.trechoDestaque);
+                      const antes = indiceDestaque >= 0 ? linha.slice(0, indiceDestaque) : linha;
+                      const depois = indiceDestaque >= 0 ? linha.slice(indiceDestaque + grupo.trechoDestaque.length) : '';
+
+                      return (
+                        <span key={idx} className="block">
+                          {antes}
+                          {indiceDestaque >= 0 && (
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#fed106] to-[#000000]">{grupo.trechoDestaque}</span>
+                          )}
+                          {depois}
+                        </span>
+                      );
+                    })}
+                  </h3>
+
+                  <div className="flex flex-col gap-4">
+                    {cursosDoGrupo.length === 0 ? (
+                      <p className="text-gray-400 text-xs py-8 text-center font-medium bg-gray-50 rounded-2xl border border-dashed border-slate-200">
+                        Nenhum curso marcado para este grupo ainda.
+                      </p>
+                    ) : (
+                      cursosDoGrupo.map((curso) => (
+                        <a
+                          key={curso.id}
+                          href={`/cursos/${curso.id}`}
+                          className="relative bg-black rounded-3xl overflow-hidden group min-h-[200px] flex flex-col cursor-pointer shadow-lg"
+                        >
+                          <img
+                            src={curso.fotoUrl}
+                            alt={curso.titulo}
+                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-90"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/70 to-transparent"></div>
+                          <div className="relative z-10 mt-auto p-5 flex flex-col">
+                            <span className="bg-[#fed106] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider mb-2.5 w-max">
+                              {curso.categoria}
+                            </span>
+                            <h4 className="text-white text-base md:text-lg font-bold mb-3 leading-snug line-clamp-2">
+                              {curso.titulo}
+                            </h4>
+                            <div className="flex items-center gap-2.5 text-gray-300 text-[11px] font-medium">
+                              <span className="flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                {curso.duracao}
+                              </span>
+                              <span className="w-px h-3 bg-gray-500"></span>
+                              <span className="flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .672-3 1.5S10.343 11 12 11s3 .672 3 1.5-1.343 1.5-3 1.5m0-6c1.11 0 2.08.402 2.599 1M12 8V6.5m0 7.5v1.5m0-9C8.686 6 6 8.686 6 12s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6z" /></svg>
+                                R$ {curso.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+                        </a>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-12 flex justify-center">
+            <a
+              href="/cursos"
+              className="bg-[#fed106] hover:bg-[#000000] text-white font-extrabold text-sm py-4 px-8 rounded-full transition-colors flex items-center gap-2 shadow-md cursor-pointer"
+            >
+              Ver todos os cursos
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </section>
 
       <LinhaDivisoriaEsteira />
 

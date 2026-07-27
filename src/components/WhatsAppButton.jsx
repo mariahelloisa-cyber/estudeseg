@@ -3,7 +3,7 @@ import { useState } from 'react';
 export default function WhatsAppButton() {
   const [balaoAberto, setBalaoAberto] = useState(true);
 
-  const numero = '5527998392172';
+  const numero = '5511995987197';
   const mensagem = 'Olá! Gostaria de falar com um consultor da Estude Seguro.';
   const link = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
 

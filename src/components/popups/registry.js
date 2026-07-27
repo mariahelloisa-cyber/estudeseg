@@ -1,10 +1,11 @@
-import { PhotoIcon, TicketIcon, EnvelopeIcon, GiftIcon, CursorArrowRaysIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
+import { PhotoIcon, TicketIcon, EnvelopeIcon, GiftIcon, CursorArrowRaysIcon, ArrowsPointingInIcon, PlayCircleIcon } from '@heroicons/react/24/outline';
 import PopupBanner from './templates/PopupBanner';
 import PopupCupom from './templates/PopupCupom';
 import PopupCaptura from './templates/PopupCaptura';
 import PopupCadastro from './templates/PopupCadastro';
 import PopupBannerBotao from './templates/PopupBannerBotao';
 import PopupBannerBotaoCentro from './templates/PopupBannerBotaoCentro';
+import PopupVideo from './templates/PopupVideo';
 
 // Registro central dos modelos de pop-up. Cada entrada descreve:
 // - `campos`: usados pelo admin para montar o formulário automaticamente (ver CampoFormulario.jsx)
@@ -121,6 +122,18 @@ export const MODELOS_POPUP = [
     ],
     dadosExemplo: { imagem_url: '', botao_texto: 'Ver ofertas', botao_link: '' },
     Componente: PopupBannerBotaoCentro,
+  },
+  {
+    chave: 'video',
+    rotulo: 'Vídeo',
+    descricao: 'Só o vídeo, em tela cheia, com reprodução automática (mudo). Ideal para um vídeo de divulgação já pronto.',
+    Icon: PlayCircleIcon,
+    variante: 'imagem',
+    campos: [
+      { nome: 'video_url', rotulo: 'Vídeo do Pop-up (use MP4 — vídeos .mov de iPhone podem não tocar no navegador)', tipo: 'video', obrigatorio: true },
+    ],
+    dadosExemplo: { video_url: '' },
+    Componente: PopupVideo,
   },
 ];
 
