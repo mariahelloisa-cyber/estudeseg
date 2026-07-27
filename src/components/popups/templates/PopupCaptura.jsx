@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../../../supabaseClient';
 
-// Modelo "Captura com Imagem": imagem de um lado, formulário de e-mail do outro (ex.: pop-up
-// de "baixe nosso guia grátis"). Ao enviar, grava o e-mail em `popup_capturas_email`. Em modo
-// de prévia (admin), o envio é simulado sem gravar nada.
 export default function PopupCaptura({ dados, popupId, somenteVisualizacao }) {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState(''); // '' | 'enviando' | 'sucesso' | 'erro'

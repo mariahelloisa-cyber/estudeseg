@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ShieldCheckIcon } from '@heroicons/react/24/solid';
 import Navbar from '../components/Navbar';
 import imagemInstitucional from '../assets/capa-video.png';
 import fundoHero from '../assets/fundoo.png';
@@ -111,7 +112,7 @@ export default function Sobre() {
   return (
     <>
       <Navbar />
-      <div className="w-full bg-white font-sans antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="w-full bg-[#fcfbfb] font-sans antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* 1. SEÇÃO HERO */}
       <section className="relative w-full min-h-[70vh] flex items-center bg-gray-900 overflow-hidden">
@@ -238,56 +239,47 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
       </section>
 
       {/* 2.4 SEÇÃO CREDIBILIDADE (ABED / Reclame Aqui) */}
-      <section className="relative w-full bg-[#fed106]/80 overflow-hidden">
-        {/* Onda branca de transição no topo */}
-        <svg
-          className="absolute top-0 left-0 w-full h-16 md:h-24 text-white"
-          viewBox="0 0 1440 100"
-          preserveAspectRatio="none"
-          fill="currentColor"
-        >
-          <path d="M0,50 C160,90 320,10 480,50 C640,90 800,10 960,50 C1120,90 1280,10 1440,50 L1440,0 L0,0 Z" />
-        </svg>
+      <section className="relative w-full bg-[#fcfbfb] overflow-hidden min-h-[360px] sm:min-h-[440px] md:min-h-[530px]">
+        {/* Imagem grande ancorada à direita, funcionando como fundo da seção — mantém a proporção
+            original (sem esticar/achatar) e pode entrar por trás do texto à esquerda. */}
+        <img
+          src={seloAbed}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none select-none absolute bottom-0 right-0 h-[320px] sm:h-[400px] md:h-[490px] w-auto max-w-none z-0"
+        />
 
-        <div className="max-w-7xl mx-auto px-6 pt-28 pb-20 md:pt-32 md:pb-33 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
-            {/* LADO ESQUERDO: TEXTOS */}
-            <div className="lg:col-span-7 text-left">
-              <h2 className="text-2xl md:text-4xl font-black text-white leading-tight mb-6 max-w-xl drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)]">
-                Compromisso com a Transparência e a Credibilidade
-              </h2>
-              <p className="text-white/90 text-sm md:text-base font-medium leading-relaxed mb-4 max-w-xl drop-shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
-                A Estude Seguro é associada à ABED – Associação Brasileira de Educação a Distância, reforçando nosso compromisso com a seriedade, a qualidade e as boas práticas do ensino a distância no Brasil.
-              </p>
-              <p className="text-white/90 text-sm md:text-base font-medium leading-relaxed max-w-xl drop-shadow-[0_1px_4px_rgba(0,0,0,0.35)]">
-                Além disso, somos uma empresa verificada pelo Reclame Aqui, o maior e mais rigoroso site de reputação da América Latina, reconhecimento que reflete nossa dedicação à confiança e à satisfação de cada aluno.
-              </p>
+        <div className="max-w-7xl mx-auto px-6 pt-20 pb-20 md:pt-24 md:pb-28 relative z-10">
+          <div className="max-w-xl text-left">
+            <div className="self-start inline-flex items-center gap-2 border border-[#fed106] rounded-full px-4 py-1.5 mb-6 bg-white">
+              <ShieldCheckIcon className="w-4 h-4 text-black" />
+              <span className="text-[11px] font-black text-black uppercase tracking-wider">Compromisso que gera confiança</span>
             </div>
 
-            {/* LADO DIREITO: ESPAÇO PARA IMAGEM */}
-            <div className="lg:col-span-5 flex justify-center relative">
-              <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0 p-2">
-                <img
-                  src={seloAbed}
-                  alt="Selo de Qualidade ABED - Educação a Distância"
-                  className="w-full h-full object-contain drop-shadow-lg"
-                />
-              </div>
-            </div>
+            <h2 className="text-2xl md:text-4xl font-black text-gray-900 leading-tight mb-6 max-w-xl">
+              Compromisso com a Transparência e a <span className="text-[#fed106]">Credibilidade</span>
+            </h2>
+
+            <p className="text-gray-600 text-sm md:text-base font-medium leading-relaxed mb-4 max-w-xl">
+              A Estude Seguro é associada à <strong className="text-gray-900 font-bold">ABED</strong> – Associação Brasileira de Educação a Distância, reforçando nosso compromisso com a seriedade, a qualidade e as boas práticas do ensino a distância no Brasil.
+            </p>
+            <p className="text-gray-600 text-sm md:text-base font-medium leading-relaxed max-w-xl">
+              Além disso, somos uma empresa verificada pelo <strong className="text-gray-900 font-bold">Reclame Aqui</strong>, o maior e mais rigoroso site de reputação da América Latina, reconhecimento que reflete nossa dedicação à confiança e à satisfação de cada aluno.
+            </p>
           </div>
         </div>
       </section>
 
       {/* 2.5 SEÇÃO MISSÃO, VISÃO E VALORES */}
-      <section className="relative w-full overflow-hidden -mt-10 md:-mt-16">
+      <section className="relative w-full overflow-hidden bg-[#fcfbfb]">
         {/* Onda preta sobrepondo o fim da seção amarela */}
         <svg
-          className="relative block w-full h-16 md:h-24 text-black"
+          className="relative block w-full h-20 md:h-32 text-black"
           viewBox="0 0 1440 100"
           preserveAspectRatio="none"
           fill="currentColor"
         >
-          <path d="M0,50 C160,10 320,90 480,50 C640,10 800,90 960,50 C1120,10 1280,90 1440,50 L1440,100 L0,100 Z" />
+          <path d="M0,22 C160,0 320,58 480,22 C640,0 800,58 960,22 C1120,0 1280,58 1440,22 L1440,100 L0,100 Z" />
         </svg>
 
         <div className="bg-black pt-8 pb-16 md:pt-20 md:pb-28">

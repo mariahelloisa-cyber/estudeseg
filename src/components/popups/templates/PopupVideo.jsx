@@ -1,8 +1,6 @@
 import { useState } from 'react';
 
-// Modelo "Vídeo": só o vídeo, no seu formato original (sem cortar nem esticar pra caber
-// numa caixa fixa), com autoplay mudo (exigência dos navegadores) e sem controles nativos
-// — só o vídeo tocando, o usuário fecha pelo X do pop-up.
+
 export default function PopupVideo({ dados }) {
   const [falhouCarregar, setFalhouCarregar] = useState(false);
 
@@ -23,10 +21,7 @@ export default function PopupVideo({ dados }) {
   }
 
   return (
-    // aspect-[auto_16/9] serve só de placeholder enquanto o vídeo carrega: o "auto" faz a
-    // proporção real do arquivo (retrato, paisagem, o que for) substituir essa proporção "de
-    // reserva" assim que os metadados chegam — sem o "auto", o Tailwind `aspect-video` força
-    // sempre 16:9 e deixa tarjas pretas nas laterais de vídeos verticais.
+    
     <video
       key={dados.video_url}
       src={dados.video_url}
