@@ -17,10 +17,10 @@ export const useCartStore = create(
         if (!jaExiste) {
           set({ 
             carrinho: [...carrinhoAtual, curso],
-            carrinhoAberto: true // <-- Abre a aba automaticamente ao adicionar!
+            carrinhoAberto: true 
           });
         } else {
-          set({ carrinhoAberto: true }); // Abre a aba para mostrar que já está lá
+          set({ carrinhoAberto: true }); 
         }
       },
 
@@ -34,7 +34,7 @@ export const useCartStore = create(
     }),
     {
       name: 'meu-carrinho-cursos',
-      // Salva apenas a lista de produtos no navegador, ignorando se a aba estava aberta ou fechada
+     
       partialize: (state) => ({ carrinho: state.carrinho }), 
     }
   )

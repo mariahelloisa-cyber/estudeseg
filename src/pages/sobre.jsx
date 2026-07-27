@@ -67,42 +67,43 @@ export default function Sobre() {
       ano: '2020 - 2021',
       categoria: 'IDEALIZAÇÃO',
       titulo: 'O Início de um Sonho',
-      descricao: 'Nasce a Estude Seguro, com o propósito de ampliar o acesso à educação técnica de qualidade e contribuir para o desenvolvimento regional.',
+      descricao: 'A Estude Seguro nasceu para ampliar o acesso à educação técnica de qualidade, tornando as matrículas em cursos EAD mais acessíveis, seguras e eficientes, contribuindo para o desenvolvimento pessoal e profissional.',
       imagem: selo6 
     },
+  
     {
       ano: '2022',
       categoria: 'EAD',
       titulo: 'Metodologia EAD',
-      descricao: 'Implementação da metodologia EAD, permitindo que alunos estudem de qualquer lugar com flexibilidade e autonomia.',
+      descricao: 'Com uma metodologia EAD desenvolvida para oferecer flexibilidade, autonomia e praticidade, permitindo que você estude de onde estiver e no horário que melhor se adapte à sua rotina. Unindo tecnologia, eficiência e segurança para facilitar sua formação.',
       imagem: selo6 
     },
     {
       ano: '2023',
       categoria: 'EXPANSÃO',
       titulo: 'Crescimento Exponencial',
-      descricao: 'Ampliação do portfólio de cursos técnicos voltados às necessidades reais das empresas e indústrias.',
+      descricao: 'Oferecemos um amplo portfólio de cursos técnicos alinhados às demandas do mercado, permitindo que cada aluno escolha a formação ideal para alcançar seus objetivos com qualidade e confiança.',
       imagem: selo6
     },
     {
       ano: '2024',
       categoria: 'INOVAÇÃO',
       titulo: 'Crescimento e Impacto',
-      descricao: 'Consolidação da Estude Seguro como uma instituição comprometida com a qualificação profissional e a transformação de vidas.',
+      descricao: 'O crescimento da Estude Seguro é baseado em segurança, transparência e credibilidade. Garantimos que cada matrícula seja realizada com respaldo legal, proporcionando confiança desde a inscrição até a conquista do diploma.',
       imagem: selo6
     },
     {
       ano: '2025 - 2026',
       categoria: 'CONSOLIDAÇÃO',
       titulo: 'Suporte e Acompanhamento',
-      descricao: 'Fortalecimento do atendimento humanizado e da proximidade com os alunos durante toda a jornada acadêmica.',
+      descricao: 'Oferecemos atendimento humanizado e acompanhamento durante toda a jornada acadêmica. Nossos consultores educacionais estão prontos para orientar cada etapa com clareza, segurança e conformidade com a legislação.',
       imagem: selo6
     },
     {
       ano: '2026',
       categoria: 'O FUTURO CONTINUA',
       titulo: 'O Futuro Continua',
-      descricao: 'A Estude Seguro segue investindo em inovação, tecnologia e educação para criar novas oportunidades e formar profissionais preparados para os desafios do amanhã.',
+      descricao: 'Investimos continuamente em inovação, tecnologia e soluções educacionais para oferecer uma experiência de ensino moderna, acessível e eficiente, preparando nossos alunos para os desafios do futuro.',
       imagem: selo6
     }
   ];

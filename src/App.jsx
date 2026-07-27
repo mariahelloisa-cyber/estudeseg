@@ -9,9 +9,6 @@ import PopupAvisos from './components/PopupAvisos';
 // Importação das tuas páginas
 import Inicio from './pages/Inicio';
 import Blog from './pages/Blog';
-// Desativadas temporariamente — reativar quando as páginas entrarem no ar
-// import Vagas from './pages/Vagas';
-// import Ouvidoria from './pages/ouvidoria';
 import PostDetalhe from './pages/PostDetalhe';
 import FAQ from './pages/FAQ';
 import ValidacaoRastreio from './pages/ValidacaoRastreio';

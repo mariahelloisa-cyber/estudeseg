@@ -13,7 +13,7 @@ const LINKS = [
   // Desativado temporariamente — reativar quando as páginas entrarem no ar
   // { to: '/vagas', label: 'Vagas' },
   // { to: '/ouvidoria', label: 'Ouvidoria' },
-  { to: '/validacaoRastreio', label: 'Validação e Rastreio' },
+  { to: '/validacaoRastreio', label: 'Acompanhamento' },
 ];
 
 export default function Navbar() {

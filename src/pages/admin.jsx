@@ -21,6 +21,7 @@ import {
   ChartBarIcon,
   ArrowTopRightOnSquareIcon,
   ChatBubbleBottomCenterTextIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -31,6 +32,19 @@ import { parseBlocosConteudo, serializarBlocosConteudo } from '../utils/blocosCo
 import { MODELOS_POPUP, obterModeloPopup } from '../components/popups/registry';
 import CampoFormulario from '../components/popups/CampoFormulario';
 import PopupModalShell from '../components/popups/PopupModalShell';
+import { validarCPF, mascaraCPF } from '../utils/mascaras';
+import { STATUS_MATRICULA, sugerirNumeroMatricula } from '../utils/statusMatricula';
+import {
+  ESTADOS_BR,
+  OPCOES_RACA_COR,
+  OPCOES_ESTADO_CIVIL,
+  CAMPOS_OBRIGATORIOS_ALUNO,
+  FORM_ALUNO_INICIAL,
+  TAMANHO_MAXIMO_ANEXO_MB,
+  mascaraCEP,
+  mascaraTelefone,
+  validarAnexo,
+} from '../utils/camposAluno';
 
 // --- Itens do menu lateral: só seções com dados reais no Supabase ---
 const ITENS_MENU = [
@@ -47,6 +61,7 @@ const ITENS_MENU = [
   { id: 'popups', label: 'Pop-ups', Icon: MegaphoneIcon },
   { id: 'contatos', label: 'Contatos', Icon: EnvelopeIcon },
   { id: 'matriculas', label: 'Matrículas', Icon: DocumentTextIcon },
+  { id: 'matriculados', label: 'Matriculados', Icon: UserGroupIcon },
 ];
 
 const CURSO_FORM_INICIAL = {
@@ -69,7 +84,15 @@ const MAX_CURSOS_DESTAQUE = 5;
 const MAX_CURSOS_MAIS_VENDIDOS = 8;
 const MAX_DEPOIMENTOS_DESTAQUE = 10;
 
-const POPUP_FORM_INICIAL = { titulo: "", modelo: null, dados: {}, ativo: false };
+const POPUP_FORM_INICIAL = { titulo: "", modelo: null, dados: {}, ativo: false, atrasoSegundos: 0 };
+
+// Mesmos campos (e obrigatórios) do formulário público /matricula — ver utils/camposAluno.js
+const MATRICULADO_FORM_INICIAL = {
+  ...FORM_ALUNO_INICIAL,
+  numeroMatricula: "",
+  statusOrder: 0,
+  anexos: [], // caminhos já salvos no Storage (edição); novos arquivos vêm do <input type="file">
+};
 
 // --- Validação de arquivos de imagem antes do upload para o Storage ---
 const TIPOS_IMAGEM_PERMITIDOS = ['image/png', 'image/jpeg', 'image/webp'];
@@ -139,6 +162,30 @@ function CartaoAcaoRapida({ titulo, descricao, Icon, cor, onClick }) {
       </div>
       <span className="text-gray-300 text-xl">→</span>
     </button>
+  );
+}
+
+// --- Seção/Campo do formulário de "Matriculado" (mesma organização visual do formulário
+// público /matricula, em Matricula.jsx) ---
+function SecaoMatriculado({ titulo, children }) {
+  return (
+    <div className="rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-black px-5 py-2.5">
+        <h3 className="text-white text-[11px] font-black uppercase tracking-widest">{titulo}</h3>
+      </div>
+      <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">{children}</div>
+    </div>
+  );
+}
+
+function CampoMatriculado({ label, required, className = '', children }) {
+  return (
+    <div className={className}>
+      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {children}
+    </div>
   );
 }
 
@@ -215,6 +262,17 @@ export default function Admin() {
   // --- Estados para o Gerenciador de Matrículas (formulário público /matricula) ---
   const [matriculasAdmin, setMatriculasAdmin] = useState([]);
   const [matriculaExpandidaId, setMatriculaExpandidaId] = useState(null);
+
+  // --- Estados para o Gerenciador de Matriculados (acompanhamento de status, /validacaoRastreio) ---
+  const [matriculadosAdmin, setMatriculadosAdmin] = useState([]);
+  const [buscaMatriculados, setBuscaMatriculados] = useState("");
+  const [matriculadoEditando, setMatriculadoEditando] = useState(null);
+  const [formMatriculado, setFormMatriculado] = useState(MATRICULADO_FORM_INICIAL);
+  const [mostrarFormMatriculado, setMostrarFormMatriculado] = useState(false);
+  const [cpfErroMatriculado, setCpfErroMatriculado] = useState("");
+  const [camposComErroMatriculado, setCamposComErroMatriculado] = useState([]);
+  const [salvandoMatriculado, setSalvandoMatriculado] = useState(false);
+  const formMatriculadoRef = useRef(null);
 
   // --- Estados para o Gerenciador de Pop-ups ---
   const [popupsAdmin, setPopupsAdmin] = useState([]);
@@ -838,6 +896,209 @@ export default function Admin() {
     }
   }
 
+  // --- FUNÇÕES DE MATRICULADOS (acompanhamento de status, consultado em /validacaoRastreio) ---
+  async function buscarMatriculadosAdmin() {
+    try {
+      const { data, error } = await supabase
+        .from('matriculados')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setMatriculadosAdmin(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar matriculados:", err);
+    }
+  }
+
+  function rolarAteCampoMatriculado(nome) {
+    const elemento = formMatriculadoRef.current?.elements?.namedItem(nome);
+    if (elemento) {
+      elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      elemento.focus({ preventScroll: true });
+    }
+  }
+
+  function abrirNovoMatriculado() {
+    setMatriculadoEditando(null);
+    setCpfErroMatriculado("");
+    setCamposComErroMatriculado([]);
+    setFormMatriculado({ ...MATRICULADO_FORM_INICIAL, numeroMatricula: sugerirNumeroMatricula() });
+    setMostrarFormMatriculado(true);
+  }
+
+  function abrirEditarMatriculado(m) {
+    setMatriculadoEditando(m);
+    setCpfErroMatriculado("");
+    setCamposComErroMatriculado([]);
+    setFormMatriculado({
+      numeroMatricula: m.numero_matricula || "",
+      curso: m.curso || "",
+      nomeCompleto: m.nome_completo || "",
+      cpf: mascaraCPF(m.cpf || ""),
+      dataNascimento: m.data_nascimento || "",
+      rg: m.rg || "",
+      orgaoEmissor: m.orgao_emissor || "",
+      dataEmissao: m.data_emissao || "",
+      naturalidade: m.naturalidade || "",
+      racaCor: m.raca_cor || "",
+      estadoCivil: m.estado_civil || "",
+      pai: m.pai || "",
+      mae: m.mae || "",
+      cep: m.cep || "",
+      rua: m.rua || "",
+      numero: m.numero || "",
+      complemento: m.complemento || "",
+      bairro: m.bairro || "",
+      cidade: m.cidade || "",
+      estado: m.estado || "",
+      telefone: m.telefone || "",
+      email: m.email || "",
+      observacoes: m.observacoes || "",
+      statusOrder: m.status_order ?? 0,
+      anexos: m.anexos || [],
+    });
+    setMostrarFormMatriculado(true);
+  }
+
+  function fecharFormMatriculado() {
+    setMostrarFormMatriculado(false);
+    setMatriculadoEditando(null);
+    setCpfErroMatriculado("");
+    setCamposComErroMatriculado([]);
+    const inputAnexos = document.getElementById('anexos-matriculado');
+    if (inputAnexos) inputAnexos.value = '';
+  }
+
+  function atualizarCampoFormMatriculado(campo, valor) {
+    setFormMatriculado((prev) => ({ ...prev, [campo]: valor }));
+    if (campo === 'cpf') setCpfErroMatriculado("");
+    if (camposComErroMatriculado.includes(campo)) {
+      setCamposComErroMatriculado((prev) => prev.filter((c) => c !== campo));
+    }
+  }
+
+  function handleChangeFormMatriculado(e) {
+    let { name, value } = e.target;
+    if (name === 'cpf') value = mascaraCPF(value);
+    if (name === 'cep') value = mascaraCEP(value);
+    if (name === 'telefone') value = mascaraTelefone(value);
+    atualizarCampoFormMatriculado(name, value);
+  }
+
+  function removerAnexoExistenteMatriculado(caminho) {
+    setFormMatriculado((prev) => ({ ...prev, anexos: prev.anexos.filter((c) => c !== caminho) }));
+  }
+
+  async function handleSalvarMatriculado(e) {
+    e.preventDefault();
+
+    const camposVazios = CAMPOS_OBRIGATORIOS_ALUNO.filter((campo) => !String(formMatriculado[campo] || '').trim());
+    if (!formMatriculado.numeroMatricula.trim()) camposVazios.unshift('numeroMatricula');
+    if (camposVazios.length > 0) {
+      setCamposComErroMatriculado(camposVazios);
+      rolarAteCampoMatriculado(camposVazios[0]);
+      setMensagemStatus("⚠️ Preencha todos os campos obrigatórios.");
+      return;
+    }
+    setCamposComErroMatriculado([]);
+
+    if (!validarCPF(formMatriculado.cpf)) {
+      setCpfErroMatriculado("⚠️ CPF inválido. Verifique os números digitados.");
+      rolarAteCampoMatriculado('cpf');
+      return;
+    }
+
+    const inputAnexos = document.getElementById('anexos-matriculado');
+    const novosArquivos = inputAnexos?.files ? Array.from(inputAnexos.files) : [];
+
+    setSalvandoMatriculado(true);
+    setMensagemStatus("⏳ Salvando matriculado...");
+    try {
+      novosArquivos.forEach(validarAnexo);
+
+      const caminhosNovos = [];
+      for (const arquivo of novosArquivos) {
+        const nomeArquivo = sanitizarNomeArquivo(arquivo.name);
+        const { error: uploadError } = await supabase.storage
+          .from('matriculas-anexos')
+          .upload(nomeArquivo, arquivo);
+        if (uploadError) throw uploadError;
+        caminhosNovos.push(nomeArquivo);
+      }
+
+      const payload = {
+        numero_matricula: formMatriculado.numeroMatricula.trim(),
+        curso: formMatriculado.curso.trim(),
+        nome_completo: formMatriculado.nomeCompleto.trim(),
+        cpf: formMatriculado.cpf,
+        data_nascimento: formMatriculado.dataNascimento,
+        rg: formMatriculado.rg.trim(),
+        orgao_emissor: formMatriculado.orgaoEmissor.trim(),
+        data_emissao: formMatriculado.dataEmissao || null,
+        naturalidade: formMatriculado.naturalidade.trim(),
+        raca_cor: formMatriculado.racaCor || null,
+        estado_civil: formMatriculado.estadoCivil,
+        pai: formMatriculado.pai.trim() || null,
+        mae: formMatriculado.mae.trim() || null,
+        cep: formMatriculado.cep.trim(),
+        rua: formMatriculado.rua.trim(),
+        numero: formMatriculado.numero.trim(),
+        complemento: formMatriculado.complemento.trim() || null,
+        bairro: formMatriculado.bairro.trim(),
+        cidade: formMatriculado.cidade.trim(),
+        estado: formMatriculado.estado,
+        telefone: formMatriculado.telefone.trim(),
+        email: formMatriculado.email.trim(),
+        anexos: [...formMatriculado.anexos, ...caminhosNovos],
+        observacoes: formMatriculado.observacoes.trim() || null,
+        status_order: Number(formMatriculado.statusOrder) || 0,
+      };
+
+      const { error } = matriculadoEditando
+        ? await supabase.from('matriculados').update(payload).eq('id', matriculadoEditando.id)
+        : await supabase.from('matriculados').insert([payload]);
+
+      if (error) throw error;
+
+      setMensagemStatus(matriculadoEditando ? "✅ Matriculado atualizado com sucesso!" : "✅ Matriculado cadastrado com sucesso!");
+      fecharFormMatriculado();
+      buscarMatriculadosAdmin();
+    } catch (err) {
+      console.error(err);
+      const duplicado = err?.code === '23505';
+      setMensagemStatus(duplicado ? "❌ Já existe um matriculado com esse número de matrícula." : `❌ ${err.message || 'Não foi possível salvar o matriculado. Tente novamente.'}`);
+    } finally {
+      setSalvandoMatriculado(false);
+    }
+  }
+
+  async function handleAtualizarStatusMatriculado(id, novoStatusOrder) {
+    try {
+      const { error } = await supabase
+        .from('matriculados')
+        .update({ status_order: Number(novoStatusOrder) })
+        .eq('id', id);
+      if (error) throw error;
+      setMatriculadosAdmin((prev) => prev.map((m) => (m.id === id ? { ...m, status_order: Number(novoStatusOrder) } : m)));
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível atualizar o status. Tente novamente.");
+    }
+  }
+
+  async function handleDeletarMatriculado(id) {
+    if (!window.confirm("Tem certeza que deseja excluir este matriculado?")) return;
+    try {
+      const { error } = await supabase.from('matriculados').delete().eq('id', id);
+      if (error) throw error;
+      setMatriculadosAdmin((prev) => prev.filter((m) => m.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível eliminar o matriculado. Tente novamente.");
+    }
+  }
+
   // Os anexos ficam num bucket privado: gera um link temporário válido por 60s para abrir/baixar
   async function handleAbrirAnexoMatricula(caminhoArquivo) {
     try {
@@ -876,7 +1137,7 @@ export default function Admin() {
     const modelo = obterModeloPopup(modeloChave);
     const dadosIniciais = {};
     modelo.campos.forEach((campo) => { dadosIniciais[campo.nome] = ''; });
-    setFormPopup({ titulo: '', modelo: modelo.chave, dados: dadosIniciais, ativo: false });
+    setFormPopup({ titulo: '', modelo: modelo.chave, dados: dadosIniciais, ativo: false, atrasoSegundos: 0 });
     setPopupEditando(null);
     setMostrarSeletorModeloPopup(false);
   }
@@ -889,6 +1150,7 @@ export default function Admin() {
       modelo: popup.modelo,
       dados: { ...(popup.dados || {}) },
       ativo: popup.ativo,
+      atrasoSegundos: popup.atraso_segundos ?? 0,
     });
     setPopupEditando(popup.id);
     setMostrarSeletorModeloPopup(false);
@@ -956,6 +1218,7 @@ export default function Admin() {
         modelo: modelo.chave,
         dados: dadosFinais,
         ativo: formPopup.ativo,
+        atraso_segundos: Math.max(0, parseInt(formPopup.atrasoSegundos, 10) || 0),
       };
 
       if (popupEditando) {
@@ -1010,6 +1273,7 @@ export default function Admin() {
       buscarVagasAdmin();
       buscarContatosAdmin();
       buscarMatriculasAdmin();
+      buscarMatriculadosAdmin();
     }
   }, [modoAdmin]);
 
@@ -2768,6 +3032,23 @@ export default function Admin() {
                       />
                     ))}
 
+                    <div>
+                      <label htmlFor="popup-atraso" className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                        Aparece depois de quantos segundos no site
+                      </label>
+                      <input
+                        type="number"
+                        id="popup-atraso"
+                        min="0"
+                        step="1"
+                        value={formPopup.atrasoSegundos}
+                        onChange={(e) => setFormPopup((prev) => ({ ...prev, atrasoSegundos: e.target.value }))}
+                        placeholder="0"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                      <p className="text-[11px] text-gray-400 mt-1">0 = aparece imediatamente. A contagem começa quando o visitante entra no site (ou quando o pop-up anterior é fechado, se houver mais de um).</p>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -2833,6 +3114,9 @@ export default function Admin() {
                           <div className="flex-1 min-w-0 text-left">
                             <p className="text-sm font-black text-gray-800 truncate">{p.titulo}</p>
                             <p className="text-[11px] text-[#8a6d00] font-bold uppercase tracking-wide">{modeloDoItem.rotulo}</p>
+                            <p className="text-[11px] text-gray-400 font-semibold mt-0.5">
+                              {p.atraso_segundos > 0 ? `Aparece após ${p.atraso_segundos}s no site` : 'Aparece imediatamente'}
+                            </p>
                           </div>
                           <button
                             type="button"
@@ -3016,6 +3300,322 @@ export default function Admin() {
               </div>
             </>
           )}
+
+          {abaAtiva === 'matriculados' && (
+            <>
+              <CabecalhoPagina
+                titulo="Matriculados"
+                subtitulo="Cadastre alunos e atualize o status da matrícula — consultado publicamente em /validacaoRastreio"
+                Icon={UserGroupIcon}
+              />
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <CardEstatistica label="Total de Matriculados" valor={matriculadosAdmin.length} Icon={UserGroupIcon} cor="bg-violet-500" />
+                <CardEstatistica
+                  label="Certificados Concluídos"
+                  valor={matriculadosAdmin.filter((m) => m.status_order === 7).length}
+                  Icon={UserGroupIcon}
+                  cor="bg-[#fed106]"
+                />
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
+                    Matriculados Cadastrados ({matriculadosAdmin.length})
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={abrirNovoMatriculado}
+                    className="bg-[#fed106] hover:bg-black text-white text-xs font-black uppercase tracking-wider px-4 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+                  >
+                    + Novo Matriculado
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  value={buscaMatriculados}
+                  onChange={(e) => setBuscaMatriculados(e.target.value)}
+                  placeholder="Pesquisar por nome, CPF ou número da matrícula..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] mb-4"
+                />
+
+                {(() => {
+                  const termo = buscaMatriculados.trim().toLowerCase();
+                  const termoDigitos = termo.replace(/\D/g, '');
+                  const listaFiltrada = matriculadosAdmin.filter((m) => {
+                    if (!termo) return true;
+                    const combinaNome = (m.nome_completo || '').toLowerCase().includes(termo);
+                    const combinaNumero = (m.numero_matricula || '').toLowerCase().includes(termo);
+                    const combinaCpf = termoDigitos && (m.cpf || '').replace(/\D/g, '').includes(termoDigitos);
+                    return combinaNome || combinaNumero || combinaCpf;
+                  });
+
+                  if (listaFiltrada.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                        <UserGroupIcon className="w-10 h-10 text-gray-300 mb-3" />
+                        <p className="font-black text-gray-700 text-sm">
+                          {matriculadosAdmin.length === 0 ? 'Nenhum matriculado cadastrado ainda' : 'Nenhum resultado para essa busca'}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">Cadastre um aluno para começar a acompanhar o status da matrícula dele</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-3 max-h-[48rem] overflow-y-auto">
+                      {listaFiltrada.map((m) => (
+                        <div key={m.id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <strong className="text-sm text-gray-900 font-black">{m.nome_completo}</strong>
+                              <span className="text-[9px] font-extrabold bg-[#fed106]/15 text-[#8a6d00] px-2 py-0.5 rounded-full uppercase tracking-wide">
+                                {m.numero_matricula}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 font-medium">
+                              {m.curso || 'Curso não informado'} • CPF {m.cpf}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <select
+                              value={m.status_order}
+                              onChange={(e) => handleAtualizarStatusMatriculado(m.id, e.target.value)}
+                              className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-gray-700 focus:outline-none focus:border-[#fed106] cursor-pointer"
+                            >
+                              {STATUS_MATRICULA.map((s) => (
+                                <option key={s.ordem} value={s.ordem}>{s.ordem + 1}. {s.label}</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => abrirEditarMatriculado(m)}
+                              className="text-blue-600 hover:text-blue-700 text-xs font-bold uppercase cursor-pointer px-2"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleDeletarMatriculado(m.id)}
+                              className="text-red-500 hover:text-red-600 text-xs font-bold uppercase cursor-pointer px-2"
+                            >
+                              Excluir
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </>
+          )}
+
+          {mostrarFormMatriculado && (() => {
+            const classeInputM = (campo) =>
+              `w-full bg-gray-50 border rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] transition-colors disabled:opacity-50 ${
+                camposComErroMatriculado.includes(campo) ? 'border-red-400 bg-red-50' : 'border-gray-200'
+              }`;
+
+            return (
+              <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4" onClick={fecharFormMatriculado}>
+                <div
+                  className="relative bg-white rounded-3xl shadow-2xl w-[95vw] max-w-3xl max-h-[92vh] overflow-y-auto p-6 md:p-8"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={fecharFormMatriculado}
+                    aria-label="Fechar"
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors cursor-pointer z-10"
+                  >
+                    ✕
+                  </button>
+
+                  <h2 className="text-lg font-black text-gray-900 mb-1">
+                    {matriculadoEditando ? 'Editar Matriculado' : 'Novo Matriculado'}
+                  </h2>
+                  <p className="text-xs text-gray-500 mb-6 max-w-xl">
+                    Mesmos dados e obrigatórios do formulário público de matrícula. Número, nome completo, CPF e data de
+                    nascimento são o que o aluno vai usar para consultar o status em /validacaoRastreio.
+                  </p>
+
+                  <form ref={formMatriculadoRef} onSubmit={handleSalvarMatriculado} noValidate className="flex flex-col gap-5">
+                    <SecaoMatriculado titulo="Matrícula">
+                      <CampoMatriculado label="Número da Matrícula" required>
+                        <input
+                          required
+                          type="text"
+                          name="numeroMatricula"
+                          disabled={salvandoMatriculado}
+                          value={formMatriculado.numeroMatricula}
+                          onChange={handleChangeFormMatriculado}
+                          className={classeInputM('numeroMatricula')}
+                        />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Curso" required>
+                        <input
+                          required
+                          type="text"
+                          name="curso"
+                          disabled={salvandoMatriculado}
+                          value={formMatriculado.curso}
+                          onChange={handleChangeFormMatriculado}
+                          placeholder="Digite o curso"
+                          className={classeInputM('curso')}
+                        />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Status Atual" className="sm:col-span-2">
+                        <select
+                          name="statusOrder"
+                          disabled={salvandoMatriculado}
+                          value={formMatriculado.statusOrder}
+                          onChange={handleChangeFormMatriculado}
+                          className={`${classeInputM('statusOrder')} cursor-pointer`}
+                        >
+                          {STATUS_MATRICULA.map((s) => (
+                            <option key={s.ordem} value={s.ordem}>{s.ordem + 1}. {s.label}</option>
+                          ))}
+                        </select>
+                      </CampoMatriculado>
+                    </SecaoMatriculado>
+
+                    <SecaoMatriculado titulo="Dados Pessoais">
+                      <CampoMatriculado label="Nome Completo" required className="sm:col-span-2">
+                        <input required type="text" name="nomeCompleto" disabled={salvandoMatriculado} value={formMatriculado.nomeCompleto} onChange={handleChangeFormMatriculado} placeholder="Digite o nome completo" className={classeInputM('nomeCompleto')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="CPF" required>
+                        <input
+                          required
+                          type="text"
+                          name="cpf"
+                          maxLength="14"
+                          disabled={salvandoMatriculado}
+                          value={formMatriculado.cpf}
+                          onChange={handleChangeFormMatriculado}
+                          placeholder="000.000.000-00"
+                          className={`w-full bg-gray-50 border rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] transition-colors disabled:opacity-50 ${
+                            cpfErroMatriculado || camposComErroMatriculado.includes('cpf') ? 'border-red-400 bg-red-50' : 'border-gray-200'
+                          }`}
+                        />
+                        {cpfErroMatriculado && <span className="text-red-500 text-[11px] font-bold mt-1 block">{cpfErroMatriculado}</span>}
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Data de Nascimento" required>
+                        <input required type="date" name="dataNascimento" disabled={salvandoMatriculado} value={formMatriculado.dataNascimento} onChange={handleChangeFormMatriculado} className={classeInputM('dataNascimento')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="RG" required>
+                        <input required type="text" name="rg" disabled={salvandoMatriculado} value={formMatriculado.rg} onChange={handleChangeFormMatriculado} placeholder="Digite o RG" className={classeInputM('rg')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Órgão Emissor" required>
+                        <input required type="text" name="orgaoEmissor" disabled={salvandoMatriculado} value={formMatriculado.orgaoEmissor} onChange={handleChangeFormMatriculado} placeholder="Ex.: SSP/SP" className={classeInputM('orgaoEmissor')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Data de Emissão">
+                        <input type="date" name="dataEmissao" disabled={salvandoMatriculado} value={formMatriculado.dataEmissao} onChange={handleChangeFormMatriculado} className={classeInputM('dataEmissao')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Naturalidade" required>
+                        <input required type="text" name="naturalidade" disabled={salvandoMatriculado} value={formMatriculado.naturalidade} onChange={handleChangeFormMatriculado} placeholder="Ex.: São Paulo, SP" className={classeInputM('naturalidade')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Raça/Cor">
+                        <select name="racaCor" disabled={salvandoMatriculado} value={formMatriculado.racaCor} onChange={handleChangeFormMatriculado} className={`${classeInputM('racaCor')} cursor-pointer`}>
+                          <option value="">Selecione</option>
+                          {OPCOES_RACA_COR.map((op) => <option key={op} value={op}>{op}</option>)}
+                        </select>
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Estado Civil" required>
+                        <select required name="estadoCivil" disabled={salvandoMatriculado} value={formMatriculado.estadoCivil} onChange={handleChangeFormMatriculado} className={`${classeInputM('estadoCivil')} cursor-pointer`}>
+                          <option value="">Selecione</option>
+                          {OPCOES_ESTADO_CIVIL.map((op) => <option key={op} value={op}>{op}</option>)}
+                        </select>
+                      </CampoMatriculado>
+                    </SecaoMatriculado>
+
+                    <SecaoMatriculado titulo="Filiação">
+                      <CampoMatriculado label="Pai">
+                        <input type="text" name="pai" disabled={salvandoMatriculado} value={formMatriculado.pai} onChange={handleChangeFormMatriculado} placeholder="Nome completo do pai" className={classeInputM('pai')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Mãe">
+                        <input type="text" name="mae" disabled={salvandoMatriculado} value={formMatriculado.mae} onChange={handleChangeFormMatriculado} placeholder="Nome completo da mãe" className={classeInputM('mae')} />
+                      </CampoMatriculado>
+                    </SecaoMatriculado>
+
+                    <SecaoMatriculado titulo="Endereço">
+                      <CampoMatriculado label="CEP" required>
+                        <input required type="text" name="cep" maxLength="9" disabled={salvandoMatriculado} value={formMatriculado.cep} onChange={handleChangeFormMatriculado} placeholder="00000-000" className={classeInputM('cep')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Rua" required>
+                        <input required type="text" name="rua" disabled={salvandoMatriculado} value={formMatriculado.rua} onChange={handleChangeFormMatriculado} placeholder="Digite a rua" className={classeInputM('rua')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Número" required>
+                        <input required type="text" name="numero" disabled={salvandoMatriculado} value={formMatriculado.numero} onChange={handleChangeFormMatriculado} placeholder="Digite o número" className={classeInputM('numero')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Complemento">
+                        <input type="text" name="complemento" disabled={salvandoMatriculado} value={formMatriculado.complemento} onChange={handleChangeFormMatriculado} placeholder="Apartamento, bloco, etc." className={classeInputM('complemento')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Bairro" required>
+                        <input required type="text" name="bairro" disabled={salvandoMatriculado} value={formMatriculado.bairro} onChange={handleChangeFormMatriculado} placeholder="Digite o bairro" className={classeInputM('bairro')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Cidade" required>
+                        <input required type="text" name="cidade" disabled={salvandoMatriculado} value={formMatriculado.cidade} onChange={handleChangeFormMatriculado} placeholder="Digite a cidade" className={classeInputM('cidade')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Estado" required>
+                        <select required name="estado" disabled={salvandoMatriculado} value={formMatriculado.estado} onChange={handleChangeFormMatriculado} className={`${classeInputM('estado')} cursor-pointer`}>
+                          <option value="">Selecione</option>
+                          {ESTADOS_BR.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+                        </select>
+                      </CampoMatriculado>
+                    </SecaoMatriculado>
+
+                    <SecaoMatriculado titulo="Contatos">
+                      <CampoMatriculado label="Telefone" required>
+                        <input required type="tel" name="telefone" disabled={salvandoMatriculado} value={formMatriculado.telefone} onChange={handleChangeFormMatriculado} placeholder="(00) 00000-0000" className={classeInputM('telefone')} />
+                      </CampoMatriculado>
+                      <CampoMatriculado label="E-mail" required>
+                        <input required type="email" name="email" disabled={salvandoMatriculado} value={formMatriculado.email} onChange={handleChangeFormMatriculado} placeholder="exemplo@dominio.com" className={classeInputM('email')} />
+                      </CampoMatriculado>
+                    </SecaoMatriculado>
+
+                    <SecaoMatriculado titulo="Documentos e Observações">
+                      <CampoMatriculado label="Anexos complementares" className="sm:col-span-2">
+                        {formMatriculado.anexos.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {formMatriculado.anexos.map((caminho) => (
+                              <span key={caminho} className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-[11px] font-bold text-gray-700">
+                                <button type="button" onClick={() => handleAbrirAnexoMatricula(caminho)} className="hover:text-[#8a6d00] cursor-pointer">
+                                  📎 Ver anexo
+                                </button>
+                                <button type="button" onClick={() => removerAnexoExistenteMatriculado(caminho)} aria-label="Remover anexo" className="text-gray-400 hover:text-red-500 cursor-pointer">✕</button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          id="anexos-matriculado"
+                          multiple
+                          accept="image/png,image/jpeg,image/webp,application/pdf"
+                          disabled={salvandoMatriculado}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1.5 file:text-xs file:font-bold file:mr-3 cursor-pointer disabled:opacity-50"
+                        />
+                        <p className="text-[11px] text-gray-400 mt-1.5">RG, CPF e outros documentos. Limite de {TAMANHO_MAXIMO_ANEXO_MB}MB por arquivo.</p>
+                      </CampoMatriculado>
+                      <CampoMatriculado label="Observações (uso interno, não aparece para o aluno)" className="sm:col-span-2">
+                        <textarea name="observacoes" rows="3" disabled={salvandoMatriculado} value={formMatriculado.observacoes} onChange={handleChangeFormMatriculado} className={`${classeInputM('observacoes')} resize-none`} />
+                      </CampoMatriculado>
+                    </SecaoMatriculado>
+
+                    <button
+                      type="submit"
+                      disabled={salvandoMatriculado}
+                      className="w-full bg-[#fed106] hover:bg-black text-white font-black text-sm uppercase tracking-wider py-3.5 rounded-xl transition-all active:scale-[0.99] cursor-pointer mt-1 disabled:opacity-60"
+                    >
+                      {salvandoMatriculado ? 'Salvando...' : matriculadoEditando ? 'Salvar Alterações' : 'Cadastrar Matriculado'}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            );
+          })()}
 
           {mensagemStatus && (
             <p className="text-sm font-bold text-center p-3 mt-6 bg-white border border-gray-200 rounded-xl shadow-sm animate-pulse text-gray-700">{mensagemStatus}</p>

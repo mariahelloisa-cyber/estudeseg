@@ -1,8 +1,9 @@
 import { sanitizarLinkExterno } from '../../../utils/linkSeguro';
 
-// Modelo "Banner com Botão": imagem no seu formato original (sem cortar nem esticar) com um
-// botão de ação sobreposto no canto inferior. Sem link definido, o botão só fecha o pop-up.
-export default function PopupBannerBotao({ dados, onFechar }) {
+// Modelo "Banner com Botão no Centro": igual ao Banner com Botão, mas com o botão de ação
+// centralizado sobre a imagem (em vez de fixo perto do rodapé). A imagem mantém seu
+// formato original (sem cortar nem esticar pra caber numa caixa fixa).
+export default function PopupBannerBotaoCentro({ dados, onFechar }) {
   const link = sanitizarLinkExterno(dados?.botao_link);
   const textoBotao = dados?.botao_texto?.trim() || 'Quero fazer!';
 
@@ -17,7 +18,7 @@ export default function PopupBannerBotao({ dados, onFechar }) {
   return (
     <div className="relative">
       <img src={dados.imagem_url} alt="" className="block max-w-[92vw] sm:max-w-[85vw] md:max-w-2xl max-h-[85vh] w-auto h-auto" />
-      <div className="absolute inset-x-0 bottom-12 sm:bottom-14 px-5 sm:px-8">
+      <div className="absolute inset-0 flex items-center justify-center px-5 sm:px-8">
         {link ? (
           <a
             href={link}

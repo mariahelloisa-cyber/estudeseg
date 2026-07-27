@@ -4,7 +4,10 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 // `variante` decide o formato da caixa: "imagem" ocupa quase a tela toda (modelo Banner),
 // "cartao" fica um cartão branco centralizado (demais modelos).
 const CONTAINER_POR_VARIANTE = {
-  imagem: 'w-[92vw] sm:w-[85vw] md:w-[70vw] max-w-3xl aspect-[2/1] max-h-[420px]',
+  // Sem largura/altura fixas nem aspect-ratio: o container se ajusta ao formato original
+  // da imagem (que já vem limitada a esse tamanho máximo — ver CLASSE_IMAGEM_VARIANTE_IMAGEM
+  // nos templates de pop-up), em vez de esticar ou cortar a imagem para caber numa caixa fixa.
+  imagem: 'max-w-[92vw] sm:max-w-[85vw] md:max-w-2xl max-h-[85vh]',
   cartao: 'w-[92vw] max-w-md',
   dividido: 'w-[92vw] sm:w-[85vw] md:w-[65vw] md:min-w-[600px] max-w-[700px] flex',
 };

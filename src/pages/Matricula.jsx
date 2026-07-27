@@ -2,101 +2,30 @@ import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { supabase } from '../supabaseClient';
+import { validarCPF, mascaraCPF } from '../utils/mascaras';
+import {
+  ESTADOS_BR,
+  OPCOES_RACA_COR,
+  OPCOES_ESTADO_CIVIL,
+  CAMPOS_OBRIGATORIOS_ALUNO,
+  FORM_ALUNO_INICIAL,
+  TAMANHO_MAXIMO_ANEXO_MB,
+  mascaraCEP,
+  mascaraTelefone,
+  validarAnexo,
+} from '../utils/camposAluno';
 import logo from '../assets/logo-estud.png';
 
-const ESTADOS_BR = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
-  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
-];
-
-const OPCOES_RACA_COR = ['Branca', 'Preta', 'Parda', 'Amarela', 'Indígena', 'Prefiro não informar'];
-const OPCOES_ESTADO_CIVIL = ['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União Estável'];
-
-const TIPOS_ANEXO_PERMITIDOS = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
-const TAMANHO_MAXIMO_ANEXO_MB = 10;
-
-// Campos obrigatórios do formulário (mesma lista dos que têm `required` no JSX)
-const CAMPOS_OBRIGATORIOS = [
-  'curso', 'nomeCompleto', 'cpf', 'dataNascimento', 'rg', 'orgaoEmissor', 'naturalidade',
-  'estadoCivil', 'cep', 'rua', 'numero', 'bairro', 'cidade', 'estado', 'telefone', 'email',
-];
-
-const FORM_INICIAL = {
-  curso: '',
-  nomeCompleto: '',
-  cpf: '',
-  dataNascimento: '',
-  rg: '',
-  orgaoEmissor: '',
-  dataEmissao: '',
-  naturalidade: '',
-  racaCor: '',
-  estadoCivil: '',
-  pai: '',
-  mae: '',
-  cep: '',
-  rua: '',
-  numero: '',
-  complemento: '',
-  bairro: '',
-  cidade: '',
-  estado: '',
-  telefone: '',
-  email: '',
-  observacoes: '',
-};
-
-// Algoritmo oficial de validação de CPF (mesma lógica usada no Checkout)
-function validarCPF(cpfOriginal) {
-  const cpf = (cpfOriginal || '').replace(/[^\d]+/g, '');
-  if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) return false;
-  let soma = 0, resto;
-  for (let i = 1; i <= 9; i++) soma += parseInt(cpf.substring(i - 1, i)) * (11 - i);
-  resto = (soma * 10) % 11;
-  if (resto === 10 || resto === 11) resto = 0;
-  if (resto !== parseInt(cpf.substring(9, 10))) return false;
-  soma = 0;
-  for (let i = 1; i <= 10; i++) soma += parseInt(cpf.substring(i - 1, i)) * (12 - i);
-  resto = (soma * 10) % 11;
-  if (resto === 10 || resto === 11) resto = 0;
-  return resto === parseInt(cpf.substring(10, 11));
-}
-
-function mascaraCPF(valor) {
-  return valor
-    .replace(/\D/g, '')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-    .replace(/(-\d{2})\d+?$/, '$1');
-}
-
-function mascaraCEP(valor) {
-  return valor.replace(/\D/g, '').replace(/(\d{5})(\d{1,3})/, '$1-$2').slice(0, 9);
-}
-
-function mascaraTelefone(valor) {
-  return valor
-    .replace(/\D/g, '')
-    .replace(/(\d{2})(\d)/, '($1) $2')
-    .replace(/(\d{5})(\d{4})$/, '$1-$2')
-    .slice(0, 15);
-}
+// Campos obrigatórios do formulário (mesma lista dos que têm `required` no JSX) — compartilhada
+// com o cadastro manual de matriculados no admin (ver src/utils/camposAluno.js)
+const CAMPOS_OBRIGATORIOS = CAMPOS_OBRIGATORIOS_ALUNO;
+const FORM_INICIAL = FORM_ALUNO_INICIAL;
 
 // Remove caracteres perigosos do nome original antes de usá-lo como chave no Storage
 function sanitizarNomeArquivo(nomeOriginal) {
   const extensaoMatch = nomeOriginal.match(/\.[a-zA-Z0-9]+$/);
   const extensao = extensaoMatch ? extensaoMatch[0].toLowerCase() : '';
   return `${crypto.randomUUID()}${extensao}`;
-}
-
-function validarAnexo(arquivo) {
-  if (!TIPOS_ANEXO_PERMITIDOS.includes(arquivo.type)) {
-    throw new Error(`Formato não suportado: ${arquivo.name}. Envie imagens (PNG/JPEG/WebP) ou PDF.`);
-  }
-  if (arquivo.size > TAMANHO_MAXIMO_ANEXO_MB * 1024 * 1024) {
-    throw new Error(`Arquivo muito grande: ${arquivo.name} (máx. ${TAMANHO_MAXIMO_ANEXO_MB}MB).`);
-  }
 }
 
 function Secao({ titulo, children }) {
