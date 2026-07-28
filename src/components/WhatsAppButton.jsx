@@ -4,7 +4,7 @@ export default function WhatsAppButton() {
   const [balaoAberto, setBalaoAberto] = useState(true);
 
   const numero = '5511995987197';
-  const mensagem = 'Olá! Gostaria de falar com um consultor da Estude Seguro.';
+  const mensagem = 'Olá! Vim pelo site e gostaria de falar com um consultor da Estude Seguro.';
   const link = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
 
   return (

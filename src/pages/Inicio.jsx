@@ -71,6 +71,7 @@ export default function Inicio() {
   // --- Estados para as restantes seções do Strapi ---
   const [listaSelos, setListaSelos] = useState([]);
   const [listaFrases, setListaFrases] = useState([]);
+  const [tituloEsteira, setTituloEsteira] = useState("-EDITÁVEL ADMIN-");
   const [listaDiferenciais, setListaDiferenciais] = useState([]);
   const [indiceAtivo, setIndiceAtivo] = useState(0);
   const [cursosDestaque, setCursosDestaque] = useState([]);
@@ -223,6 +224,26 @@ export default function Inicio() {
 
   useEffect(() => {
     buscarFrasesDoSupabase();
+  }, []);
+
+  // 2C. Buscar Título da Esteira do SUPABASE
+  async function buscarTituloEsteiraDoSupabase() {
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('valor')
+        .eq('chave', 'titulo_esteira')
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data?.valor) setTituloEsteira(data.valor);
+    } catch (err) {
+      console.error("Erro na conexão com o título da esteira do Supabase:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarTituloEsteiraDoSupabase();
   }, []);
 
   // 3. Buscar Diferenciais do SUPABASE
@@ -537,7 +558,7 @@ export default function Inicio() {
         <div className="w-full bg-white mt-4 pb-4 border-b border-gray-100 shadow-inner">
           <div className="w-full bg-[#000000] py-4 mb-2 flex justify-center items-center shadow-md">
             <h2 className="text-white text-base md:text-xl font-black uppercase tracking-[0.2em] text-center px-4">
-              -EDITÁVEL ADMIN-
+              {tituloEsteira}
             </h2>
           </div>
           <div className="relative w-full overflow-hidden bg-white py-2">
@@ -586,7 +607,7 @@ export default function Inicio() {
       {/* --- CTA: BOTÃO DE MATRÍCULA (acima da seção de Diferenciais) --- */}
       <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12 flex justify-center">
         <a
-          href="https://wa.me/5511995987197?text=Ol%C3%A1!%20Gostaria%20de%20fazer%20minha%20matr%C3%ADcula."
+          href={`https://wa.me/5511995987197?text=${encodeURIComponent('Olá! Vim pelo site e gostaria de fazer minha matrícula.')}`}
           target="_blank"
           rel="noreferrer"
           className="group inline-flex items-center gap-2.5 bg-[#000000] hover:bg-[#fed106] text-white font-black text-sm uppercase tracking-wider px-8 py-4 rounded-full shadow-md shadow-[#fed106]/20 transition-all active:scale-[0.98] animate-botao-pulsar"

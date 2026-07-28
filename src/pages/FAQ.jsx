@@ -183,7 +183,7 @@ export default function FAQ() {
             Nossa equipe de atendimento corporativo está online pronta para te ajudar agora mesmo.
           </p>
           <a
-            href="https://wa.me/seu-numero"
+            href={`https://wa.me/5511995987197?text=${encodeURIComponent('Olá! Vim pelo site e ainda tenho dúvidas.')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex bg-gradient-to-r from-[#fed106] to-[#fffff] text-black text-sm font-extrabold px-12 py-4 rounded-full shadow-lg shadow-[#fed106]/30 hover:opacity-95 transition-all transform active:scale-[0.98] tracking-wide uppercase"

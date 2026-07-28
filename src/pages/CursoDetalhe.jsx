@@ -364,9 +364,9 @@ export default function CursoDetalhe() {
     <div className="w-full min-h-screen bg-[#F8FAFC] font-sans antialiased">
       <Navbar />
 
-      {/* --- HERO: foto de fundo ocupando toda a largura da tela (igual em todos os cursos) --- */}
+      {/* --- HERO: foto de fundo — cada curso pode ter a sua (imagem_capa_url), com fallback para a padrão --- */}
       <div className="w-full relative overflow-hidden bg-black lg:min-h-[420px]">
-        <img src={imagemFundoHero} alt="" className="absolute inset-0 w-full h-full object-cover opacity-100" />
+        <img src={curso.imagem_capa_url || imagemFundoHero} alt="" className="absolute inset-0 w-full h-full object-cover opacity-100" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/65 to-black/80"></div>
         <div className="absolute -top-20 -right-20 w-72 h-72 bg-[#fed106]/10 rounded-full blur-3xl pointer-events-none"></div>
 

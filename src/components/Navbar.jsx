@@ -75,7 +75,7 @@ export default function Navbar() {
                 Matricule-se
               </Link>
 
-              <a href="https://wa.me/5511995987197" target="_blank" rel="noreferrer" className="hidden sm:inline-block bg-[#fed106] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#000000] transition-all shadow-sm whitespace-nowrap">
+              <a href={`https://wa.me/5511995987197?text=${encodeURIComponent('Olá! Vim pelo site e gostaria de falar com um consultor da Estude Seguro.')}`} target="_blank" rel="noreferrer" className="hidden sm:inline-block bg-[#fed106] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#000000] transition-all shadow-sm whitespace-nowrap">
                 Fale Conosco
               </a>
 
@@ -168,7 +168,7 @@ export default function Navbar() {
 
             <div className="px-5 py-4 mt-auto border-t border-gray-100">
               <a
-                href="https://wa.me/5511995987197"
+                href={`https://wa.me/5511995987197?text=${encodeURIComponent('Olá! Vim pelo site e gostaria de falar com um consultor da Estude Seguro.')}`}
                 target="_blank"
                 rel="noreferrer"
                 className="block text-center bg-[#fed106] text-white px-4 py-3 rounded-md text-sm font-medium hover:bg-[#000000] transition-all shadow-sm"

@@ -266,7 +266,7 @@ export default function Aproveitamento() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {resultados.map(({ curso, tempo, cargaHoraria }, idx) => {
-                        const whatsMsg = `Olá! Tenho interesse no curso de Tecnologia em ${curso}. Já possuo o ${selecionado}.`;
+                        const whatsMsg = `Olá! Vim pelo site e tenho interesse no curso de Tecnologia em ${curso}. Já possuo o ${selecionado}.`;
                         const whatsUrl = `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(whatsMsg)}`;
 
                         return (

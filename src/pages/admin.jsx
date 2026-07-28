@@ -262,6 +262,7 @@ export default function Admin() {
   const [listaSelos, setListaSelos] = useState([]);
   const [listaFrases, setListaFrases] = useState([]);
   const [novoTextoFrase, setNovoTextoFrase] = useState("");
+  const [novoTituloEsteira, setNovoTituloEsteira] = useState("");
   const [listaDiferenciais, setListaDiferenciais] = useState([]);
   const [depoimentos, setDepoimentos] = useState([]);
   const [noticiasDestaque, setNoticiasDestaque] = useState([]);
@@ -545,9 +546,48 @@ export default function Admin() {
     }
   }
 
+  // Buscar Título da Esteira do SUPABASE
+  async function buscarTituloEsteira() {
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('valor')
+        .eq('chave', 'titulo_esteira')
+        .maybeSingle();
+
+      if (error) throw error;
+      setNovoTituloEsteira(data?.valor || "");
+    } catch (err) {
+      console.error("Erro na conexão com o título da esteira do Supabase:", err);
+    }
+  }
+
+  // Função para Salvar o Título da Esteira
+  async function handleSalvarTituloEsteira(e) {
+    e.preventDefault();
+    if (!novoTituloEsteira.trim()) {
+      setMensagemStatus("⚠️ Escreva o título da esteira!");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('configuracoes')
+        .upsert([{ chave: 'titulo_esteira', valor: novoTituloEsteira.trim() }], { onConflict: 'chave' });
+      if (error) throw error;
+
+      setMensagemStatus("✅ Título da esteira atualizado com sucesso!");
+      buscarTituloEsteira();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar o título da esteira. Tente novamente.");
+    }
+  }
+
   useEffect(() => {
     buscarSelosDoSupabase();
     buscarFrasesDoSupabase();
+    buscarTituloEsteira();
   }, []);
 
   // 3. Buscar Diferenciais do SUPABASE
@@ -1777,6 +1817,8 @@ export default function Admin() {
 
     const arquivoInput = document.getElementById(cursoEditando ? 'imagem-curso-edit' : 'imagem-curso');
     const arquivo = arquivoInput?.files[0];
+    const arquivoCapaInput = document.getElementById(cursoEditando ? 'imagem-capa-curso-edit' : 'imagem-capa-curso');
+    const arquivoCapa = arquivoCapaInput?.files[0];
 
     if (!cursoEditando && !arquivo) {
       setMensagemStatus("⚠️ Selecione uma imagem para o curso!");
@@ -1799,6 +1841,19 @@ export default function Admin() {
         urlImagem = urlData.publicUrl;
       }
 
+      let urlImagemCapa = null;
+      if (arquivoCapa) {
+        validarImagem(arquivoCapa);
+        const nomeArquivoCapa = `capa-curso-${sanitizarNomeArquivo(arquivoCapa.name)}`;
+        const { error: uploadCapaError } = await supabase.storage.from('banners').upload(nomeArquivoCapa, arquivoCapa);
+        if (uploadCapaError) {
+          console.error("Erro no upload da imagem de capa do curso:", uploadCapaError);
+          throw new Error(`[upload da imagem de capa] ${uploadCapaError.message}`);
+        }
+        const { data: urlCapaData } = supabase.storage.from('banners').getPublicUrl(nomeArquivoCapa);
+        urlImagemCapa = urlCapaData.publicUrl;
+      }
+
       const dadosCurso = {
         titulo: formCurso.titulo,
         descricao: formCurso.descricao,
@@ -1816,6 +1871,7 @@ export default function Admin() {
         blocos_conteudo: serializarBlocosConteudo(formCurso.blocosConteudo),
       };
       if (urlImagem) dadosCurso.imagem_url = urlImagem;
+      if (urlImagemCapa) dadosCurso.imagem_capa_url = urlImagemCapa;
 
       if (cursoEditando) {
         const { error } = await supabase.from('cursos_cadastrados').update(dadosCurso).eq('id', cursoEditando);
@@ -1835,6 +1891,7 @@ export default function Admin() {
 
       cancelarEdicaoCurso();
       if (arquivoInput) arquivoInput.value = "";
+      if (arquivoCapaInput) arquivoCapaInput.value = "";
       buscarCursosAdmin();
     } catch (err) {
       console.error(err);
@@ -2406,11 +2463,22 @@ export default function Admin() {
                       </div>
                       <div>
                         <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">
-                          {cursoEditando ? "Nova Imagem (Opcional)" : "Imagem de Capa"}
+                          {cursoEditando ? "Nova Foto do Curso (Opcional)" : "Foto do Curso"}
                         </label>
                         <input
                           type="file"
                           id={cursoEditando ? "imagem-curso-edit" : "imagem-curso"}
+                          accept="image/*"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                          Imagem de Capa (fundo da página do curso){cursoEditando ? " (Opcional)" : ""}
+                        </label>
+                        <input
+                          type="file"
+                          id={cursoEditando ? "imagem-capa-curso-edit" : "imagem-capa-curso"}
                           accept="image/*"
                           className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
                         />
@@ -2568,6 +2636,16 @@ export default function Admin() {
           {abaAtiva === 'frases' && (
             <>
               <CabecalhoPagina titulo="Gerenciar Frases" subtitulo="Frases exibidas na esteira animada da Home" Icon={ChatBubbleBottomCenterTextIcon} />
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Título da Esteira</h3>
+                <form onSubmit={handleSalvarTituloEsteira} className="flex flex-col md:flex-row gap-4 md:items-end">
+                  <div className="flex-1">
+                    <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Texto exibido acima das frases</label>
+                    <input type="text" value={novoTituloEsteira} onChange={(e) => setNovoTituloEsteira(e.target.value)} placeholder="Ex: FIQUE POR DENTRO" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                  </div>
+                  <button type="submit" className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0">💾 Salvar Título</button>
+                </form>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
                   <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Nova Frase</h3>
