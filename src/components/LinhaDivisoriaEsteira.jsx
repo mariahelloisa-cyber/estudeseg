@@ -27,7 +27,7 @@ const BRANCO = '#ffffff';
 const PALETA = [AMARELO, PRETO, BRANCO, PRETO, AMARELO, BRANCO];
 
 const ALTURA_TOTAL = 100;
-const MARGEM_VERTICAL = 7; // respiro branco acima/abaixo — pequeno de propósito, para manter a faixa densa
+const MARGEM_VERTICAL = 0; // sem respiro — blocos encostam nas seções acima/abaixo
 const ALTURA_BLOCO = ALTURA_TOTAL - MARGEM_VERTICAL * 2; // bloco ocupa ~86% da altura total
 const LARGURA_BLOCO = 66; // bloco quase quadrado
 const RAIO_CANTO = 14;

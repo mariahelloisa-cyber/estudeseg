@@ -3,6 +3,10 @@ import { ShieldCheckIcon } from '@heroicons/react/24/solid';
 import Navbar from '../components/Navbar';
 import imagemInstitucional from '../assets/capa-video.png';
 import fundoHero from '../assets/fundoo.png';
+import selo1 from '../assets/selo1.png';
+import selo2 from '../assets/selo2.png';
+import selo3 from '../assets/selo3.png';
+import selo4 from '../assets/selo4.png';
 import selo6 from '../assets/selo6.png';
 import fotoMissao from '../assets/pilar-missao.jpg';
 import fotoVisao from '../assets/pilar-visao.png';
@@ -10,6 +14,13 @@ import fotoValores from '../assets/pilar-valores.jpg';
 import seloAbed from '../assets/abed.png';
 
 const VIDEO_DRIVE_ID = '1PFZab6pHDCmfEseEQjoRVA8Rb1g1FE08';
+
+const SELOS = [
+  { nome: 'Selo 1', imagem: selo1 },
+  { nome: 'Selo 2', imagem: selo2 },
+  { nome: 'Selo 3', imagem: selo3 },
+  { nome: 'Selo 4', imagem: selo4 },
+];
 
 function IconePilar({ id, className }) {
   if (id === 'missao') {
@@ -147,7 +158,7 @@ export default function Sobre() {
       </section>
 
       {/* 2. SEÇÃO HISTÓRIA (Ajustada com formas vetorizadas de alta definição e sem os pontos circulados) */}
-      <section id="historia" className="relative max-w-7xl mx-auto px-6 py-24 overflow-hidden">
+      <section id="historia" className="relative max-w-7xl mx-auto px-6 py-24 overflow-hidden bg-[#fcfbfb]">
         
         {/* Padrão de Pontos Decorativos (Mantido apenas o do Canto Inferior Esquerdo) */}
         <div className="absolute bottom-12 left-2 pointer-events-none opacity-40 hidden md:block">
@@ -238,15 +249,38 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
         </div>
       </section>
 
+            {/* SEÇÃO 3B: ESTEIRA DE SELOS */}
+      <div className="w-full bg-white mt-4 pb-3 border-b border-gray-100 shadow-inner">
+        <div className="w-full bg-[#000000] py-4 mb-3 flex justify-center items-center shadow-md">
+          <h2 className="text-white text-base md:text-xl font-black uppercase tracking-[0.2em] text-center px-4">
+            Selos de Confiança & Reconhecimento
+          </h2>
+        </div>
+        <div className="relative w-full overflow-hidden bg-white py-0">
+          <div className="flex w-max animate-marquee">
+            {SELOS.map((selo, i) => (
+              <div key={`selo-b-${i}`} className="flex-shrink-0 px-8 flex items-center justify-center" style={{ minWidth: '400px' }}>
+                <img src={selo.imagem} alt={selo.nome} className="h-28 md:h-34 w-auto object-contain transition-transform hover:scale-105 duration-400" />
+              </div>
+            ))}
+            {SELOS.map((selo, i) => (
+              <div key={`selo-b-dup-${i}`} className="flex-shrink-0 px-8 flex items-center justify-center" style={{ minWidth: '400px' }}>
+                <img src={selo.imagem} alt={selo.nome} className="h-28 md:h-34 w-auto object-contain transition-transform hover:scale-105 duration-400" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+
       {/* 2.4 SEÇÃO CREDIBILIDADE (ABED / Reclame Aqui) */}
       <section className="relative w-full bg-[#fcfbfb] overflow-hidden min-h-[360px] sm:min-h-[440px] md:min-h-[530px]">
-        {/* Imagem grande ancorada à direita, funcionando como fundo da seção — mantém a proporção
-            original (sem esticar/achatar) e pode entrar por trás do texto à esquerda. */}
+
         <img
           src={seloAbed}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none select-none absolute bottom-0 right-0 h-[320px] sm:h-[400px] md:h-[490px] w-auto max-w-none z-0"
+          className="pointer-events-none select-none absolute bottom-6 md:bottom-10 right-0 h-[320px] sm:h-[400px] md:h-[490px] w-auto max-w-none z-0"
         />
 
         <div className="max-w-7xl mx-auto px-6 pt-20 pb-20 md:pt-24 md:pb-28 relative z-10">
@@ -271,17 +305,7 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
       </section>
 
       {/* 2.5 SEÇÃO MISSÃO, VISÃO E VALORES */}
-      <section className="relative w-full overflow-hidden bg-[#fcfbfb]">
-        {/* Onda preta sobrepondo o fim da seção amarela */}
-        <svg
-          className="relative block w-full h-20 md:h-32 text-black"
-          viewBox="0 0 1440 100"
-          preserveAspectRatio="none"
-          fill="currentColor"
-        >
-          <path d="M0,22 C160,0 320,58 480,22 C640,0 800,58 960,22 C1120,0 1280,58 1440,22 L1440,100 L0,100 Z" />
-        </svg>
-
+      <section className="relative w-full bg-[#fcfbfb]">
         <div className="bg-black pt-8 pb-16 md:pt-20 md:pb-28">
           <div className="max-w-7xl mx-auto px-6 relative z-10">
             <h2 className="text-2xl md:text-4xl font-black text-white text-center mb-8 md:mb-10 tracking-tight -mt-4 md:-mt-8">

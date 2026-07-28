@@ -7,9 +7,8 @@ import LinhaDivisoriaEsteira from '../components/LinhaDivisoriaEsteira';
 import { obterUrlEmbedVideo } from '../utils/video';
 import { GRUPOS_HOME_CURSO, MAX_CURSOS_POR_GRUPO_HOME } from '../utils/gruposHomeCurso';
 
-// Desliga a seção "Cursos mais vendidos" sem apagar o código — troque para `true` pra reativar.
+
 const SECAO_CURSOS_MAIS_VENDIDOS_ATIVA = false;
-// Desliga a seção "Cursos em Destaque" sem apagar o código — troque para `true` pra reativar.
 const SECAO_CURSOS_DESTAQUE_ATIVA = false;
 
 function montarLinkWhatsapp(numero) {

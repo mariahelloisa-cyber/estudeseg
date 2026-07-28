@@ -160,7 +160,6 @@ export const listaCursosGiga = [
   { id: 159, titulo: "ADMINISTRAÇÃO PARA CONDOMÍNIOS EAD", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
   { id: 160, titulo: "ADMINISTRAÇÃO: TIPO DE LIDERANÇA EAD", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
   { id: 161, titulo: "ADOBE MUSE CC EAD", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
-  { id: 162, titulo: "AGROPECUÁRIA: GESTÃO EFICIENTE E SUSTENTÁVEL EAD", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
   { id: 163, titulo: "AJUSTES FINOS DO COMPUTADOR COM WINDOWS 7 E 8 EAD", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
   { id: 164, titulo: "ALEITAMENTO MATERNO EAD", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
   { id: 165, titulo: "ALEITAMENTO MATERNO: INICIANDO A AMAMENTAÇÃO EAD", categoriaNome: "Profissionalizantes premium", preco: 699, horas: "500h" },
