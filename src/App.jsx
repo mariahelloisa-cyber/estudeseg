@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 // Importação dos componentes globais
 import Footer from './components/Footer';
 import CarrinhoSidebar from './components/CarrinhoSidebar';
-import WhatsAppButton from './components/WhatsAppButton';
 import PopupAvisos from './components/PopupAvisos';
 
 // Importação das tuas páginas
@@ -52,7 +51,6 @@ function LayoutGlobal() {
 
       {/* O Footer, o carrinho e o WhatsApp só aparecem nas páginas públicas, não no login/admin */}
       {!paginaSemLayoutPublico && <Footer />}
-      {!paginaSemLayoutPublico && <WhatsAppButton />}
       {!paginaSemLayoutPublico && <PopupAvisos />}
     </>
   );
