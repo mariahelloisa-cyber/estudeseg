@@ -14,6 +14,7 @@ import fotoFacebook from '../assets/facebook.png';
 import fotoInstagram from '../assets/instagram.png';
 import fotoYoutube from '../assets/youtube.png';
 import fotoReclameAqui from '../assets/reclameaqui.png';
+import fotoGoogleMeuNegocio from '../assets/google-meu-negocio.png';
 
 const VIDEO_DRIVE_ID = '1PFZab6pHDCmfEseEQjoRVA8Rb1g1FE08';
 
@@ -24,7 +25,8 @@ const SELOS = [
   { nome: 'Selo 4', imagem: selo4 },
 ];
 
-const REDES_SOCIAIS = [
+// Fallback exibido enquanto a tabela `redes_sociais` do Supabase não responde/está vazia
+const REDES_SOCIAIS_PADRAO = [
   {
     nome: 'Facebook',
     imagem: fotoFacebook,
@@ -44,8 +46,26 @@ const REDES_SOCIAIS = [
     nome: 'Reclame Aqui',
     imagem: fotoReclameAqui,
     link: 'https://www.reclameaqui.com.br/empresa/estude-seguro-ltda/'
+  },
+  {
+    nome: 'Google Meu Negócio',
+    imagem: fotoGoogleMeuNegocio,
+    link: 'https://share.google/hnhzdmj3M9gNmODgZ'
   }
 ];
+
+// Foto local usada quando o admin ainda não subiu uma imagem própria pra essa rede
+const FOTO_PADRAO_POR_REDE = {
+  'facebook': fotoFacebook,
+  'instagram': fotoInstagram,
+  'youtube': fotoYoutube,
+  'reclame aqui': fotoReclameAqui,
+  'google meu negocio': fotoGoogleMeuNegocio,
+};
+
+function normalizarNomeRede(nome) {
+  return (nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
 
 // Fallback exibido enquanto a tabela `trajetoria` do Supabase não responde/está vazia
 const LINHA_DO_TEMPO_PADRAO = [
@@ -97,6 +117,31 @@ const LINHA_DO_TEMPO_PADRAO = [
 export default function Sobre() {
   const [videoReproduzindo, setVideoReproduzindo] = useState(false);
   const [linhaDoTempo, setLinhaDoTempo] = useState(LINHA_DO_TEMPO_PADRAO);
+  const [redesSociais, setRedesSociais] = useState(REDES_SOCIAIS_PADRAO);
+
+  useEffect(() => {
+    async function buscarRedesSociaisDoSupabase() {
+      try {
+        const { data, error } = await supabase
+          .from('redes_sociais')
+          .select('*')
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setRedesSociais(data.map((item) => ({
+            nome: item.nome,
+            link: item.link,
+            imagem: item.imagem_url || FOTO_PADRAO_POR_REDE[normalizarNomeRede(item.nome)] || null,
+          })));
+        }
+      } catch (err) {
+        console.error("Erro na conexão com as redes sociais do Supabase:", err);
+      }
+    }
+
+    buscarRedesSociaisDoSupabase();
+  }, []);
 
   useEffect(() => {
     async function buscarTrajetoriaDoSupabase() {
@@ -315,8 +360,8 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
             <h2 className="text-2xl md:text-4xl font-black text-white text-center mb-8 md:mb-10 tracking-tight -mt-4 md:-mt-8">
               Acompanhe a <span className="text-[#fed106]">Estude Seguro</span>
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {REDES_SOCIAIS.map((rede) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 md:gap-6">
+              {redesSociais.map((rede) => (
                 <a
                   key={rede.nome}
                   href={rede.link}
@@ -325,11 +370,17 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
                   className="group flex flex-col items-center gap-3"
                 >
                   <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-white shadow-lg border border-gray-100 transition-transform duration-300 group-hover:-translate-y-1">
-                    <img
-                      src={rede.imagem}
-                      alt={rede.nome}
-                      className="w-full h-full object-cover object-top"
-                    />
+                    {rede.imagem ? (
+                      <img
+                        src={rede.imagem}
+                        alt={rede.nome}
+                        className="w-full h-full object-cover object-top"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs font-bold uppercase text-center px-2">
+                        {rede.nome}
+                      </div>
+                    )}
                   </div>
                   <span className="text-white text-sm md:text-base font-black uppercase tracking-wide group-hover:text-[#fed106] transition-colors">
                     {rede.nome}

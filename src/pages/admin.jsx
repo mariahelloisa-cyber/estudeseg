@@ -23,6 +23,7 @@ import {
   ChatBubbleBottomCenterTextIcon,
   UserGroupIcon,
   ClockIcon,
+  ShareIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -58,6 +59,7 @@ const ITENS_MENU = [
   { id: 'frases', label: 'Frases (Esteira)', Icon: ChatBubbleBottomCenterTextIcon },
   { id: 'diferenciais', label: 'Diferenciais', Icon: SparklesIcon },
   { id: 'trajetoria', label: 'Trajetória (Sobre Nós)', Icon: ClockIcon },
+  { id: 'redes-sociais', label: 'Redes Sociais (Sobre Nós)', Icon: ShareIcon },
   { id: 'blog', label: 'Blog', Icon: NewspaperIcon },
   { id: 'vagas', label: 'Vagas', Icon: BriefcaseIcon },
   { id: 'faq', label: 'FAQ', Icon: QuestionMarkCircleIcon },
@@ -240,6 +242,14 @@ export default function Admin() {
   const [editCategoriaTrajetoria, setEditCategoriaTrajetoria] = useState("");
   const [editTituloTrajetoria, setEditTituloTrajetoria] = useState("");
   const [editDescricaoTrajetoria, setEditDescricaoTrajetoria] = useState("");
+
+  // --- Estados para as Redes Sociais (cards da página Sobre Nós) ---
+  const [listaRedesSociais, setListaRedesSociais] = useState([]);
+  const [novoNomeRedeSocial, setNovoNomeRedeSocial] = useState("");
+  const [novoLinkRedeSocial, setNovoLinkRedeSocial] = useState("");
+  const [redeSocialEditando, setRedeSocialEditando] = useState(null);
+  const [editNomeRedeSocial, setEditNomeRedeSocial] = useState("");
+  const [editLinkRedeSocial, setEditLinkRedeSocial] = useState("");
 
   const [novaNoticiaDestaque, setNovaNoticiaDestaque] = useState(false);
   const [novoTempoLeitura, setNovoTempoLeitura] = useState("");
@@ -848,6 +858,142 @@ export default function Admin() {
     } catch (err) {
       console.error(err);
       setMensagemStatus("❌ Não foi possível atualizar o marco da trajetória. Tente novamente.");
+    }
+  }
+
+  // --- REDES SOCIAIS (cards "Siga a Estude Seguro" da página Sobre Nós) ---
+  async function buscarRedesSociaisDoSupabase() {
+    try {
+      const { data, error } = await supabase
+        .from('redes_sociais')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setListaRedesSociais(data || []);
+    } catch (err) {
+      console.error("Erro na conexão com as redes sociais do Supabase:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarRedesSociaisDoSupabase();
+  }, []);
+
+  // Função para Adicionar uma Nova Rede Social
+  async function handleAdicionarRedeSocial(e) {
+    e.preventDefault();
+    const arquivoInput = document.getElementById('imagem-rede-social');
+    const arquivo = arquivoInput?.files[0];
+
+    if (!novoNomeRedeSocial.trim() || !novoLinkRedeSocial.trim()) {
+      setMensagemStatus("⚠️ Preencha o nome e o link da rede social!");
+      return;
+    }
+
+    try {
+      let urlImagem = null;
+      if (arquivo) {
+        validarImagem(arquivo);
+        const nomeArquivo = `rede-social-${sanitizarNomeArquivo(arquivo.name)}`;
+        const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+        urlImagem = urlData.publicUrl;
+      }
+
+      setMensagemStatus("⏳ Guardando rede social...");
+
+      const { error: insertError } = await supabase.from('redes_sociais').insert([
+        {
+          nome: novoNomeRedeSocial.trim(),
+          link: novoLinkRedeSocial.trim(),
+          imagem_url: urlImagem
+        }
+      ]);
+
+      if (insertError) throw insertError;
+
+      setMensagemStatus("✅ Rede social publicada com sucesso!");
+      setNovoNomeRedeSocial("");
+      setNovoLinkRedeSocial("");
+      if (arquivoInput) arquivoInput.value = "";
+      buscarRedesSociaisDoSupabase();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar a rede social. Tente novamente.");
+    }
+  }
+
+  // Função para Eliminar uma Rede Social
+  async function handleEliminarRedeSocial(id) {
+    if (!window.confirm("Tem a certeza que quer eliminar esta rede social?")) return;
+    try {
+      const { error } = await supabase.from('redes_sociais').delete().eq('id', id);
+      if (error) throw error;
+      buscarRedesSociaisDoSupabase();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível eliminar a rede social. Tente novamente.");
+    }
+  }
+
+  // Função para iniciar a Edição de uma Rede Social
+  function iniciarEdicaoRedeSocial(item) {
+    setRedeSocialEditando(item.id);
+    setEditNomeRedeSocial(item.nome);
+    setEditLinkRedeSocial(item.link);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelarEdicaoRedeSocial() {
+    setRedeSocialEditando(null);
+    setEditNomeRedeSocial("");
+    setEditLinkRedeSocial("");
+  }
+
+  // Função para Salvar a Edição de uma Rede Social
+  async function handleSalvarEdicaoRedeSocial(e) {
+    e.preventDefault();
+
+    if (!editNomeRedeSocial.trim() || !editLinkRedeSocial.trim()) {
+      setMensagemStatus("⚠️ Preencha o nome e o link da rede social!");
+      return;
+    }
+
+    try {
+      setMensagemStatus("⏳ Atualizando rede social...");
+      const arquivoInput = document.getElementById('imagem-rede-social-edit');
+      const arquivo = arquivoInput?.files[0];
+
+      const dadosAtualizados = {
+        nome: editNomeRedeSocial.trim(),
+        link: editLinkRedeSocial.trim(),
+      };
+
+      if (arquivo) {
+        validarImagem(arquivo);
+        const nomeArquivo = `rede-social-${sanitizarNomeArquivo(arquivo.name)}`;
+        const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+        dadosAtualizados.imagem_url = urlData.publicUrl;
+      }
+
+      const { error: updateError } = await supabase
+        .from('redes_sociais')
+        .update(dadosAtualizados)
+        .eq('id', redeSocialEditando);
+
+      if (updateError) throw updateError;
+
+      setMensagemStatus("✅ Rede social atualizada com sucesso!");
+      cancelarEdicaoRedeSocial();
+      if (arquivoInput) arquivoInput.value = "";
+      buscarRedesSociaisDoSupabase();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível atualizar a rede social. Tente novamente.");
     }
   }
 
@@ -2222,6 +2368,7 @@ export default function Admin() {
                 <CartaoAcaoRapida titulo="Gerenciar Frases" descricao="Frases da esteira animada da Home" Icon={ChatBubbleBottomCenterTextIcon} cor="bg-cyan-500" onClick={() => irParaAba('frases')} />
                 <CartaoAcaoRapida titulo="Gerenciar Diferenciais" descricao="Cards de diferenciais da Home" Icon={SparklesIcon} cor="bg-purple-500" onClick={() => irParaAba('diferenciais')} />
                 <CartaoAcaoRapida titulo="Gerenciar Trajetória" descricao="Linha do tempo da página Sobre Nós" Icon={ClockIcon} cor="bg-amber-500" onClick={() => irParaAba('trajetoria')} />
+                <CartaoAcaoRapida titulo="Gerenciar Redes Sociais" descricao="Cards 'Siga a Estude Seguro' da página Sobre Nós" Icon={ShareIcon} cor="bg-sky-500" onClick={() => irParaAba('redes-sociais')} />
                 <CartaoAcaoRapida titulo="Gerenciar Vagas" descricao="Publicar e remover vagas abertas" Icon={BriefcaseIcon} cor="bg-slate-600" onClick={() => irParaAba('vagas')} />
                 <CartaoAcaoRapida titulo="Gerenciar FAQ" descricao="Perguntas frequentes do site" Icon={QuestionMarkCircleIcon} cor="bg-orange-500" onClick={() => irParaAba('faq')} />
                 <CartaoAcaoRapida titulo="Gerenciar Depoimentos" descricao="Depoimentos em vídeo de alunos" Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" onClick={() => irParaAba('depoimentos')} />
@@ -3003,6 +3150,107 @@ export default function Admin() {
                             </button>
                             <button
                               onClick={() => handleEliminarTrajetoria(item.id)}
+                              className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= REDES SOCIAIS (SOBRE NÓS) ================= */}
+          {abaAtiva === 'redes-sociais' && (
+            <>
+              <CabecalhoPagina titulo="Gerenciar Redes Sociais" subtitulo="Cards 'Siga a Estude Seguro' exibidos na página Sobre Nós" Icon={ShareIcon} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
+                      {redeSocialEditando ? "✏️ Editar Rede Social" : "📝 Nova Rede Social"}
+                    </h3>
+                    {redeSocialEditando && (
+                      <button
+                        type="button"
+                        onClick={cancelarEdicaoRedeSocial}
+                        className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+
+                  <form onSubmit={redeSocialEditando ? handleSalvarEdicaoRedeSocial : handleAdicionarRedeSocial} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nome</label>
+                      <input
+                        type="text"
+                        value={redeSocialEditando ? editNomeRedeSocial : novoNomeRedeSocial}
+                        onChange={(e) => redeSocialEditando ? setEditNomeRedeSocial(e.target.value) : setNovoNomeRedeSocial(e.target.value)}
+                        placeholder="Ex: Facebook"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Link</label>
+                      <input
+                        type="text"
+                        value={redeSocialEditando ? editLinkRedeSocial : novoLinkRedeSocial}
+                        onChange={(e) => redeSocialEditando ? setEditLinkRedeSocial(e.target.value) : setNovoLinkRedeSocial(e.target.value)}
+                        placeholder="Ex: https://www.facebook.com/suapagina"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                        {redeSocialEditando ? "Nova Imagem (Opcional)" : "Imagem (Opcional)"}
+                      </label>
+                      <input
+                        type="file"
+                        id={redeSocialEditando ? "imagem-rede-social-edit" : "imagem-rede-social"}
+                        accept="image/*"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+                      />
+                    </div>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
+                      {redeSocialEditando ? "💾 Salvar Alterações" : "➕ Publicar Rede Social"}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Redes Sociais Ativas ({listaRedesSociais.length})</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {listaRedesSociais.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">Nenhuma rede social cadastrada ainda.</p>
+                    ) : (
+                      listaRedesSociais.map((item) => (
+                        <div key={item.id} className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden relative shadow-sm flex items-center p-3 gap-4">
+                          {item.imagem_url ? (
+                            <img src={item.imagem_url} alt="" className="w-16 h-16 object-cover rounded-lg bg-gray-200 shrink-0" />
+                          ) : (
+                            <div className="w-16 h-16 rounded-lg bg-gray-200 shrink-0 flex items-center justify-center text-gray-400">
+                              <ShareIcon className="w-7 h-7" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0 text-left">
+                            <p className="text-sm font-black text-gray-800 truncate">{item.nome}</p>
+                            <p className="text-xs text-gray-500 truncate">{item.link}</p>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <button
+                              onClick={() => iniciarEdicaoRedeSocial(item)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleEliminarRedeSocial(item.id)}
                               className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
                             >
                               ✕
