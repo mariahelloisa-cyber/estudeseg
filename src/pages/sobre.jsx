@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ShieldCheckIcon } from '@heroicons/react/24/solid';
 import Navbar from '../components/Navbar';
+import { supabase } from '../supabaseClient';
 import imagemInstitucional from '../assets/capa-video.png';
 import fundoHero from '../assets/fundoo.png';
 import selo1 from '../assets/selo1.png';
@@ -8,10 +9,11 @@ import selo2 from '../assets/selo2.png';
 import selo3 from '../assets/selo3.png';
 import selo4 from '../assets/selo4.png';
 import selo6 from '../assets/selo6.png';
-import fotoMissao from '../assets/pilar-missao.jpg';
-import fotoVisao from '../assets/pilar-visao.png';
-import fotoValores from '../assets/pilar-valores.jpg';
 import seloAbed from '../assets/abed.png';
+import fotoFacebook from '../assets/facebook.png';
+import fotoInstagram from '../assets/instagram.png';
+import fotoYoutube from '../assets/youtube.png';
+import fotoReclameAqui from '../assets/reclameaqui.png';
 
 const VIDEO_DRIVE_ID = '1PFZab6pHDCmfEseEQjoRVA8Rb1g1FE08';
 
@@ -22,59 +24,31 @@ const SELOS = [
   { nome: 'Selo 4', imagem: selo4 },
 ];
 
-function IconePilar({ id, className }) {
-  if (id === 'missao') {
-    return (
-      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="9" />
-        <circle cx="12" cy="12" r="5" />
-        <circle cx="12" cy="12" r="1" fill="currentColor" />
-      </svg>
-    );
-  }
-  if (id === 'visao') {
-    return (
-      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="9" />
-        <path strokeLinecap="round" d="M3 12h18M12 3c2.5 2.5 3.5 5.5 3.5 9s-1 6.5-3.5 9c-2.5-2.5-3.5-5.5-3.5-9s1-6.5 3.5-9z" />
-      </svg>
-    );
-  }
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
-    </svg>
-  );
-}
-
-const PILARES = [
+const REDES_SOCIAIS = [
   {
-    id: 'missao',
-    titulo: 'Missão',
-    texto: 'Garantir ao aluno a segurança total de estudar e pagar apenas por cursos verdadeiramente reconhecidos, enquanto fortalece a credibilidade das instituições sérias e comprometidas.',
-    imagem: fotoMissao
+    nome: 'Facebook',
+    imagem: fotoFacebook,
+    link: 'https://www.facebook.com/estudeseguro.oficial/'
   },
   {
-    id: 'visao',
-    titulo: 'Visão',
-    texto: 'Ser o maior marketplace de cursos seguros do Brasil até 2028, tornando-se sinônimo de confiança e referência no setor educacional digital.',
-    imagem: fotoVisao
+    nome: 'Instagram',
+    imagem: fotoInstagram,
+    link: 'https://www.instagram.com/estudeseguroead/'
   },
   {
-    id: 'valores',
-    titulo: 'Valores',
-    texto: 'Estude Seguro se posiciona como "o Mercado Pago da Educação", com garantia e confiança para ambas as partes.',
-    imagem: fotoValores
+    nome: 'YouTube',
+    imagem: fotoYoutube,
+    link: 'https://www.youtube.com/@EstudeSeguro'
+  },
+  {
+    nome: 'Reclame Aqui',
+    imagem: fotoReclameAqui,
+    link: 'https://www.reclameaqui.com.br/empresa/estude-seguro-ltda/'
   }
 ];
 
-export default function Sobre() {
-  const [videoReproduzindo, setVideoReproduzindo] = useState(false);
-  const [pilarEmFoco, setPilarEmFoco] = useState(null);
-
-  // Array completo com os 6 cards configurados
-  const linhaDoTempo = [
+// Fallback exibido enquanto a tabela `trajetoria` do Supabase não responde/está vazia
+const LINHA_DO_TEMPO_PADRAO = [
     {
       ano: '2020 - 2021',
       categoria: 'IDEALIZAÇÃO',
@@ -119,6 +93,36 @@ export default function Sobre() {
       imagem: selo6
     }
   ];
+
+export default function Sobre() {
+  const [videoReproduzindo, setVideoReproduzindo] = useState(false);
+  const [linhaDoTempo, setLinhaDoTempo] = useState(LINHA_DO_TEMPO_PADRAO);
+
+  useEffect(() => {
+    async function buscarTrajetoriaDoSupabase() {
+      try {
+        const { data, error } = await supabase
+          .from('trajetoria')
+          .select('*')
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setLinhaDoTempo(data.map((item) => ({
+            ano: item.ano,
+            categoria: item.categoria,
+            titulo: item.titulo,
+            descricao: item.descricao,
+            imagem: item.imagem_url || selo6,
+          })));
+        }
+      } catch (err) {
+        console.error("Erro na conexão com a trajetória do Supabase:", err);
+      }
+    }
+
+    buscarTrajetoriaDoSupabase();
+  }, []);
 
   return (
     <>
@@ -304,61 +308,36 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
         </div>
       </section>
 
-      {/* 2.5 SEÇÃO MISSÃO, VISÃO E VALORES */}
+      {/* 2.5 SEÇÃO REDES SOCIAIS */}
       <section className="relative w-full bg-[#fcfbfb]">
         <div className="bg-black pt-8 pb-16 md:pt-20 md:pb-28">
           <div className="max-w-7xl mx-auto px-6 relative z-10">
             <h2 className="text-2xl md:text-4xl font-black text-white text-center mb-8 md:mb-10 tracking-tight -mt-4 md:-mt-8">
-              Fundamentos da <span className="text-[#fed106]">Estude Seguro</span>
+              Acompanhe a <span className="text-[#fed106]">Estude Seguro</span>
             </h2>
-            <div className="flex flex-col md:flex-row gap-4 h-auto md:h-[440px]">
-            {PILARES.map((pilar) => {
-              const emFoco = pilarEmFoco === pilar.id;
-
-              return (
-                <div
-                  key={pilar.id}
-                  onMouseEnter={() => setPilarEmFoco(pilar.id)}
-                  onMouseLeave={() => setPilarEmFoco(null)}
-                  onClick={() => setPilarEmFoco((atual) => (atual === pilar.id ? null : pilar.id))}
-                  className={`relative rounded-2xl overflow-hidden cursor-pointer border transition-none md:transition-all md:duration-500 md:ease-in-out min-h-[220px] md:min-h-0 ${
-                    emFoco
-                      ? 'md:flex-[1.6] border-transparent'
-                      : `md:flex-1 bg-white border-gray-100 ${pilarEmFoco ? 'md:opacity-50' : ''}`
-                  }`}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {REDES_SOCIAIS.map((rede) => (
+                <a
+                  key={rede.nome}
+                  href={rede.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group flex flex-col items-center gap-3"
                 >
-                  {emFoco && (
-                    <div
-                      style={pilar.imagem ? { backgroundImage: `url(${pilar.imagem})` } : undefined}
-                      className="absolute inset-0 bg-cover bg-center bg-gradient-to-br from-black to-[#3a2f00]"
+                  <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-white shadow-lg border border-gray-100 transition-transform duration-300 group-hover:-translate-y-1">
+                    <img
+                      src={rede.imagem}
+                      alt={rede.nome}
+                      className="w-full h-full object-cover object-top"
                     />
-                  )}
-                  {emFoco ? (
-                    <div className="absolute inset-0 flex flex-col justify-end items-start text-left p-6 md:p-8">
-                      <IconePilar id={pilar.id} className="relative z-10 w-12 h-12 text-[#fed106] -mb-12" />
-                      <div className="relative -left-6 -right-6 -bottom-6 md:-left-8 md:-right-8 md:-bottom-8 w-[calc(100%+3rem)] md:w-[calc(100%+4rem)] pt-6 px-6 pb-6 md:px-8 md:pb-8">
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
-                        <span className="relative text-white text-2xl md:text-3xl font-black tracking-tight uppercase drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
-                          {pilar.titulo}
-                        </span>
-                        <p className="relative mt-2 text-white text-sm md:text-base font-bold leading-relaxed w-full max-w-[300px] md:max-w-[400px] transition-none drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
-                          {pilar.texto}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                      <IconePilar id={pilar.id} className="w-9 h-9 text-[#fed106]" />
-                      <span className="text-gray-800 text-xl md:text-2xl font-black tracking-tight uppercase">
-                        {pilar.titulo}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                  </div>
+                  <span className="text-white text-sm md:text-base font-black uppercase tracking-wide group-hover:text-[#fed106] transition-colors">
+                    {rede.nome}
+                  </span>
+                </a>
+              ))}
+            </div>
           </div>
-        </div>
         </div>
       </section>
       <br></br>

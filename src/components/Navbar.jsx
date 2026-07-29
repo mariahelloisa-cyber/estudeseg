@@ -71,13 +71,19 @@ export default function Navbar() {
 
             {/* Botão Matricule-se + Botão Fale Conosco + Ícone do Carrinho */}
             <div className="flex items-center gap-2 sm:gap-4">
-              <Link to="/matricula" className="hidden sm:inline-block bg-[#000000] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#fed106] hover:text-black transition-all shadow-sm whitespace-nowrap">
-                Matricule-se
-              </Link>
+              <div className="hidden sm:flex flex-col items-center gap-1 -translate-y-1">
+                <span className="text-[11px] text-gray-400 font-medium">Já é aluno?</span>
+                <a href={`https://wa.me/5511995987197?text=${encodeURIComponent('Olá! Vim pelo site e gostaria de falar com a ouvidoria.')}`} target="_blank" rel="noreferrer" className="inline-block bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#fed106] transition-all shadow-sm whitespace-nowrap">
+                  Fale com a ouvidoria
+                </a>
+              </div>
 
-              <a href={`https://wa.me/5511995987197?text=${encodeURIComponent('Olá! Vim pelo site e gostaria de falar com um consultor da Estude Seguro.')}`} target="_blank" rel="noreferrer" className="hidden sm:inline-block bg-[#fed106] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#000000] transition-all shadow-sm whitespace-nowrap">
-                Fale Conosco
-              </a>
+              <div className="hidden sm:flex flex-col items-center gap-1 -translate-y-1">
+                <span className="text-[11px] text-gray-400 font-medium">Quer ser aluno?</span>
+                <a href={`https://wa.me/5511995987197?text=${encodeURIComponent('Olá! Vim pelo site e gostaria de falar com um consultor da Estude Seguro.')}`} target="_blank" rel="noreferrer" className="inline-block bg-[#fed106] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#000000] transition-all shadow-sm whitespace-nowrap">
+                  Fale Conosco
+                </a>
+              </div>
 
               {/* ÍCONE DO CARRINHO */}
               <button

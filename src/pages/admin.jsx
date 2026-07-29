@@ -22,6 +22,7 @@ import {
   ArrowTopRightOnSquareIcon,
   ChatBubbleBottomCenterTextIcon,
   UserGroupIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -56,6 +57,7 @@ const ITENS_MENU = [
   { id: 'selos', label: 'Selos', Icon: ShieldCheckIcon },
   { id: 'frases', label: 'Frases (Esteira)', Icon: ChatBubbleBottomCenterTextIcon },
   { id: 'diferenciais', label: 'Diferenciais', Icon: SparklesIcon },
+  { id: 'trajetoria', label: 'Trajetória (Sobre Nós)', Icon: ClockIcon },
   { id: 'blog', label: 'Blog', Icon: NewspaperIcon },
   { id: 'vagas', label: 'Vagas', Icon: BriefcaseIcon },
   { id: 'faq', label: 'FAQ', Icon: QuestionMarkCircleIcon },
@@ -226,6 +228,19 @@ export default function Admin() {
   const [novoWhatsapp, setNovoWhatsapp] = useState("");
   const [novoNomeSelo, setNovoNomeSelo] = useState("");
   const [novoTituloDiferencial, setNovoTituloDiferencial] = useState("");
+
+  // --- Estados para a Trajetória (linha do tempo da página Sobre Nós) ---
+  const [listaTrajetoria, setListaTrajetoria] = useState([]);
+  const [novoAnoTrajetoria, setNovoAnoTrajetoria] = useState("");
+  const [novaCategoriaTrajetoria, setNovaCategoriaTrajetoria] = useState("");
+  const [novoTituloTrajetoria, setNovoTituloTrajetoria] = useState("");
+  const [novaDescricaoTrajetoria, setNovaDescricaoTrajetoria] = useState("");
+  const [trajetoriaEditando, setTrajetoriaEditando] = useState(null);
+  const [editAnoTrajetoria, setEditAnoTrajetoria] = useState("");
+  const [editCategoriaTrajetoria, setEditCategoriaTrajetoria] = useState("");
+  const [editTituloTrajetoria, setEditTituloTrajetoria] = useState("");
+  const [editDescricaoTrajetoria, setEditDescricaoTrajetoria] = useState("");
+
   const [novaNoticiaDestaque, setNovaNoticiaDestaque] = useState(false);
   const [novoTempoLeitura, setNovoTempoLeitura] = useState("");
 
@@ -687,6 +702,152 @@ export default function Admin() {
     } catch (err) {
       console.error(err);
       alert("❌ Não foi possível eliminar o diferencial. Tente novamente.");
+    }
+  }
+
+  // --- TRAJETÓRIA (linha do tempo da página Sobre Nós) ---
+  async function buscarTrajetoriaDoSupabase() {
+    try {
+      const { data, error } = await supabase
+        .from('trajetoria')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setListaTrajetoria(data || []);
+    } catch (err) {
+      console.error("Erro na conexão com a trajetória do Supabase:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarTrajetoriaDoSupabase();
+  }, []);
+
+  // Função para Adicionar um Novo Marco da Trajetória
+  async function handleAdicionarTrajetoria(e) {
+    e.preventDefault();
+    const arquivoInput = document.getElementById('imagem-trajetoria');
+    const arquivo = arquivoInput?.files[0];
+
+    if (!novoAnoTrajetoria.trim() || !novaCategoriaTrajetoria.trim() || !novoTituloTrajetoria.trim() || !novaDescricaoTrajetoria.trim()) {
+      setMensagemStatus("⚠️ Preencha o ano, a categoria, o título e a descrição!");
+      return;
+    }
+
+    try {
+      let urlImagem = null;
+      if (arquivo) {
+        validarImagem(arquivo);
+        const nomeArquivo = `trajetoria-${sanitizarNomeArquivo(arquivo.name)}`;
+        const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+        urlImagem = urlData.publicUrl;
+      }
+
+      setMensagemStatus("⏳ Guardando marco da trajetória...");
+
+      const { error: insertError } = await supabase.from('trajetoria').insert([
+        {
+          ano: novoAnoTrajetoria.trim(),
+          categoria: novaCategoriaTrajetoria.trim(),
+          titulo: novoTituloTrajetoria.trim(),
+          descricao: novaDescricaoTrajetoria.trim(),
+          imagem_url: urlImagem
+        }
+      ]);
+
+      if (insertError) throw insertError;
+
+      setMensagemStatus("✅ Marco da trajetória publicado com sucesso!");
+      setNovoAnoTrajetoria("");
+      setNovaCategoriaTrajetoria("");
+      setNovoTituloTrajetoria("");
+      setNovaDescricaoTrajetoria("");
+      if (arquivoInput) arquivoInput.value = "";
+      buscarTrajetoriaDoSupabase();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar o marco da trajetória. Tente novamente.");
+    }
+  }
+
+  // Função para Eliminar um Marco da Trajetória
+  async function handleEliminarTrajetoria(id) {
+    if (!window.confirm("Tem a certeza que quer eliminar este marco da trajetória?")) return;
+    try {
+      const { error } = await supabase.from('trajetoria').delete().eq('id', id);
+      if (error) throw error;
+      buscarTrajetoriaDoSupabase();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível eliminar o marco da trajetória. Tente novamente.");
+    }
+  }
+
+  // Função para iniciar a Edição de um Marco da Trajetória
+  function iniciarEdicaoTrajetoria(item) {
+    setTrajetoriaEditando(item.id);
+    setEditAnoTrajetoria(item.ano);
+    setEditCategoriaTrajetoria(item.categoria);
+    setEditTituloTrajetoria(item.titulo);
+    setEditDescricaoTrajetoria(item.descricao);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelarEdicaoTrajetoria() {
+    setTrajetoriaEditando(null);
+    setEditAnoTrajetoria("");
+    setEditCategoriaTrajetoria("");
+    setEditTituloTrajetoria("");
+    setEditDescricaoTrajetoria("");
+  }
+
+  // Função para Salvar a Edição de um Marco da Trajetória
+  async function handleSalvarEdicaoTrajetoria(e) {
+    e.preventDefault();
+
+    if (!editAnoTrajetoria.trim() || !editCategoriaTrajetoria.trim() || !editTituloTrajetoria.trim() || !editDescricaoTrajetoria.trim()) {
+      setMensagemStatus("⚠️ Preencha o ano, a categoria, o título e a descrição!");
+      return;
+    }
+
+    try {
+      setMensagemStatus("⏳ Atualizando marco da trajetória...");
+      const arquivoInput = document.getElementById('imagem-trajetoria-edit');
+      const arquivo = arquivoInput?.files[0];
+
+      const dadosAtualizados = {
+        ano: editAnoTrajetoria.trim(),
+        categoria: editCategoriaTrajetoria.trim(),
+        titulo: editTituloTrajetoria.trim(),
+        descricao: editDescricaoTrajetoria.trim(),
+      };
+
+      if (arquivo) {
+        validarImagem(arquivo);
+        const nomeArquivo = `trajetoria-${sanitizarNomeArquivo(arquivo.name)}`;
+        const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+        dadosAtualizados.imagem_url = urlData.publicUrl;
+      }
+
+      const { error: updateError } = await supabase
+        .from('trajetoria')
+        .update(dadosAtualizados)
+        .eq('id', trajetoriaEditando);
+
+      if (updateError) throw updateError;
+
+      setMensagemStatus("✅ Marco da trajetória atualizado com sucesso!");
+      cancelarEdicaoTrajetoria();
+      if (arquivoInput) arquivoInput.value = "";
+      buscarTrajetoriaDoSupabase();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível atualizar o marco da trajetória. Tente novamente.");
     }
   }
 
@@ -2060,6 +2221,7 @@ export default function Admin() {
                 <CartaoAcaoRapida titulo="Gerenciar Selos" descricao="Selos de confiança e reconhecimento" Icon={ShieldCheckIcon} cor="bg-blue-500" onClick={() => irParaAba('selos')} />
                 <CartaoAcaoRapida titulo="Gerenciar Frases" descricao="Frases da esteira animada da Home" Icon={ChatBubbleBottomCenterTextIcon} cor="bg-cyan-500" onClick={() => irParaAba('frases')} />
                 <CartaoAcaoRapida titulo="Gerenciar Diferenciais" descricao="Cards de diferenciais da Home" Icon={SparklesIcon} cor="bg-purple-500" onClick={() => irParaAba('diferenciais')} />
+                <CartaoAcaoRapida titulo="Gerenciar Trajetória" descricao="Linha do tempo da página Sobre Nós" Icon={ClockIcon} cor="bg-amber-500" onClick={() => irParaAba('trajetoria')} />
                 <CartaoAcaoRapida titulo="Gerenciar Vagas" descricao="Publicar e remover vagas abertas" Icon={BriefcaseIcon} cor="bg-slate-600" onClick={() => irParaAba('vagas')} />
                 <CartaoAcaoRapida titulo="Gerenciar FAQ" descricao="Perguntas frequentes do site" Icon={QuestionMarkCircleIcon} cor="bg-orange-500" onClick={() => irParaAba('faq')} />
                 <CartaoAcaoRapida titulo="Gerenciar Depoimentos" descricao="Depoimentos em vídeo de alunos" Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" onClick={() => irParaAba('depoimentos')} />
@@ -2724,6 +2886,131 @@ export default function Admin() {
                         </button>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= TRAJETÓRIA (SOBRE NÓS) ================= */}
+          {abaAtiva === 'trajetoria' && (
+            <>
+              <CabecalhoPagina titulo="Gerenciar Trajetória" subtitulo="Linha do tempo exibida na página Sobre Nós" Icon={ClockIcon} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
+                      {trajetoriaEditando ? "✏️ Editar Marco" : "📝 Novo Marco"}
+                    </h3>
+                    {trajetoriaEditando && (
+                      <button
+                        type="button"
+                        onClick={cancelarEdicaoTrajetoria}
+                        className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
+
+                  <form onSubmit={trajetoriaEditando ? handleSalvarEdicaoTrajetoria : handleAdicionarTrajetoria} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Ano / Período</label>
+                      <input
+                        type="text"
+                        value={trajetoriaEditando ? editAnoTrajetoria : novoAnoTrajetoria}
+                        onChange={(e) => trajetoriaEditando ? setEditAnoTrajetoria(e.target.value) : setNovoAnoTrajetoria(e.target.value)}
+                        placeholder="Ex: 2025 - 2026"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Categoria</label>
+                      <input
+                        type="text"
+                        value={trajetoriaEditando ? editCategoriaTrajetoria : novaCategoriaTrajetoria}
+                        onChange={(e) => trajetoriaEditando ? setEditCategoriaTrajetoria(e.target.value) : setNovaCategoriaTrajetoria(e.target.value)}
+                        placeholder="Ex: EXPANSÃO"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Título</label>
+                      <input
+                        type="text"
+                        value={trajetoriaEditando ? editTituloTrajetoria : novoTituloTrajetoria}
+                        onChange={(e) => trajetoriaEditando ? setEditTituloTrajetoria(e.target.value) : setNovoTituloTrajetoria(e.target.value)}
+                        placeholder="Ex: Crescimento Exponencial"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Descrição</label>
+                      <textarea
+                        rows="4"
+                        value={trajetoriaEditando ? editDescricaoTrajetoria : novaDescricaoTrajetoria}
+                        onChange={(e) => trajetoriaEditando ? setEditDescricaoTrajetoria(e.target.value) : setNovaDescricaoTrajetoria(e.target.value)}
+                        placeholder="Descreva esse marco da trajetória..."
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                        {trajetoriaEditando ? "Nova Imagem (Opcional)" : "Imagem (Opcional)"}
+                      </label>
+                      <input
+                        type="file"
+                        id={trajetoriaEditando ? "imagem-trajetoria-edit" : "imagem-trajetoria"}
+                        accept="image/*"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+                      />
+                    </div>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
+                      {trajetoriaEditando ? "💾 Salvar Alterações" : "➕ Publicar Marco"}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Linha do Tempo ({listaTrajetoria.length})</h3>
+                  <div className="space-y-3 max-h-[36rem] overflow-y-auto">
+                    {listaTrajetoria.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">Nenhum marco cadastrado ainda.</p>
+                    ) : (
+                      listaTrajetoria.map((item) => (
+                        <div key={item.id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex items-start gap-4 relative shadow-sm">
+                          {item.imagem_url ? (
+                            <img src={item.imagem_url} alt="" className="w-20 h-20 object-cover rounded-lg bg-gray-200 shrink-0" />
+                          ) : (
+                            <div className="w-20 h-20 rounded-lg bg-gray-200 shrink-0 flex items-center justify-center text-gray-400">
+                              <ClockIcon className="w-8 h-8" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0 text-left">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="bg-[#fed106] text-white font-extrabold py-0.5 px-2.5 rounded-full text-[10px] tracking-wide">{item.ano}</span>
+                              <span className="text-[#8a6d00] font-black text-[10px] tracking-wider uppercase">{item.categoria}</span>
+                            </div>
+                            <p className="text-sm font-bold text-gray-800 truncate">{item.titulo}</p>
+                            <p className="text-xs text-gray-500 line-clamp-2">{item.descricao}</p>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <button
+                              onClick={() => iniciarEdicaoTrajetoria(item)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleEliminarTrajetoria(item.id)}
+                              className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
