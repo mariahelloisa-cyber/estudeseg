@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import Footer from './components/Footer';
 import CarrinhoSidebar from './components/CarrinhoSidebar';
 import PopupAvisos from './components/PopupAvisos';
+import ChatWidget from './components/ChatWidget';
 
 // Importação das tuas páginas
 import Inicio from './pages/Inicio';
@@ -52,6 +53,7 @@ function LayoutGlobal() {
       {/* O Footer, o carrinho e o WhatsApp só aparecem nas páginas públicas, não no login/admin */}
       {!paginaSemLayoutPublico && <Footer />}
       {!paginaSemLayoutPublico && <PopupAvisos />}
+      {!paginaSemLayoutPublico && <ChatWidget />}
     </>
   );
 }

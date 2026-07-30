@@ -14,7 +14,7 @@ export default {
         }
       },
       animation: {
-       
+
       },
       keyframes: {
         marquee: {

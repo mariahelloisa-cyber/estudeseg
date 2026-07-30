@@ -53,3 +53,19 @@ html {
 .animate-fade-in-up {
   animation: fadeInUp 0.7s ease-out both;
 }
+
+
+@keyframes segurinhoPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.35), 0 0 0 0 rgba(254, 209, 6, 0.4);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.35), 0 0 14px 6px rgba(254, 209, 6, 0.28);
+  }
+}
+
+.animate-segurinho-pulse {
+  animation: segurinhoPulse 2.4s ease-in-out infinite;
+}

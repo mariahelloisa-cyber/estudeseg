@@ -24,6 +24,7 @@ import {
   UserGroupIcon,
   ClockIcon,
   ShareIcon,
+  CpuChipIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -60,6 +61,7 @@ const ITENS_MENU = [
   { id: 'diferenciais', label: 'Diferenciais', Icon: SparklesIcon },
   { id: 'trajetoria', label: 'Trajetória (Sobre Nós)', Icon: ClockIcon },
   { id: 'redes-sociais', label: 'Redes Sociais (Sobre Nós)', Icon: ShareIcon },
+  { id: 'assistente-ia', label: 'Assistente Virtual (IA)', Icon: CpuChipIcon },
   { id: 'blog', label: 'Blog', Icon: NewspaperIcon },
   { id: 'vagas', label: 'Vagas', Icon: BriefcaseIcon },
   { id: 'faq', label: 'FAQ', Icon: QuestionMarkCircleIcon },
@@ -250,6 +252,15 @@ export default function Admin() {
   const [redeSocialEditando, setRedeSocialEditando] = useState(null);
   const [editNomeRedeSocial, setEditNomeRedeSocial] = useState("");
   const [editLinkRedeSocial, setEditLinkRedeSocial] = useState("");
+
+  // --- Estados para o Assistente Virtual (IA) do site ---
+  const [iaAtivo, setIaAtivo] = useState(true);
+  const [iaMensagemInicial, setIaMensagemInicial] = useState("");
+  const [iaTextoApresentacao, setIaTextoApresentacao] = useState("");
+  const [iaSugestoesTexto, setIaSugestoesTexto] = useState("");
+  const [iaTotalPerguntas, setIaTotalPerguntas] = useState(0);
+  const [iaTotalConversas, setIaTotalConversas] = useState(0);
+  const [iaPerguntasFrequentes, setIaPerguntasFrequentes] = useState([]);
 
   const [novaNoticiaDestaque, setNovaNoticiaDestaque] = useState(false);
   const [novoTempoLeitura, setNovoTempoLeitura] = useState("");
@@ -994,6 +1005,101 @@ export default function Admin() {
     } catch (err) {
       console.error(err);
       setMensagemStatus("❌ Não foi possível atualizar a rede social. Tente novamente.");
+    }
+  }
+
+  // --- ASSISTENTE VIRTUAL (IA) — configurações ficam na tabela "configuracoes", reaproveitada ---
+  async function buscarConfiguracaoIA() {
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('chave, valor')
+        .in('chave', ['ia_agente_ativo', 'ia_mensagem_inicial', 'ia_texto_apresentacao', 'ia_sugestoes']);
+      if (error) throw error;
+
+      const mapa = Object.fromEntries((data || []).map((item) => [item.chave, item.valor]));
+      setIaAtivo(mapa.ia_agente_ativo !== 'false');
+      setIaMensagemInicial(mapa.ia_mensagem_inicial || "");
+      setIaTextoApresentacao(mapa.ia_texto_apresentacao || "");
+      try {
+        setIaSugestoesTexto((JSON.parse(mapa.ia_sugestoes || '[]')).join('\n'));
+      } catch {
+        setIaSugestoesTexto("");
+      }
+    } catch (err) {
+      console.error("Erro ao buscar configuração do assistente virtual:", err);
+    }
+  }
+
+  // Estatísticas simples de uso (sem dados pessoais do visitante) — ver tabela "ia_mensagens".
+  async function buscarEstatisticasIA() {
+    try {
+      const { count } = await supabase.from('ia_mensagens').select('id', { count: 'exact', head: true });
+      setIaTotalPerguntas(count || 0);
+
+      // Para manter simples, o total de conversas e o ranking de perguntas usam uma amostra
+      // das últimas 500 mensagens (mais que suficiente para o volume esperado do site).
+      const { data: recentes, error } = await supabase
+        .from('ia_mensagens')
+        .select('sessao_id, pergunta')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+
+      const linhas = recentes || [];
+      setIaTotalConversas(new Set(linhas.map((l) => l.sessao_id)).size);
+
+      const contagem = {};
+      linhas.forEach((l) => {
+        const chave = l.pergunta.trim();
+        if (chave) contagem[chave] = (contagem[chave] || 0) + 1;
+      });
+      setIaPerguntasFrequentes(
+        Object.entries(contagem)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8)
+          .map(([pergunta, quantidade]) => ({ pergunta, quantidade }))
+      );
+    } catch (err) {
+      console.error("Erro ao buscar estatísticas do assistente virtual:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarConfiguracaoIA();
+    buscarEstatisticasIA();
+  }, []);
+
+  async function handleSalvarConfiguracaoIA(e) {
+    e.preventDefault();
+    if (!iaMensagemInicial.trim() || !iaTextoApresentacao.trim()) {
+      setMensagemStatus("⚠️ Preencha a mensagem inicial e o texto de apresentação!");
+      return;
+    }
+
+    try {
+      setMensagemStatus("⏳ Salvando configurações do assistente virtual...");
+      const sugestoes = iaSugestoesTexto
+        .split('\n')
+        .map((linha) => linha.trim())
+        .filter(Boolean)
+        .slice(0, 6);
+
+      const { error } = await supabase.from('configuracoes').upsert(
+        [
+          { chave: 'ia_agente_ativo', valor: iaAtivo ? 'true' : 'false' },
+          { chave: 'ia_mensagem_inicial', valor: iaMensagemInicial.trim() },
+          { chave: 'ia_texto_apresentacao', valor: iaTextoApresentacao.trim() },
+          { chave: 'ia_sugestoes', valor: JSON.stringify(sugestoes) },
+        ],
+        { onConflict: 'chave' }
+      );
+      if (error) throw error;
+
+      setMensagemStatus("✅ Configurações do assistente virtual atualizadas com sucesso!");
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar as configurações do assistente virtual. Tente novamente.");
     }
   }
 
@@ -2369,6 +2475,7 @@ export default function Admin() {
                 <CartaoAcaoRapida titulo="Gerenciar Diferenciais" descricao="Cards de diferenciais da Home" Icon={SparklesIcon} cor="bg-purple-500" onClick={() => irParaAba('diferenciais')} />
                 <CartaoAcaoRapida titulo="Gerenciar Trajetória" descricao="Linha do tempo da página Sobre Nós" Icon={ClockIcon} cor="bg-amber-500" onClick={() => irParaAba('trajetoria')} />
                 <CartaoAcaoRapida titulo="Gerenciar Redes Sociais" descricao="Cards 'Siga a Estude Seguro' da página Sobre Nós" Icon={ShareIcon} cor="bg-sky-500" onClick={() => irParaAba('redes-sociais')} />
+                <CartaoAcaoRapida titulo="Assistente Virtual (IA)" descricao="Mensagens, sugestões e estatísticas do chat do site" Icon={CpuChipIcon} cor="bg-fuchsia-600" onClick={() => irParaAba('assistente-ia')} />
                 <CartaoAcaoRapida titulo="Gerenciar Vagas" descricao="Publicar e remover vagas abertas" Icon={BriefcaseIcon} cor="bg-slate-600" onClick={() => irParaAba('vagas')} />
                 <CartaoAcaoRapida titulo="Gerenciar FAQ" descricao="Perguntas frequentes do site" Icon={QuestionMarkCircleIcon} cor="bg-orange-500" onClick={() => irParaAba('faq')} />
                 <CartaoAcaoRapida titulo="Gerenciar Depoimentos" descricao="Depoimentos em vídeo de alunos" Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" onClick={() => irParaAba('depoimentos')} />
@@ -3260,6 +3367,101 @@ export default function Admin() {
                       ))
                     )}
                   </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ================= ASSISTENTE VIRTUAL (IA) ================= */}
+          {abaAtiva === 'assistente-ia' && (
+            <>
+              <CabecalhoPagina titulo="Assistente Virtual (IA)" subtitulo="Chat de atendimento exibido no botão flutuante do site" Icon={CpuChipIcon} />
+
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <CardEstatistica label="Conversas (amostra recente)" valor={iaTotalConversas} Icon={ChatBubbleLeftRightIcon} cor="bg-fuchsia-600" />
+                <CardEstatistica label="Perguntas Recebidas" valor={iaTotalPerguntas} Icon={QuestionMarkCircleIcon} cor="bg-indigo-500" />
+                <CardEstatistica label="Status" valor={iaAtivo ? "Ativo" : "Desativado"} Icon={CpuChipIcon} cor={iaAtivo ? "bg-emerald-500" : "bg-gray-400"} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">⚙️ Configurações</h3>
+
+                  <form onSubmit={handleSalvarConfiguracaoIA} className="flex flex-col gap-4">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={iaAtivo}
+                        onChange={(e) => setIaAtivo(e.target.checked)}
+                        className="w-4 h-4 accent-[#fed106] cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-gray-700 uppercase">Assistente virtual ativo no site</span>
+                    </label>
+
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Mensagem inicial</label>
+                      <textarea
+                        value={iaMensagemInicial}
+                        onChange={(e) => setIaMensagemInicial(e.target.value)}
+                        rows={4}
+                        placeholder="Olá! 👋 Sou a assistente virtual da Estude Seguro..."
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Texto de apresentação (abaixo do nome, no cabeçalho do chat)</label>
+                      <input
+                        type="text"
+                        value={iaTextoApresentacao}
+                        onChange={(e) => setIaTextoApresentacao(e.target.value)}
+                        placeholder="Assistente virtual da Estude Seguro"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Sugestões de pergunta (uma por linha, até 6)</label>
+                      <textarea
+                        value={iaSugestoesTexto}
+                        onChange={(e) => setIaSugestoesTexto(e.target.value)}
+                        rows={6}
+                        placeholder={"O que é a Estude Seguro?\nQuais serviços vocês oferecem?\nComo funciona o pagamento?"}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none"
+                      />
+                    </div>
+
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
+                      💾 Salvar Configurações
+                    </button>
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">Perguntas mais frequentes</h3>
+                    <button
+                      onClick={buscarEstatisticasIA}
+                      className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
+                    >
+                      🔄 Atualizar
+                    </button>
+                  </div>
+                  {iaPerguntasFrequentes.length === 0 ? (
+                    <p className="text-xs text-gray-400 italic">Ainda não há perguntas registradas pelo chat.</p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {iaPerguntasFrequentes.map((item, indice) => (
+                        <div key={indice} className="flex items-center justify-between gap-4 border border-gray-100 rounded-xl px-4 py-3">
+                          <span className="text-sm text-gray-700 font-medium truncate">{item.pergunta}</span>
+                          <span className="text-xs font-black text-gray-400 shrink-0">{item.quantidade}x</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[11px] text-gray-400 mt-4">
+                    Nenhum dado pessoal do visitante é armazenado — apenas o texto da pergunta, para ajudar a identificar dúvidas comuns.
+                  </p>
                 </div>
               </div>
             </>
