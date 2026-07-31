@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import CarrinhoSidebar from './components/CarrinhoSidebar';
 import PopupAvisos from './components/PopupAvisos';
 import ChatWidget from './components/ChatWidget';
+import MetaPixel from './components/MetaPixel';
 
 // Importação das tuas páginas
 import Inicio from './pages/Inicio';
@@ -54,6 +55,7 @@ function LayoutGlobal() {
       {!paginaSemLayoutPublico && <Footer />}
       {!paginaSemLayoutPublico && <PopupAvisos />}
       {!paginaSemLayoutPublico && <ChatWidget />}
+      {!paginaSemLayoutPublico && <MetaPixel />}
     </>
   );
 }

@@ -25,6 +25,7 @@ import {
   ClockIcon,
   ShareIcon,
   CpuChipIcon,
+  PresentationChartLineIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -62,6 +63,7 @@ const ITENS_MENU = [
   { id: 'trajetoria', label: 'Trajetória (Sobre Nós)', Icon: ClockIcon },
   { id: 'redes-sociais', label: 'Redes Sociais (Sobre Nós)', Icon: ShareIcon },
   { id: 'assistente-ia', label: 'Assistente Virtual (IA)', Icon: CpuChipIcon },
+  { id: 'meta-pixel', label: 'Meta Pixel', Icon: PresentationChartLineIcon },
   { id: 'blog', label: 'Blog', Icon: NewspaperIcon },
   { id: 'vagas', label: 'Vagas', Icon: BriefcaseIcon },
   { id: 'faq', label: 'FAQ', Icon: QuestionMarkCircleIcon },
@@ -261,6 +263,10 @@ export default function Admin() {
   const [iaTotalPerguntas, setIaTotalPerguntas] = useState(0);
   const [iaTotalConversas, setIaTotalConversas] = useState(0);
   const [iaPerguntasFrequentes, setIaPerguntasFrequentes] = useState([]);
+
+  // --- Estados para o Meta Pixel (Facebook/Instagram Ads) ---
+  const [metaPixelId, setMetaPixelId] = useState("");
+  const [novoMetaPixelId, setNovoMetaPixelId] = useState("");
 
   const [novaNoticiaDestaque, setNovaNoticiaDestaque] = useState(false);
   const [novoTempoLeitura, setNovoTempoLeitura] = useState("");
@@ -1100,6 +1106,54 @@ export default function Admin() {
     } catch (err) {
       console.error(err);
       setMensagemStatus("❌ Não foi possível salvar as configurações do assistente virtual. Tente novamente.");
+    }
+  }
+
+  // --- META PIXEL (Facebook/Instagram Ads) — valor fica na tabela "configuracoes", reaproveitada ---
+  async function buscarMetaPixel() {
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('valor')
+        .eq('chave', 'meta_pixel_id')
+        .maybeSingle();
+      if (error) throw error;
+
+      const valorSalvo = data?.valor || "";
+      setMetaPixelId(valorSalvo);
+      setNovoMetaPixelId(valorSalvo);
+    } catch (err) {
+      console.error("Erro ao buscar Meta Pixel:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarMetaPixel();
+  }, []);
+
+  async function handleSalvarMetaPixel(e) {
+    e.preventDefault();
+    const valor = novoMetaPixelId.trim();
+
+    // Meta Pixel ID é sempre numérico (geralmente 15-16 dígitos). Campo vazio é permitido
+    // de propósito: é assim que se remove/desativa o Pixel sem apagar a linha da configuração.
+    if (valor && !/^\d{10,20}$/.test(valor)) {
+      setMensagemStatus("⚠️ Meta Pixel ID inválido. Deve conter apenas números (geralmente 15-16 dígitos).");
+      return;
+    }
+
+    try {
+      setMensagemStatus(valor ? "⏳ Salvando Meta Pixel..." : "⏳ Removendo Meta Pixel...");
+      const { error } = await supabase
+        .from('configuracoes')
+        .upsert([{ chave: 'meta_pixel_id', valor }], { onConflict: 'chave' });
+      if (error) throw error;
+
+      setMetaPixelId(valor);
+      setMensagemStatus(valor ? "✅ Meta Pixel salvo com sucesso!" : "✅ Meta Pixel removido — o site não vai mais carregá-lo.");
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar o Meta Pixel. Tente novamente.");
     }
   }
 
@@ -2476,6 +2530,7 @@ export default function Admin() {
                 <CartaoAcaoRapida titulo="Gerenciar Trajetória" descricao="Linha do tempo da página Sobre Nós" Icon={ClockIcon} cor="bg-amber-500" onClick={() => irParaAba('trajetoria')} />
                 <CartaoAcaoRapida titulo="Gerenciar Redes Sociais" descricao="Cards 'Siga a Estude Seguro' da página Sobre Nós" Icon={ShareIcon} cor="bg-sky-500" onClick={() => irParaAba('redes-sociais')} />
                 <CartaoAcaoRapida titulo="Assistente Virtual (IA)" descricao="Mensagens, sugestões e estatísticas do chat do site" Icon={CpuChipIcon} cor="bg-fuchsia-600" onClick={() => irParaAba('assistente-ia')} />
+                <CartaoAcaoRapida titulo="Meta Pixel" descricao="Pixel de rastreamento do Facebook/Instagram Ads" Icon={PresentationChartLineIcon} cor="bg-blue-600" onClick={() => irParaAba('meta-pixel')} />
                 <CartaoAcaoRapida titulo="Gerenciar Vagas" descricao="Publicar e remover vagas abertas" Icon={BriefcaseIcon} cor="bg-slate-600" onClick={() => irParaAba('vagas')} />
                 <CartaoAcaoRapida titulo="Gerenciar FAQ" descricao="Perguntas frequentes do site" Icon={QuestionMarkCircleIcon} cor="bg-orange-500" onClick={() => irParaAba('faq')} />
                 <CartaoAcaoRapida titulo="Gerenciar Depoimentos" descricao="Depoimentos em vídeo de alunos" Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" onClick={() => irParaAba('depoimentos')} />
@@ -3459,9 +3514,66 @@ export default function Admin() {
                       ))}
                     </div>
                   )}
-                  <p className="text-[11px] text-gray-400 mt-4">
-                    Nenhum dado pessoal do visitante é armazenado — apenas o texto da pergunta, para ajudar a identificar dúvidas comuns.
-                  </p>
+                  
+                </div>
+              </div>
+            </>
+          )}
+ 
+          {/* ================= META PIXEL ================= */}
+          {abaAtiva === 'meta-pixel' && (
+            <>
+              <CabecalhoPagina titulo="Meta Pixel" subtitulo="Pixel de rastreamento do Facebook/Instagram Ads, carregado automaticamente no site público" Icon={PresentationChartLineIcon} />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className={`w-2.5 h-2.5 rounded-full ${metaPixelId ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                    <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
+                      {metaPixelId ? `Pixel ativo (ID: ${metaPixelId})` : 'Nenhum Pixel configurado'}
+                    </h3>
+                  </div>
+
+                  <form onSubmit={handleSalvarMetaPixel} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Meta Pixel ID</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={novoMetaPixelId}
+                        onChange={(e) => setNovoMetaPixelId(e.target.value)}
+                        placeholder="Ex: 123456789012345"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Encontrado no Gerenciador de Eventos do Meta (Facebook Business), em "Configurações do Pixel". Deixe o campo em branco e clique em Salvar para remover/desativar.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button type="submit" className="flex-1 bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
+                        💾 Salvar Pixel
+                      </button>
+                      {novoMetaPixelId && (
+                        <button
+                          type="button"
+                          onClick={() => setNovoMetaPixelId("")}
+                          className="px-5 bg-gray-100 hover:bg-red-500 hover:text-white text-gray-600 font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+                        >
+                          Limpar
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-3 tracking-wide">Como funciona</h3>
+                  <ul className="text-xs text-gray-500 font-medium space-y-2 leading-relaxed list-disc pl-4">
+                    <li>Quando salvo, o Pixel é carregado automaticamente em todas as páginas públicas do site (não é carregado no /login nem no /admin).</li>
+                    <li>O evento PageView é disparado na primeira visita e a cada troca de página dentro do site.</li>
+                    <li>Deixe o campo vazio e clique em "Salvar Pixel" para remover — o site deixa de carregá-lo imediatamente após a próxima visita.</li>
+                  </ul>
                 </div>
               </div>
             </>
