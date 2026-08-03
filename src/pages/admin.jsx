@@ -26,6 +26,11 @@ import {
   ShareIcon,
   CpuChipIcon,
   PresentationChartLineIcon,
+  GiftIcon,
+  TrophyIcon,
+  EyeIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -64,6 +69,7 @@ const ITENS_MENU = [
   { id: 'redes-sociais', label: 'Redes Sociais (Sobre Nós)', Icon: ShareIcon },
   { id: 'assistente-ia', label: 'Assistente Virtual (IA)', Icon: CpuChipIcon },
   { id: 'meta-pixel', label: 'Meta Pixel', Icon: PresentationChartLineIcon },
+  { id: 'roleta-premiada', label: 'Roleta Premiada', Icon: GiftIcon },
   { id: 'blog', label: 'Blog', Icon: NewspaperIcon },
   { id: 'vagas', label: 'Vagas', Icon: BriefcaseIcon },
   { id: 'faq', label: 'FAQ', Icon: QuestionMarkCircleIcon },
@@ -267,6 +273,26 @@ export default function Admin() {
   // --- Estados para o Meta Pixel (Facebook/Instagram Ads) ---
   const [metaPixelId, setMetaPixelId] = useState("");
   const [novoMetaPixelId, setNovoMetaPixelId] = useState("");
+
+  // --- Estados para a Roleta Premiada (página /sorteios) ---
+  const [roletaAtivo, setRoletaAtivo] = useState(true);
+  const [roletaTitulo, setRoletaTitulo] = useState("");
+  const [roletaSubtitulo, setRoletaSubtitulo] = useState("");
+  const [roletaWhatsappNumero, setRoletaWhatsappNumero] = useState("");
+  const [roletaWhatsappMensagem, setRoletaWhatsappMensagem] = useState("");
+
+  const [listaPremiosRoleta, setListaPremiosRoleta] = useState([]);
+  const [novoNomePremioRoleta, setNovoNomePremioRoleta] = useState("");
+  const [novoTipoPremioRoleta, setNovoTipoPremioRoleta] = useState("cashback");
+  const [novoPercentualPremioRoleta, setNovoPercentualPremioRoleta] = useState("");
+  const [novoPesoPremioRoleta, setNovoPesoPremioRoleta] = useState("10");
+  const [premioRoletaEditando, setPremioRoletaEditando] = useState(null);
+  const [editPremioRoleta, setEditPremioRoleta] = useState({ nome: "", tipo: "cashback", percentual_cashback: "", peso: "", ativo: true });
+
+  const [listaBannersRoleta, setListaBannersRoleta] = useState([]);
+
+  const [listaParticipantesRoleta, setListaParticipantesRoleta] = useState([]);
+  const [participanteRoletaSelecionado, setParticipanteRoletaSelecionado] = useState(null);
 
   const [novaNoticiaDestaque, setNovaNoticiaDestaque] = useState(false);
   const [novoTempoLeitura, setNovoTempoLeitura] = useState("");
@@ -1154,6 +1180,249 @@ export default function Admin() {
     } catch (err) {
       console.error(err);
       setMensagemStatus("❌ Não foi possível salvar o Meta Pixel. Tente novamente.");
+    }
+  }
+
+  // --- ROLETA PREMIADA (página /sorteios) ---
+  async function buscarConfigRoleta() {
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('chave, valor')
+        .in('chave', ['sorteio_ativo', 'sorteio_titulo', 'sorteio_subtitulo', 'sorteio_whatsapp_numero', 'sorteio_whatsapp_mensagem']);
+      if (error) throw error;
+
+      const mapa = Object.fromEntries((data || []).map((item) => [item.chave, item.valor]));
+      setRoletaAtivo(mapa.sorteio_ativo !== 'false');
+      setRoletaTitulo(mapa.sorteio_titulo || "");
+      setRoletaSubtitulo(mapa.sorteio_subtitulo || "");
+      setRoletaWhatsappNumero(mapa.sorteio_whatsapp_numero || "");
+      setRoletaWhatsappMensagem(mapa.sorteio_whatsapp_mensagem || "");
+    } catch (err) {
+      console.error("Erro ao buscar configuração da Roleta Premiada:", err);
+    }
+  }
+
+  async function buscarPremiosRoleta() {
+    try {
+      const { data, error } = await supabase.from('sorteio_premios').select('*').order('ordem', { ascending: true });
+      if (error) throw error;
+      setListaPremiosRoleta(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar prêmios da Roleta Premiada:", err);
+    }
+  }
+
+  async function buscarBannersRoleta() {
+    try {
+      const { data, error } = await supabase.from('sorteio_banners').select('*').order('ordem', { ascending: true });
+      if (error) throw error;
+      setListaBannersRoleta(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar banners da Roleta Premiada:", err);
+    }
+  }
+
+  async function buscarParticipantesRoleta() {
+    try {
+      const { data, error } = await supabase
+        .from('sorteio_participantes')
+        .select('*')
+        .order('data_sorteio', { ascending: false });
+      if (error) throw error;
+      setListaParticipantesRoleta(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar participantes da Roleta Premiada:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarConfigRoleta();
+    buscarPremiosRoleta();
+    buscarBannersRoleta();
+    buscarParticipantesRoleta();
+  }, []);
+
+  async function handleSalvarConfigRoleta(e) {
+    e.preventDefault();
+    if (!roletaTitulo.trim() || !roletaSubtitulo.trim() || !roletaWhatsappNumero.trim()) {
+      setMensagemStatus("⚠️ Preencha título, subtítulo e número de WhatsApp!");
+      return;
+    }
+    try {
+      setMensagemStatus("⏳ Salvando configurações da Roleta Premiada...");
+      const { error } = await supabase.from('configuracoes').upsert(
+        [
+          { chave: 'sorteio_ativo', valor: roletaAtivo ? 'true' : 'false' },
+          { chave: 'sorteio_titulo', valor: roletaTitulo.trim() },
+          { chave: 'sorteio_subtitulo', valor: roletaSubtitulo.trim() },
+          { chave: 'sorteio_whatsapp_numero', valor: roletaWhatsappNumero.replace(/\D/g, '') },
+          { chave: 'sorteio_whatsapp_mensagem', valor: roletaWhatsappMensagem.trim() },
+        ],
+        { onConflict: 'chave' }
+      );
+      if (error) throw error;
+      setMensagemStatus("✅ Configurações da Roleta Premiada atualizadas com sucesso!");
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar as configurações da Roleta Premiada. Tente novamente.");
+    }
+  }
+
+  async function handleAdicionarPremioRoleta(e) {
+    e.preventDefault();
+    if (!novoNomePremioRoleta.trim() || !novoPesoPremioRoleta) {
+      setMensagemStatus("⚠️ Preencha o nome e o peso de probabilidade do prêmio!");
+      return;
+    }
+    try {
+      const { error } = await supabase.from('sorteio_premios').insert([
+        {
+          nome: novoNomePremioRoleta.trim(),
+          tipo: novoTipoPremioRoleta,
+          percentual_cashback: novoPercentualPremioRoleta ? parseFloat(novoPercentualPremioRoleta) : null,
+          peso: parseInt(novoPesoPremioRoleta, 10) || 1,
+          ativo: true,
+          ordem: listaPremiosRoleta.length,
+        },
+      ]);
+      if (error) throw error;
+      setMensagemStatus("✅ Prêmio adicionado com sucesso!");
+      setNovoNomePremioRoleta("");
+      setNovoPercentualPremioRoleta("");
+      setNovoPesoPremioRoleta("10");
+      buscarPremiosRoleta();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível adicionar o prêmio. Tente novamente.");
+    }
+  }
+
+  async function handleEliminarPremioRoleta(id) {
+    if (!window.confirm("Tem certeza que quer eliminar este prêmio?")) return;
+    try {
+      const { error } = await supabase.from('sorteio_premios').delete().eq('id', id);
+      if (error) throw error;
+      buscarPremiosRoleta();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível eliminar o prêmio. Tente novamente.");
+    }
+  }
+
+  function iniciarEdicaoPremioRoleta(item) {
+    setPremioRoletaEditando(item.id);
+    setEditPremioRoleta({
+      nome: item.nome,
+      tipo: item.tipo,
+      percentual_cashback: item.percentual_cashback ?? "",
+      peso: item.peso,
+      ativo: item.ativo,
+    });
+  }
+
+  function cancelarEdicaoPremioRoleta() {
+    setPremioRoletaEditando(null);
+  }
+
+  async function handleSalvarEdicaoPremioRoleta(id) {
+    try {
+      const { error } = await supabase
+        .from('sorteio_premios')
+        .update({
+          nome: editPremioRoleta.nome.trim(),
+          tipo: editPremioRoleta.tipo,
+          percentual_cashback: editPremioRoleta.percentual_cashback ? parseFloat(editPremioRoleta.percentual_cashback) : null,
+          peso: parseInt(editPremioRoleta.peso, 10) || 1,
+          ativo: editPremioRoleta.ativo,
+        })
+        .eq('id', id);
+      if (error) throw error;
+      setMensagemStatus("✅ Prêmio atualizado com sucesso!");
+      setPremioRoletaEditando(null);
+      buscarPremiosRoleta();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível atualizar o prêmio. Tente novamente.");
+    }
+  }
+
+  async function handleAdicionarBannerRoleta(e) {
+    e.preventDefault();
+    const arquivoInput = document.getElementById('arquivo-banner-roleta');
+    const arquivo = arquivoInput?.files[0];
+    if (!arquivo) {
+      setMensagemStatus("⚠️ Selecione uma imagem para o banner!");
+      return;
+    }
+    try {
+      validarImagem(arquivo);
+      setMensagemStatus("⏳ Fazendo upload do banner...");
+      const nomeArquivo = `sorteio-${sanitizarNomeArquivo(arquivo.name)}`;
+
+      const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+
+      const { error: insertError } = await supabase.from('sorteio_banners').insert([
+        { imagem_url: urlData.publicUrl, ordem: listaBannersRoleta.length },
+      ]);
+      if (insertError) throw insertError;
+
+      setMensagemStatus("✅ Banner da Roleta Premiada publicado com sucesso!");
+      if (arquivoInput) arquivoInput.value = "";
+      buscarBannersRoleta();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível publicar o banner. Tente novamente.");
+    }
+  }
+
+  async function handleEliminarBannerRoleta(id) {
+    if (!window.confirm("Tem certeza que quer eliminar este banner?")) return;
+    try {
+      const { error } = await supabase.from('sorteio_banners').delete().eq('id', id);
+      if (error) throw error;
+      buscarBannersRoleta();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível eliminar o banner. Tente novamente.");
+    }
+  }
+
+  // Troca a "ordem" do banner com a do vizinho (direcao: -1 sobe / +1 desce) — a lista já
+  // vem ordenada por "ordem", então mover o primeiro pra cima o torna a capa do carrossel.
+  async function handleMoverBannerRoleta(indice, direcao) {
+    const indiceAlvo = indice + direcao;
+    if (indiceAlvo < 0 || indiceAlvo >= listaBannersRoleta.length) return;
+
+    const atual = listaBannersRoleta[indice];
+    const vizinho = listaBannersRoleta[indiceAlvo];
+
+    try {
+      await Promise.all([
+        supabase.from('sorteio_banners').update({ ordem: vizinho.ordem }).eq('id', atual.id),
+        supabase.from('sorteio_banners').update({ ordem: atual.ordem }).eq('id', vizinho.id),
+      ]);
+      buscarBannersRoleta();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível reordenar os banners. Tente novamente.");
+    }
+  }
+
+  async function handleMarcarPremioResgatado(id) {
+    try {
+      const { error } = await supabase
+        .from('sorteio_participantes')
+        .update({ resgatado: true, data_resgate: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      buscarParticipantesRoleta();
+      setParticipanteRoletaSelecionado((prev) => (prev && prev.id === id ? { ...prev, resgatado: true } : prev));
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível marcar o prêmio como resgatado. Tente novamente.");
     }
   }
 
@@ -2531,6 +2800,7 @@ export default function Admin() {
                 <CartaoAcaoRapida titulo="Gerenciar Redes Sociais" descricao="Cards 'Siga a Estude Seguro' da página Sobre Nós" Icon={ShareIcon} cor="bg-sky-500" onClick={() => irParaAba('redes-sociais')} />
                 <CartaoAcaoRapida titulo="Assistente Virtual (IA)" descricao="Mensagens, sugestões e estatísticas do chat do site" Icon={CpuChipIcon} cor="bg-fuchsia-600" onClick={() => irParaAba('assistente-ia')} />
                 <CartaoAcaoRapida titulo="Meta Pixel" descricao="Pixel de rastreamento do Facebook/Instagram Ads" Icon={PresentationChartLineIcon} cor="bg-blue-600" onClick={() => irParaAba('meta-pixel')} />
+                <CartaoAcaoRapida titulo="Roleta Premiada" descricao="Página /sorteios: prêmios, banners e participantes" Icon={GiftIcon} cor="bg-rose-500" onClick={() => irParaAba('roleta-premiada')} />
                 <CartaoAcaoRapida titulo="Gerenciar Vagas" descricao="Publicar e remover vagas abertas" Icon={BriefcaseIcon} cor="bg-slate-600" onClick={() => irParaAba('vagas')} />
                 <CartaoAcaoRapida titulo="Gerenciar FAQ" descricao="Perguntas frequentes do site" Icon={QuestionMarkCircleIcon} cor="bg-orange-500" onClick={() => irParaAba('faq')} />
                 <CartaoAcaoRapida titulo="Gerenciar Depoimentos" descricao="Depoimentos em vídeo de alunos" Icon={ChatBubbleLeftRightIcon} cor="bg-pink-500" onClick={() => irParaAba('depoimentos')} />
@@ -3576,6 +3846,265 @@ export default function Admin() {
                   </ul>
                 </div>
               </div>
+            </>
+          )}
+
+          {/* ================= ROLETA PREMIADA ================= */}
+          {abaAtiva === 'roleta-premiada' && (
+            <>
+              <CabecalhoPagina titulo="Roleta Premiada" subtitulo="Página pública /sorteios — prêmios, banners, participantes e configurações" Icon={GiftIcon} />
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <CardEstatistica label="Participantes" valor={listaParticipantesRoleta.length} Icon={UserGroupIcon} cor="bg-rose-500" />
+                <CardEstatistica label="Prêmios Entregues" valor={listaParticipantesRoleta.filter((p) => p.resgatado).length} Icon={TrophyIcon} cor="bg-emerald-500" />
+                <CardEstatistica
+                  label="Cashback Distribuído"
+                  valor={`${listaParticipantesRoleta.reduce((soma, p) => soma + (p.premio_tipo === 'cashback' ? Number(p.percentual_cashback || 0) : 0), 0)}%`}
+                  subtitulo="Soma das % de cashback sorteadas"
+                  Icon={PresentationChartLineIcon}
+                  cor="bg-[#fed106]"
+                />
+                <CardEstatistica label="Status" valor={roletaAtivo ? "Ativa" : "Desativada"} Icon={GiftIcon} cor={roletaAtivo ? "bg-emerald-500" : "bg-gray-400"} />
+              </div>
+
+              {listaPremiosRoleta.length > 0 && (
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                  <h3 className="text-xs font-black uppercase text-gray-500 tracking-wide mb-3">Quantidade entregue por prêmio</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {listaPremiosRoleta.map((premio) => (
+                      <div key={premio.id} className="bg-gray-50 rounded-xl px-4 py-3">
+                        <p className="text-[11px] text-gray-500 font-bold truncate">{premio.nome}</p>
+                        <p className="text-lg font-black text-gray-900">
+                          {listaParticipantesRoleta.filter((p) => p.premio === premio.nome).length}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* --- CONFIGURAÇÕES --- */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">⚙️ Configurações Gerais</h3>
+                <form onSubmit={handleSalvarConfigRoleta} className="flex flex-col gap-4">
+                  <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
+                    <input type="checkbox" checked={roletaAtivo} onChange={(e) => setRoletaAtivo(e.target.checked)} className="w-4 h-4 accent-[#fed106] cursor-pointer" />
+                    <span className="text-xs font-bold text-gray-700 uppercase">Campanha ativa no site</span>
+                  </label>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Título</label>
+                      <input type="text" value={roletaTitulo} onChange={(e) => setRoletaTitulo(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Número do WhatsApp (só números, com DDI+DDD)</label>
+                      <input type="text" value={roletaWhatsappNumero} onChange={(e) => setRoletaWhatsappNumero(e.target.value)} placeholder="5511995987197" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Subtítulo</label>
+                    <textarea value={roletaSubtitulo} onChange={(e) => setRoletaSubtitulo(e.target.value)} rows={2} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none" />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Mensagem de resgate no WhatsApp</label>
+                    <textarea value={roletaWhatsappMensagem} onChange={(e) => setRoletaWhatsappMensagem(e.target.value)} rows={5} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none" />
+                    <p className="text-[11px] text-gray-400 mt-1">Use os placeholders: {'{{nome}}'}, {'{{cpf}}'}, {'{{numeroMatricula}}'} e {'{{premio}}'} — são substituídos automaticamente.</p>
+                  </div>
+
+                  <button type="submit" className="w-fit bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-8 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
+                    💾 Salvar Configurações
+                  </button>
+                </form>
+              </div>
+
+              {/* --- PRÊMIOS --- */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">📝 Novo Prêmio</h3>
+                  <form onSubmit={handleAdicionarPremioRoleta} className="flex flex-col gap-3">
+                    <input type="text" value={novoNomePremioRoleta} onChange={(e) => setNovoNomePremioRoleta(e.target.value)} placeholder="Nome do prêmio" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                    <select value={novoTipoPremioRoleta} onChange={(e) => setNovoTipoPremioRoleta(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]">
+                      <option value="cashback">Cashback</option>
+                      <option value="desconto">Desconto</option>
+                      <option value="curso">Curso</option>
+                    </select>
+                    <input type="number" value={novoPercentualPremioRoleta} onChange={(e) => setNovoPercentualPremioRoleta(e.target.value)} placeholder="% (cashback/desconto)" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                    <div>
+                      <input type="number" min="0" value={novoPesoPremioRoleta} onChange={(e) => setNovoPesoPremioRoleta(e.target.value)} placeholder="Peso de probabilidade" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
+                      <p className="text-[11px] text-gray-400 mt-1">Quanto maior o peso em relação aos outros, maior a chance de sair.</p>
+                    </div>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
+                      ➕ Adicionar Prêmio
+                    </button>
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Prêmios Cadastrados ({listaPremiosRoleta.length})</h3>
+                  <div className="flex flex-col gap-3">
+                    {listaPremiosRoleta.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">Nenhum prêmio cadastrado ainda.</p>
+                    ) : (
+                      listaPremiosRoleta.map((premio) => (
+                        <div key={premio.id} className="border border-gray-100 rounded-xl p-4">
+                          {premioRoletaEditando === premio.id ? (
+                            <div className="flex flex-col gap-2">
+                              <input type="text" value={editPremioRoleta.nome} onChange={(e) => setEditPremioRoleta((prev) => ({ ...prev, nome: e.target.value }))} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                              <div className="grid grid-cols-3 gap-2">
+                                <select value={editPremioRoleta.tipo} onChange={(e) => setEditPremioRoleta((prev) => ({ ...prev, tipo: e.target.value }))} className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 text-xs">
+                                  <option value="cashback">Cashback</option>
+                                  <option value="desconto">Desconto</option>
+                                  <option value="curso">Curso</option>
+                                </select>
+                                <input type="number" value={editPremioRoleta.percentual_cashback} onChange={(e) => setEditPremioRoleta((prev) => ({ ...prev, percentual_cashback: e.target.value }))} placeholder="%" className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 text-xs" />
+                                <input type="number" min="0" value={editPremioRoleta.peso} onChange={(e) => setEditPremioRoleta((prev) => ({ ...prev, peso: e.target.value }))} placeholder="Peso" className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 text-xs" />
+                              </div>
+                              <label className="flex items-center gap-2 text-xs font-bold text-gray-600 uppercase cursor-pointer select-none">
+                                <input type="checkbox" checked={editPremioRoleta.ativo} onChange={(e) => setEditPremioRoleta((prev) => ({ ...prev, ativo: e.target.checked }))} className="w-3.5 h-3.5 accent-[#fed106] cursor-pointer" />
+                                Ativo
+                              </label>
+                              <div className="flex gap-2 mt-1">
+                                <button onClick={() => handleSalvarEdicaoPremioRoleta(premio.id)} className="flex-1 bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-[11px] py-2 rounded-lg uppercase tracking-wider transition-colors cursor-pointer">Salvar</button>
+                                <button onClick={cancelarEdicaoPremioRoleta} className="px-4 bg-gray-100 hover:bg-gray-200 text-gray-600 font-black text-[11px] py-2 rounded-lg uppercase tracking-wider transition-colors cursor-pointer">Cancelar</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-gray-800 truncate">{premio.nome}</p>
+                                <p className="text-[11px] text-gray-400">
+                                  {premio.tipo} {premio.percentual_cashback ? `— ${premio.percentual_cashback}%` : ''} — peso {premio.peso}
+                                  {!premio.ativo && <span className="text-red-500 font-bold"> — inativo</span>}
+                                </p>
+                              </div>
+                              <div className="flex gap-2 shrink-0">
+                                <button onClick={() => iniciarEdicaoPremioRoleta(premio)} className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer">Editar</button>
+                                <button onClick={() => handleEliminarPremioRoleta(premio.id)} className="text-[10px] uppercase bg-red-50 hover:bg-red-500 hover:text-white text-red-500 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer">Excluir</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* --- BANNERS DO HERO --- */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">📝 Novo Banner</h3>
+                  <form onSubmit={handleAdicionarBannerRoleta} className="flex flex-col gap-3">
+                    <input type="file" id="arquivo-banner-roleta" accept="image/*" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
+                      ➕ Publicar Banner
+                    </button>
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Banners do Carrossel ({listaBannersRoleta.length})</h3>
+                  <p className="text-[11px] text-gray-400 mb-3">O primeiro da lista é a capa do carrossel. Use as setas para reordenar.</p>
+                  <div className="flex flex-col gap-2">
+                    {listaBannersRoleta.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">Nenhum banner cadastrado ainda.</p>
+                    ) : (
+                      listaBannersRoleta.map((banner, indice) => (
+                        <div key={banner.id} className="flex items-center gap-3 border border-gray-100 rounded-xl p-2">
+                          <img src={banner.imagem_url} alt="" className="w-20 h-12 object-cover rounded-lg shrink-0" />
+                          <span className="text-xs text-gray-400 font-bold shrink-0">{indice === 0 ? 'Capa' : `#${indice + 1}`}</span>
+                          <div className="flex-1" />
+                          <button disabled={indice === 0} onClick={() => handleMoverBannerRoleta(indice, -1)} className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-30 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed">
+                            <ArrowUpIcon className="w-3.5 h-3.5" />
+                          </button>
+                          <button disabled={indice === listaBannersRoleta.length - 1} onClick={() => handleMoverBannerRoleta(indice, 1)} className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-30 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed">
+                            <ArrowDownIcon className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleEliminarBannerRoleta(banner.id)} className="w-7 h-7 rounded-md bg-red-50 hover:bg-red-500 hover:text-white text-red-500 flex items-center justify-center cursor-pointer">
+                            <XMarkIcon className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* --- PARTICIPANTES --- */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Participantes ({listaParticipantesRoleta.length})</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-[11px] text-gray-400 uppercase border-b border-gray-100">
+                        <th className="py-2 pr-3">Nome</th>
+                        <th className="py-2 pr-3">CPF</th>
+                        <th className="py-2 pr-3">Certificado</th>
+                        <th className="py-2 pr-3">Data</th>
+                        <th className="py-2 pr-3">Prêmio</th>
+                        <th className="py-2 pr-3">Resgate</th>
+                        <th className="py-2 pr-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {listaParticipantesRoleta.length === 0 ? (
+                        <tr><td colSpan={7} className="py-6 text-center text-xs text-gray-400 italic">Nenhum participante ainda.</td></tr>
+                      ) : (
+                        listaParticipantesRoleta.map((p) => (
+                          <tr key={p.id} className="border-b border-gray-50">
+                            <td className="py-2.5 pr-3 font-semibold text-gray-700 whitespace-nowrap">{p.nome}</td>
+                            <td className="py-2.5 pr-3 text-gray-500 whitespace-nowrap">{mascaraCPF(p.cpf)}</td>
+                            <td className="py-2.5 pr-3 text-gray-500 whitespace-nowrap">{p.numero_matricula}</td>
+                            <td className="py-2.5 pr-3 text-gray-500 whitespace-nowrap">{new Date(p.data_sorteio).toLocaleString('pt-BR')}</td>
+                            <td className="py-2.5 pr-3 text-gray-700 font-semibold whitespace-nowrap">{p.premio}</td>
+                            <td className="py-2.5 pr-3 whitespace-nowrap">
+                              {p.resgatado ? (
+                                <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">Resgatado</span>
+                              ) : (
+                                <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">Pendente</span>
+                              )}
+                            </td>
+                            <td className="py-2.5 pr-3">
+                              <button onClick={() => setParticipanteRoletaSelecionado(p)} className="text-gray-400 hover:text-[#fed106] cursor-pointer">
+                                <EyeIcon className="w-4.5 h-4.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {participanteRoletaSelecionado && (
+                <PopupModalShell variante="cartao" onFechar={() => setParticipanteRoletaSelecionado(null)}>
+                  <div className="bg-white rounded-2xl p-6">
+                    <h3 className="text-base font-black text-gray-900 mb-4">Detalhes do Participante</h3>
+                    <div className="flex flex-col gap-2 text-sm">
+                      <p><span className="text-gray-400 font-bold uppercase text-[11px] block">Nome</span>{participanteRoletaSelecionado.nome}</p>
+                      <p><span className="text-gray-400 font-bold uppercase text-[11px] block">CPF</span>{mascaraCPF(participanteRoletaSelecionado.cpf)}</p>
+                      <p><span className="text-gray-400 font-bold uppercase text-[11px] block">Número do certificado</span>{participanteRoletaSelecionado.numero_matricula}</p>
+                      <p><span className="text-gray-400 font-bold uppercase text-[11px] block">Prêmio</span>{participanteRoletaSelecionado.premio}</p>
+                      <p><span className="text-gray-400 font-bold uppercase text-[11px] block">Data do sorteio</span>{new Date(participanteRoletaSelecionado.data_sorteio).toLocaleString('pt-BR')}</p>
+                      {participanteRoletaSelecionado.data_resgate && (
+                        <p><span className="text-gray-400 font-bold uppercase text-[11px] block">Data do resgate</span>{new Date(participanteRoletaSelecionado.data_resgate).toLocaleString('pt-BR')}</p>
+                      )}
+                    </div>
+                    {!participanteRoletaSelecionado.resgatado && (
+                      <button
+                        onClick={() => handleMarcarPremioResgatado(participanteRoletaSelecionado.id)}
+                        className="w-full mt-5 bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        ✅ Marcar Prêmio Resgatado
+                      </button>
+                    )}
+                  </div>
+                </PopupModalShell>
+              )}
             </>
           )}
 

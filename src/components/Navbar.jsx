@@ -9,6 +9,7 @@ const LINKS = [
   { to: '/cursos', label: 'Cursos' },
   { to: '/aproveitamento', label: 'Téc./Tecnólogo' },
   { to: '/depoimentos', label: 'Depoimentos' },
+  { to: '/sorteios', label: 'Sorteios' },
   { to: '/blog', label: 'Blog' },
   // Desativado temporariamente — reativar quando as páginas entrarem no ar
   // { to: '/vagas', label: 'Vagas' },

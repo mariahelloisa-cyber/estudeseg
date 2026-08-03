@@ -1,4 +1,3 @@
-// Converte links do YouTube ou Google Drive num URL de embed reproduzível em iframe
 export function obterUrlEmbedVideo(url) {
   if (!url) return null;
 
