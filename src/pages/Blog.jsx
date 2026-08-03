@@ -26,7 +26,7 @@ export default function Blog() {
             titulo: item.titulo || "Título do Post",
             resumo: item.resumo || "Breve resumo do artigo...",
             // Como agora as notícias são geridas no Supabase, mapeamos diretamente as colunas:
-            conteudo: item.resumo || "", 
+            conteudo: item.conteudo || "",
             data: new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
             categoria: "NOTÍCIAS",
             fotoUrl: item.imagem_url

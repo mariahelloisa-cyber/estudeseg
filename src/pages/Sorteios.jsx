@@ -5,7 +5,7 @@ import RoletaPremiada from '../components/RoletaPremiada';
 import PopupModalShell from '../components/popups/PopupModalShell';
 import { supabase } from '../supabaseClient';
 import { mascaraCPF, validarCPF } from '../utils/mascaras';
-import { XMarkIcon, ArrowPathIcon, GiftIcon, BoltIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, UserGroupIcon, GiftIcon, BoltIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import caixaPresente from '../assets/presente.png';
 
 const FORM_INICIAL = { nomeCompleto: '', cpf: '', numeroMatricula: '' };
@@ -234,13 +234,13 @@ export default function Sorteios() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#F8F9FA] text-gray-900 font-sans antialiased pb-24">
+    <div className="w-full min-h-screen bg-white text-gray-900 font-sans antialiased pb-10">
       <Navbar />
 
       <HeroCarrossel banners={banners} />
 
       {/* --- SEÇÃO PRINCIPAL: fundo claro, roleta em destaque --- */}
-      <div className="relative w-full overflow-hidden bg-white pt-4 pb-16">
+      <div className="relative w-full overflow-hidden bg-white pt-4 pb-8">
         {/* Brilho suave e claro, só para dar um respiro atrás do conjunto */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(254,209,6,0.10)_0%,transparent_60%)] pointer-events-none" />
 
@@ -278,7 +278,7 @@ export default function Sorteios() {
           ) : (
             <>
               {/* Roda exatamente no centro da seção + card grudado do lado direito dela */}
-              <div className="relative flex flex-col items-center gap-10 lg:block lg:min-h-[560px] mb-12">
+              <div className="relative flex flex-col items-center gap-10 lg:block lg:min-h-[560px] mb-2">
                 <div className="flex flex-col items-center gap-6 w-full lg:absolute lg:left-1/2 lg:top-0 lg:-translate-x-1/2">
                   <RoletaPremiada
                     premios={premios}
@@ -336,24 +336,27 @@ export default function Sorteios() {
               </div>
 
               {/* Barra de recursos */}
-              <div className="max-w-4xl mx-auto bg-white border border-gray-200 rounded-2xl shadow-sm grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
-                <div className="flex items-center justify-center gap-2 px-4 py-4">
-                  <span className="w-7 h-7 rounded-full bg-[#fed106] flex items-center justify-center shrink-0">
-                    <ArrowPathIcon className="w-4 h-4 text-black" />
+              <div className="max-w-5xl mx-auto bg-white border border-gray-200 rounded-2xl shadow-sm grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+                <div className="flex flex-col items-center text-center gap-1 px-6 py-4">
+                  <span className="w-8 h-8 rounded-full bg-[#fed106] flex items-center justify-center shrink-0 mb-0.5">
+                    <UserGroupIcon className="w-4 h-4 text-black" />
                   </span>
-                  <span className="text-sm font-bold text-black">Apenas uma participação por aluno</span>
+                  <span className="text-sm font-black text-black">Apenas uma participação por aluno</span>
+                  <p className="text-xs text-gray-400 leading-relaxed">Participe após concluir sua formação na Estude Seguro.</p>
                 </div>
-                <div className="flex items-center justify-center gap-2 px-4 py-4">
-                  <span className="w-7 h-7 rounded-full bg-[#fed106] flex items-center justify-center shrink-0">
+                <div className="flex flex-col items-center text-center gap-1 px-6 py-4">
+                  <span className="w-8 h-8 rounded-full bg-[#fed106] flex items-center justify-center shrink-0 mb-0.5">
                     <GiftIcon className="w-4 h-4 text-black" />
                   </span>
-                  <span className="text-sm font-bold text-black">100% gratuito</span>
+                  <span className="text-sm font-black text-black">100% gratuito</span>
+                  <p className="text-xs text-gray-400 leading-relaxed">Sem pegadinhas, sem taxas. Seu prêmio é garantido!</p>
                 </div>
-                <div className="flex items-center justify-center gap-2 px-4 py-4">
-                  <span className="w-7 h-7 rounded-full bg-[#fed106] flex items-center justify-center shrink-0">
+                <div className="flex flex-col items-center text-center gap-1 px-6 py-4">
+                  <span className="w-8 h-8 rounded-full bg-[#fed106] flex items-center justify-center shrink-0 mb-0.5">
                     <BoltIcon className="w-4 h-4 text-black" />
                   </span>
-                  <span className="text-sm font-bold text-black">Resultado instantâneo</span>
+                  <span className="text-sm font-black text-black">Resultado instantâneo</span>
+                  <p className="text-xs text-gray-400 leading-relaxed">Descubra seu prêmio na hora e aproveite.</p>
                 </div>
               </div>
             </>

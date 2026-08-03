@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShieldCheckIcon } from '@heroicons/react/24/solid';
+import { ShieldCheckIcon, StarIcon } from '@heroicons/react/24/solid';
 import Navbar from '../components/Navbar';
 import { supabase } from '../supabaseClient';
 import imagemInstitucional from '../assets/capa-video.png';
@@ -175,27 +175,33 @@ export default function Sobre() {
       <div className="w-full bg-[#fcfbfb] font-sans antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* 1. SEÇÃO HERO */}
-      <section className="relative w-full min-h-[70vh] flex items-center bg-gray-900 overflow-hidden">
-        <img 
-          src={fundoHero} 
-          alt="Alunos LA Educação" 
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-80" 
+      <section className="relative w-full flex items-center overflow-hidden py-10 md:py-14">
+        <img
+          src={fundoHero}
+          alt="Alunos Estude Seguro"
+          className="absolute inset-0 w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/40 to-transparent"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#fed106]/40 via-[#fed106]/10 to-transparent pointer-events-none"></div>
-        <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-[#fed106] opacity-40 blur-[150px] pointer-events-none rounded-full transform -translate-y-1/2 -translate-x-1/4"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
-          <div className="max-w-2xl text-left">
-            <h1 className="text-4xl md:text-6xl lg:text-[64px] font-black text-white mb-4 leading-[1.1] tracking-tight">
-              Veja aqui a história da Estude Seguro
+          <div className="max-w-xl">
+            <div className="inline-flex items-center gap-2 bg-[#fffbe6] border border-[#fed106]/50 rounded-full px-4 py-1.5 mb-5">
+              <StarIcon className="w-4 h-4 text-[#fed106]" />
+              <span className="text-xs font-black uppercase tracking-wide text-[#8a6d00]">Há mais de 10 anos transformando vidas</span>
+            </div>
+
+            <h1 className="text-3xl md:text-5xl font-black text-white mb-5 leading-[1.15] tracking-tight">
+              Veja aqui a história da <span className="text-[#fed106]">Estude Seguro</span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-200 font-medium mb-10 max-w-lg leading-relaxed">
+
+            <p className="text-base md:text-lg text-gray-200 font-medium mb-8 max-w-md leading-relaxed">
               Escolher onde estudar é também escolher como você quer se preparar para o futuro.
             </p>
-            <a 
-              href="#historia" 
-              className="inline-flex items-center gap-3 bg-[#fed106] hover:bg-[#000000] text-white font-bold py-4 px-8 rounded-full transition-transform hover:scale-105 duration-300 w-max shadow-lg"
+
+            <a
+              href="#historia"
+              className="inline-flex items-center gap-3 bg-[#fed106] hover:bg-black hover:text-white text-black font-bold py-4 px-8 text-base rounded-full transition-all active:scale-95 w-max shadow-md"
             >
               Nossa história
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">

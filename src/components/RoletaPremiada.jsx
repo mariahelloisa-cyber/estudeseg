@@ -9,9 +9,9 @@ const NUMERO_VOLTAS_GIRO = 6;
 const DURACAO_GIRO_MS = 5200;
 
 function conteudoSegmento(premio) {
-  if (premio.tipo === 'cashback') return { icone: '🪙', valor: `${premio.percentual_cashback}%`, sub: 'DE CASHBACK' };
-  if (premio.tipo === 'desconto') return { icone: '🏷️', valor: `${premio.percentual_cashback}%`, sub: 'DE DESCONTO' };
-  return { icone: '🎓', valor: 'CURSO', sub: 'GRÁTIS' };
+  if (premio.tipo === 'cashback') return { valor: `${premio.percentual_cashback}%`, sub: 'DE CASHBACK', deslocamentoY: -6 };
+  if (premio.tipo === 'desconto') return { valor: `${premio.percentual_cashback}%`, sub: 'DE DESCONTO', deslocamentoY: 0 };
+  return { valor: 'CURSO', sub: 'GRÁTIS', deslocamentoY: 0 };
 }
 
 // Converte um ângulo "de relógio" (0° = topo, cresce no sentido horário) em ponto (x,y)
@@ -51,7 +51,7 @@ export default function RoletaPremiada({ premios, girando, nomePremioVencedor, a
       if (delta < 0) delta += 360;
       return rotAtual + NUMERO_VOLTAS_GIRO * 360 + delta;
     });
-
+    
     timeoutRef.current = setTimeout(() => {
       aoTerminarGiro?.();
     }, DURACAO_GIRO_MS);
@@ -61,6 +61,12 @@ export default function RoletaPremiada({ premios, girando, nomePremioVencedor, a
   }, [girando, nomePremioVencedor]);
 
   const segmentos = useMemo(() => {
+    // Ângulo em que o segmento realmente aparece na tela, já somando a rotação
+    // atual da roda — sem isso, a leitura do texto (normal ou invertida) só
+    // ficava correta quando a roda estava parada em 0°, e virava de cabeça
+    // para baixo em segmentos aleatórios depois de qualquer giro.
+    const anguloTelaAtual = ((rotacao % 360) + 360) % 360;
+
     return premios.map((premio, indice) => {
       const inicio = indice * anguloSegmento;
       const fim = inicio + anguloSegmento;
@@ -69,7 +75,8 @@ export default function RoletaPremiada({ premios, girando, nomePremioVencedor, a
       const p2 = pontoNoAngulo(fim, 150, 150, 150);
       const largeArc = anguloSegmento > 180 ? 1 : 0;
       const caminho = `M150,150 L${p1.x.toFixed(2)},${p1.y.toFixed(2)} A150,150 0 ${largeArc} 1 ${p2.x.toFixed(2)},${p2.y.toFixed(2)} Z`;
-      const inverterParaLeitura = meio > 90 && meio < 270;
+      const anguloEfetivo = (meio + anguloTelaAtual) % 360;
+      const inverterParaLeitura = anguloEfetivo > 90 && anguloEfetivo < 270;
       const cor = PALETA_SEGMENTOS[indice % PALETA_SEGMENTOS.length];
       return {
         id: premio.id,
@@ -81,7 +88,7 @@ export default function RoletaPremiada({ premios, girando, nomePremioVencedor, a
         ...conteudoSegmento(premio),
       };
     });
-  }, [premios, anguloSegmento]);
+  }, [premios, anguloSegmento, rotacao]);
 
   return (
     <div className="relative w-full max-w-[420px] mx-auto pb-10">
@@ -98,10 +105,23 @@ export default function RoletaPremiada({ premios, girando, nomePremioVencedor, a
 
       <div className="relative w-full aspect-square select-none">
         {/* Ponteiro fixo no topo */}
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 drop-shadow-[0_6px_10px_rgba(0,0,0,0.4)]">
-          <svg width="52" height="60" viewBox="0 0 52 60">
-            <path d="M26 60L4 14C4 6 11 0 20 0h12c9 0 16 6 16 14L26 60Z" fill="#111111" />
-            <path d="M26 49L11 16c0-5 5-9 15-9s15 4 15 9L26 49Z" fill="#fed106" stroke="#111111" strokeWidth="1" />
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 drop-shadow-[0_6px_12px_rgba(0,0,0,0.45)]">
+          <svg width="58" height="66" viewBox="-3 -3 58 66">
+            <defs>
+              <linearGradient id="gradientePonteiro" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ffe157" />
+                <stop offset="55%" stopColor="#fed106" />
+                <stop offset="100%" stopColor="#f5c400" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M26 60L4 14C4 6 11 0 20 0h12c9 0 16 6 16 14L26 60Z"
+              fill="url(#gradientePonteiro)"
+              stroke="#111111"
+              strokeWidth="4"
+              strokeLinejoin="round"
+            />
+            <ellipse cx="26" cy="13" rx="9" ry="5" fill="#ffffff" opacity="0.35" />
           </svg>
         </div>
 
@@ -144,12 +164,11 @@ export default function RoletaPremiada({ premios, girando, nomePremioVencedor, a
                     <text
                       textAnchor="middle"
                       fill={s.corTexto}
-                      transform={s.inverterParaLeitura ? 'rotate(180, 150, 50)' : undefined}
+                      transform={`rotate(${90 + (s.inverterParaLeitura ? 180 : 0)}, 150, 50)`}
                       style={{ fontFamily: "'Baloo 2', sans-serif" }}
                     >
-                      <tspan x="150" y="30" fontSize="22">{s.icone}</tspan>
-                      <tspan x="150" y="56" fontSize="21" fontWeight="800">{s.valor}</tspan>
-                      <tspan x="150" y="70" fontSize="9.5" fontWeight="700" letterSpacing="0.5">{s.sub}</tspan>
+                      <tspan x="150" y={48 + s.deslocamentoY} fontSize="18" fontWeight="800">{s.valor}</tspan>
+                      <tspan x="150" y={64 + s.deslocamentoY} fontSize="9.5" fontWeight="700" letterSpacing="0.3">{s.sub}</tspan>
                     </text>
                   </g>
                 </g>

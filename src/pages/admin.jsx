@@ -301,6 +301,7 @@ export default function Admin() {
   const [noticiaEditando, setNoticiaEditando] = useState(null);
   const [editTitulo, setEditTitulo] = useState("");
   const [editResumo, setEditResumo] = useState("");
+  const [editConteudo, setEditConteudo] = useState("");
   const [editTempoLeitura, setEditTempoLeitura] = useState("");
   const [editDestaque, setEditDestaque] = useState(false);
 
@@ -336,6 +337,7 @@ export default function Admin() {
   const [noticiasDestaque, setNoticiasDestaque] = useState([]);
   const [novoTituloNoticia, setNovoTituloNoticia] = useState("");
   const [novoResumoNoticia, setNovoResumoNoticia] = useState("");
+  const [novoConteudoNoticia, setNovoConteudoNoticia] = useState("");
 
   // --- Estados para o Gerenciador de Categorias de Cursos ---
   const [categoriasCursos, setCategoriasCursos] = useState([]);
@@ -1426,14 +1428,34 @@ export default function Admin() {
     }
   }
 
+  // Carrega as notícias já publicadas (usada ao abrir o admin e após criar/editar/excluir)
+  async function buscarNoticiasAdmin() {
+    try {
+      const { data, error } = await supabase.from('noticias').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setNoticiasDestaque((data || []).map(item => ({
+        id: item.id,
+        titulo: item.titulo,
+        resumo: item.resumo,
+        conteudo: item.conteudo,
+        fotoUrl: item.imagem_url,
+        destaque: item.destaque,
+        tempoLeitura: item.tempo_leitura || 3,
+        dataCriacao: new Date(item.created_at).toLocaleDateString('pt-BR')
+      })));
+    } catch (err) {
+      console.error("Erro ao buscar notícias:", err);
+    }
+  }
+
   // Função para Adicionar Notícia
   async function handleAdicionarNoticia(e) {
     e.preventDefault();
     const arquivoInput = document.getElementById('imagem-noticia');
     const arquivo = arquivoInput?.files[0];
 
-    if (!novoTituloNoticia.trim() || !novoResumoNoticia.trim() || !arquivo) {
-      setMensagemStatus("⚠️ Preencha todos os campos e selecione uma imagem!");
+    if (!novoTituloNoticia.trim() || !arquivo) {
+      setMensagemStatus("⚠️ Preencha o título e selecione uma imagem!");
       return;
     }
 
@@ -1449,6 +1471,7 @@ export default function Admin() {
         {
           titulo: novoTituloNoticia,
           resumo: novoResumoNoticia,
+          conteudo: novoConteudoNoticia,
           imagem_url: urlData.publicUrl,
           destaque: novaNoticiaDestaque,
           tempo_leitura: parseInt(novoTempoLeitura) || 3
@@ -1460,23 +1483,15 @@ export default function Admin() {
       setMensagemStatus("✅ Notícia publicada com sucesso!");
       setNovoTituloNoticia("");
       setNovoResumoNoticia("");
+      setNovoConteudoNoticia("");
       setNovoTempoLeitura("");
       setNovaNoticiaDestaque(false);
       if (arquivoInput) arquivoInput.value = "";
 
-      const { data: newData } = await supabase.from('noticias').select('*').order('created_at', { ascending: false });
-      setNoticiasDestaque((newData || []).map(item => ({
-        id: item.id,
-        titulo: item.titulo,
-        resumo: item.resumo,
-        fotoUrl: item.imagem_url,
-        destaque: item.destaque,
-        tempoLeitura: item.tempo_leitura || 3,
-        dataCriacao: new Date(item.created_at).toLocaleDateString('pt-PT')
-      })));
+      buscarNoticiasAdmin();
     } catch (err) {
       console.error(err);
-      setMensagemStatus("❌ Não foi possível publicar a notícia. Tente novamente.");
+      setMensagemStatus(`❌ Não foi possível publicar a notícia. ${err.message || 'Tente novamente.'}`);
     }
   }
 
@@ -1498,6 +1513,7 @@ export default function Admin() {
     setNoticiaEditando(noticia.id);
     setEditTitulo(noticia.titulo);
     setEditResumo(noticia.resumo);
+    setEditConteudo(noticia.conteudo || "");
     setEditTempoLeitura(noticia.tempoLeitura || 3);
     setEditDestaque(noticia.destaque || false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1507,8 +1523,8 @@ export default function Admin() {
   async function handleSalvarEdicaoNoticia(e) {
     e.preventDefault();
 
-    if (!editTitulo.trim() || !editResumo.trim()) {
-      setMensagemStatus("⚠️ Por favor, preencha o título e o resumo!");
+    if (!editTitulo.trim()) {
+      setMensagemStatus("⚠️ Por favor, preencha o título!");
       return;
     }
 
@@ -1537,6 +1553,7 @@ export default function Admin() {
       const dadosAtualizados = {
         titulo: editTitulo,
         resumo: editResumo,
+        conteudo: editConteudo,
         destaque: editDestaque,
         tempo_leitura: parseInt(editTempoLeitura) || 3
       };
@@ -1557,30 +1574,16 @@ export default function Admin() {
       setNoticiaEditando(null);
       setEditTitulo("");
       setEditResumo("");
+      setEditConteudo("");
       setEditTempoLeitura("");
       setEditDestaque(false);
       if (arquivoInput) arquivoInput.value = "";
 
-      const { data: dataAtualizada } = await supabase
-        .from('noticias')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (dataAtualizada && dataAtualizada.length > 0) {
-          setNoticiasDestaque(dataAtualizada.map(item => ({
-            id: item.id,
-            titulo: item.titulo,
-            resumo: item.resumo,
-            fotoUrl: item.imagem_url,
-            destaque: item.destaque,
-            tempoLeitura: item.tempo_leitura || 3,
-            dataCriacao: new Date(item.created_at).toLocaleDateString('pt-BR')
-          })));
-        }
+      buscarNoticiasAdmin();
 
     } catch (err) {
       console.error(err);
-      setMensagemStatus("❌ Não foi possível atualizar a notícia. Tente novamente.");
+      setMensagemStatus(`❌ Não foi possível atualizar a notícia. ${err.message || 'Tente novamente.'}`);
     }
   }
 
@@ -2072,6 +2075,7 @@ export default function Admin() {
       buscarContatosAdmin();
       buscarMatriculasAdmin();
       buscarMatriculadosAdmin();
+      buscarNoticiasAdmin();
     }
   }, [modoAdmin]);
 
@@ -4128,7 +4132,7 @@ export default function Admin() {
                     {noticiaEditando && (
                       <button
                         type="button"
-                        onClick={() => { setNoticiaEditando(null); setEditTitulo(""); setEditResumo(""); setEditTempoLeitura(""); setEditDestaque(false); }}
+                        onClick={() => { setNoticiaEditando(null); setEditTitulo(""); setEditResumo(""); setEditConteudo(""); setEditTempoLeitura(""); setEditDestaque(false); }}
                         className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
                       >
                         Cancelar
@@ -4148,12 +4152,23 @@ export default function Admin() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Breve Resumo</label>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Subtítulo (breve resumo)</label>
                       <textarea
                         rows="3"
                         value={noticiaEditando ? editResumo : novoResumoNoticia}
                         onChange={(e) => noticiaEditando ? setEditResumo(e.target.value) : setNovoResumoNoticia(e.target.value)}
-                        placeholder="Ex: Inscrições abertas..."
+                        placeholder="Ex: Inscrições abertas para o novo curso técnico EAD..."
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none"
+                      />
+                      <p className="text-[11px] text-gray-400 mt-1">Aparece em destaque logo abaixo do título, na página da notícia e nos cards do blog.</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Conteúdo completo da notícia</label>
+                      <textarea
+                        rows="8"
+                        value={noticiaEditando ? editConteudo : novoConteudoNoticia}
+                        onChange={(e) => noticiaEditando ? setEditConteudo(e.target.value) : setNovoConteudoNoticia(e.target.value)}
+                        placeholder="Escreva a matéria completa aqui. Separe os parágrafos com uma linha em branco."
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none"
                       />
                     </div>
