@@ -83,7 +83,7 @@ create table if not exists public.sorteio_participantes (
   nome text not null,
   cpf text not null unique,
   numero_matricula text not null,
-  matriculado_id bigint references public.matriculados(id),
+  matriculado_id bigint references public.matriculados(id) on delete cascade,
   premio text not null,
   premio_tipo text not null,
   percentual_cashback numeric,

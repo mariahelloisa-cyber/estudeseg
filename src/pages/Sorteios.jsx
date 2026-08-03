@@ -470,7 +470,7 @@ export default function Sorteios() {
             </>
           ) : (
             <>
-              <div className="text-3xl mb-2">🎉</div>
+              <div className="text-3xl mb-2"></div>
               <h2 className="text-white font-black text-lg tracking-tight mb-1">PARABÉNS!</h2>
               <p className="text-white/50 text-xs font-medium mb-5">Você ganhou:</p>
               <p className="text-[#fed106] font-black text-2xl mb-1 tracking-tight uppercase">{rotuloPremio(premioGanho)}</p>

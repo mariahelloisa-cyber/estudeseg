@@ -1895,7 +1895,7 @@ export default function Admin() {
       setMatriculadosAdmin((prev) => prev.filter((m) => m.id !== id));
     } catch (err) {
       console.error(err);
-      alert("❌ Não foi possível eliminar o matriculado. Tente novamente.");
+      alert(`❌ Não foi possível eliminar o matriculado. ${err.message || 'Tente novamente.'}`);
     }
   }
 
