@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ShieldCheckIcon, StarIcon } from '@heroicons/react/24/solid';
 import Navbar from '../components/Navbar';
 import HistoriaCinematica from '../components/HistoriaCinematica';
+import SecaoCrescimento from '../components/SecaoCrescimento';
 import { supabase } from '../supabaseClient';
 import imagemInstitucional from '../assets/capa-video.png';
 import estudante from '../assets/estudante.png';
@@ -257,6 +258,9 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
 
       {/* 2.5 SEÇÃO HISTÓRIA CINEMATOGRÁFICA — capelo flutuante acompanhando o scroll */}
       <HistoriaCinematica />
+
+      {/* 2.6 SEÇÃO CRESCIMENTO — números revelados um a um conforme o scroll */}
+      <SecaoCrescimento />
 
       {/* 2.4 SEÇÃO CREDIBILIDADE (ABED / Reclame Aqui) */}
       <section className="relative w-full bg-[#fcfbfb] overflow-hidden min-h-[360px] sm:min-h-[440px] md:min-h-[530px]">
