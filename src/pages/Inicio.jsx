@@ -22,7 +22,7 @@ export default function Inicio() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:1337';
   const navigate = useNavigate();
 
-  // --- Busca de cursos (barra de pesquisa mobile) ---
+  // --- Busca de cursos (barra do hero mobile + barra acima de Diferenciais) ---
   const [buscaCursoMobile, setBuscaCursoMobile] = useState('');
 
   const handleBuscarCursoMobile = (e) => {
@@ -633,7 +633,38 @@ export default function Inicio() {
           </div>
         </div>
       </div>
-      
+
+      {/* --- SEÇÃO: BUSCA DE CURSOS (acima de Diferenciais) --- */}
+      <div className="max-w-2xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+        <div className="text-center mb-6">
+          <h2 className="text-xl md:text-2xl font-extrabold text-gray-900 tracking-tight">Encontre o curso ideal para você</h2>
+          <p className="text-sm text-gray-500 mt-1 font-medium">Pesquise por nome, área ou palavra-chave</p>
+        </div>
+        <form
+          onSubmit={handleBuscarCursoMobile}
+          className="relative w-full bg-white rounded-full shadow-lg border border-gray-100 p-1.5 flex items-center"
+        >
+          <span className="pl-4 text-gray-400">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
+          <input
+            type="text"
+            value={buscaCursoMobile}
+            onChange={(e) => setBuscaCursoMobile(e.target.value)}
+            placeholder="Pesquisar curso por nome, área ou palavra-chave..."
+            className="w-full pl-3 pr-2 py-3 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none font-medium"
+          />
+          <button
+            type="submit"
+            className="bg-[#000000] hover:bg-[#fed106] text-white font-bold text-sm px-6 py-3 rounded-full transition-all shrink-0"
+          >
+            Buscar
+          </button>
+        </form>
+      </div>
+
       {/* --- SEÇÃO 4: DIFERENCIAIS --- */}
 {listaDiferenciais.length > 0 && (
   <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-16 pb-16">

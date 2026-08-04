@@ -332,6 +332,10 @@ export default function Admin() {
   const [listaFrases, setListaFrases] = useState([]);
   const [novoTextoFrase, setNovoTextoFrase] = useState("");
   const [novoTituloEsteira, setNovoTituloEsteira] = useState("");
+  const [fotoHistoriaSobreUrl, setFotoHistoriaSobreUrl] = useState("");
+  const [credibilidadeTitulo, setCredibilidadeTitulo] = useState("");
+  const [credibilidadeTexto, setCredibilidadeTexto] = useState("");
+  const [credibilidadeFotoUrl, setCredibilidadeFotoUrl] = useState("");
   const [listaDiferenciais, setListaDiferenciais] = useState([]);
   const [depoimentos, setDepoimentos] = useState([]);
   const [noticiasDestaque, setNoticiasDestaque] = useState([]);
@@ -778,6 +782,122 @@ export default function Admin() {
   useEffect(() => {
     buscarTrajetoriaDoSupabase();
   }, []);
+
+  // Foto da seção "Nossa História" (página Sobre Nós) — guardada como uma
+  // chave simples em `configuracoes`, igual ao título da esteira.
+  async function buscarFotoHistoriaSobre() {
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('valor')
+        .eq('chave', 'foto_historia_sobre')
+        .maybeSingle();
+
+      if (error) throw error;
+      setFotoHistoriaSobreUrl(data?.valor || "");
+    } catch (err) {
+      console.error("Erro na conexão com a foto da seção Nossa História:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarFotoHistoriaSobre();
+  }, []);
+
+  async function handleSalvarFotoHistoriaSobre(e) {
+    e.preventDefault();
+    const arquivoInput = document.getElementById('foto-historia-sobre');
+    const arquivo = arquivoInput?.files[0];
+
+    if (!arquivo) {
+      setMensagemStatus("⚠️ Escolha uma imagem para enviar!");
+      return;
+    }
+
+    try {
+      validarImagem(arquivo);
+      setMensagemStatus("⏳ Enviando foto da seção Nossa História...");
+
+      const nomeArquivo = `historia-sobre-${sanitizarNomeArquivo(arquivo.name)}`;
+      const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+
+      const { error } = await supabase
+        .from('configuracoes')
+        .upsert([{ chave: 'foto_historia_sobre', valor: urlData.publicUrl }], { onConflict: 'chave' });
+      if (error) throw error;
+
+      setMensagemStatus("✅ Foto da seção Nossa História atualizada com sucesso!");
+      if (arquivoInput) arquivoInput.value = "";
+      buscarFotoHistoriaSobre();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus(err.message?.includes("Formato") || err.message?.includes("grande") ? `⚠️ ${err.message}` : "❌ Não foi possível salvar a foto. Tente novamente.");
+    }
+  }
+
+  // Seção "Compromisso com a Transparência e a Credibilidade" (página Sobre
+  // Nós) — título, texto (um parágrafo por linha) e foto, também em
+  // `configuracoes`, buscados/salvos em lote (mesmo padrão do Assistente IA).
+  async function buscarCredibilidade() {
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('chave, valor')
+        .in('chave', ['credibilidade_titulo', 'credibilidade_texto', 'credibilidade_foto']);
+      if (error) throw error;
+
+      const mapa = Object.fromEntries((data || []).map((item) => [item.chave, item.valor]));
+      setCredibilidadeTitulo(mapa.credibilidade_titulo || "");
+      setCredibilidadeTexto(mapa.credibilidade_texto || "");
+      setCredibilidadeFotoUrl(mapa.credibilidade_foto || "");
+    } catch (err) {
+      console.error("Erro na conexão com a seção de credibilidade:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarCredibilidade();
+  }, []);
+
+  async function handleSalvarCredibilidade(e) {
+    e.preventDefault();
+    if (!credibilidadeTitulo.trim() || !credibilidadeTexto.trim()) {
+      setMensagemStatus("⚠️ Preencha o título e o texto!");
+      return;
+    }
+
+    try {
+      setMensagemStatus("⏳ Salvando seção de credibilidade...");
+      const arquivoInput = document.getElementById('foto-credibilidade');
+      const arquivo = arquivoInput?.files[0];
+
+      const registros = [
+        { chave: 'credibilidade_titulo', valor: credibilidadeTitulo.trim() },
+        { chave: 'credibilidade_texto', valor: credibilidadeTexto.trim() },
+      ];
+
+      if (arquivo) {
+        validarImagem(arquivo);
+        const nomeArquivo = `credibilidade-${sanitizarNomeArquivo(arquivo.name)}`;
+        const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+        registros.push({ chave: 'credibilidade_foto', valor: urlData.publicUrl });
+      }
+
+      const { error } = await supabase.from('configuracoes').upsert(registros, { onConflict: 'chave' });
+      if (error) throw error;
+
+      setMensagemStatus("✅ Seção de credibilidade atualizada com sucesso!");
+      if (arquivoInput) arquivoInput.value = "";
+      buscarCredibilidade();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus(err.message?.includes("Formato") || err.message?.includes("grande") ? `⚠️ ${err.message}` : "❌ Não foi possível salvar a seção de credibilidade. Tente novamente.");
+    }
+  }
 
   // Função para Adicionar um Novo Marco da Trajetória
   async function handleAdicionarTrajetoria(e) {
@@ -3479,6 +3599,69 @@ export default function Admin() {
           {abaAtiva === 'trajetoria' && (
             <>
               <CabecalhoPagina titulo="Gerenciar Trajetória" subtitulo="Linha do tempo exibida na página Sobre Nós" Icon={ClockIcon} />
+
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Foto da Seção "Nossa História"</h3>
+                <form onSubmit={handleSalvarFotoHistoriaSobre} className="flex flex-col md:flex-row gap-4 md:items-end">
+                  {fotoHistoriaSobreUrl && (
+                    <img src={fotoHistoriaSobreUrl} alt="Foto atual da seção Nossa História" className="w-24 h-24 rounded-xl object-cover border border-gray-100 shrink-0" />
+                  )}
+                  <div className="flex-1">
+                    <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nova imagem (PNG, JPEG ou WebP, até 5MB)</label>
+                    <input
+                      id="foto-historia-sobre"
+                      type="file"
+                      accept="image/png, image/jpeg, image/webp"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                    />
+                  </div>
+                  <button type="submit" className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0">💾 Salvar Foto</button>
+                </form>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Seção "Compromisso com a Transparência e a Credibilidade"</h3>
+                <form onSubmit={handleSalvarCredibilidade} className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Título</label>
+                      <input
+                        type="text"
+                        value={credibilidadeTitulo}
+                        onChange={(e) => setCredibilidadeTitulo(e.target.value)}
+                        placeholder="Ex: Compromisso com a Transparência e a Credibilidade"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nova foto (substitui o selo ABED — PNG, JPEG ou WebP, até 5MB)</label>
+                      <div className="flex items-center gap-3">
+                        {credibilidadeFotoUrl && (
+                          <img src={credibilidadeFotoUrl} alt="Foto atual da seção de credibilidade" className="w-14 h-14 rounded-xl object-cover border border-gray-100 shrink-0" />
+                        )}
+                        <input
+                          id="foto-credibilidade"
+                          type="file"
+                          accept="image/png, image/jpeg, image/webp"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Texto (um parágrafo por linha)</label>
+                    <textarea
+                      rows="4"
+                      value={credibilidadeTexto}
+                      onChange={(e) => setCredibilidadeTexto(e.target.value)}
+                      placeholder={'A Estude Seguro é associada à ABED...\nAlém disso, somos uma empresa verificada pelo Reclame Aqui...'}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none"
+                    />
+                  </div>
+                  <button type="submit" className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0 self-start">💾 Salvar Seção</button>
+                </form>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
                   <div className="flex justify-between items-center mb-4">

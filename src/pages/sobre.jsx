@@ -72,6 +72,54 @@ function normalizarNomeRede(nome) {
 export default function Sobre() {
   const [videoReproduzindo, setVideoReproduzindo] = useState(false);
   const [redesSociais, setRedesSociais] = useState(REDES_SOCIAIS_PADRAO);
+  // Foto da seção "Nossa História", editável pelo admin — até ele definir uma,
+  // usa a imagem estática padrão do projeto.
+  const [fotoHistoria, setFotoHistoria] = useState(imagemInstitucional);
+  // Título, texto e foto da seção de credibilidade (ABED/Reclame Aqui),
+  // editáveis pelo admin — vazio = ainda não editado, cai no conteúdo padrão.
+  const [credibilidade, setCredibilidade] = useState({ titulo: '', texto: '', foto: '' });
+
+  useEffect(() => {
+    async function buscarFotoHistoriaDoSupabase() {
+      try {
+        const { data, error } = await supabase
+          .from('configuracoes')
+          .select('valor')
+          .eq('chave', 'foto_historia_sobre')
+          .maybeSingle();
+
+        if (error) throw error;
+        if (data?.valor) setFotoHistoria(data.valor);
+      } catch (err) {
+        console.error("Erro na conexão com a foto da seção Nossa História:", err);
+      }
+    }
+
+    buscarFotoHistoriaDoSupabase();
+  }, []);
+
+  useEffect(() => {
+    async function buscarCredibilidadeDoSupabase() {
+      try {
+        const { data, error } = await supabase
+          .from('configuracoes')
+          .select('chave, valor')
+          .in('chave', ['credibilidade_titulo', 'credibilidade_texto', 'credibilidade_foto']);
+
+        if (error) throw error;
+        const mapa = Object.fromEntries((data || []).map((item) => [item.chave, item.valor]));
+        setCredibilidade({
+          titulo: mapa.credibilidade_titulo || '',
+          texto: mapa.credibilidade_texto || '',
+          foto: mapa.credibilidade_foto || '',
+        });
+      } catch (err) {
+        console.error("Erro na conexão com a seção de credibilidade:", err);
+      }
+    }
+
+    buscarCredibilidadeDoSupabase();
+  }, []);
 
   useEffect(() => {
     async function buscarRedesSociaisDoSupabase() {
@@ -210,10 +258,10 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
 
             {/* CONTAINER DA FOTO PRINCIPAL */}
             <div className="relative w-full aspect-[4/3] md:aspect-[1.35/1] rounded-[48px_120px_40px_140px] overflow-hidden shadow-[0_30px_70px_rgba(15,23,42,0.18)] z-10">
-              <img 
-                src={imagemInstitucional} 
-                alt="Alunos LA Tec" 
-                className="w-full h-full object-cover object-center" 
+              <img
+                src={fotoHistoria}
+                alt="Alunos LA Tec"
+                className="w-full h-full object-cover object-center"
               />
             </div>
 
@@ -266,7 +314,7 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
       <section className="relative w-full bg-[#fcfbfb] overflow-hidden min-h-[360px] sm:min-h-[440px] md:min-h-[530px]">
 
         <img
-          src={seloAbed}
+          src={credibilidade.foto || seloAbed}
           alt=""
           aria-hidden="true"
           className="pointer-events-none select-none absolute bottom-6 md:bottom-10 right-0 h-[320px] sm:h-[400px] md:h-[490px] w-auto max-w-none z-0"
@@ -280,15 +328,27 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
             </div>
 
             <h2 className="text-2xl md:text-4xl font-black text-gray-900 leading-tight mb-6 max-w-xl">
-              Compromisso com a Transparência e a <span className="text-[#fed106]">Credibilidade</span>
+              {credibilidade.titulo || (
+                <>Compromisso com a Transparência e a <span className="text-[#fed106]">Credibilidade</span></>
+              )}
             </h2>
 
-            <p className="text-gray-600 text-sm md:text-base font-medium leading-relaxed mb-4 max-w-xl">
-              A Estude Seguro é associada à <strong className="text-gray-900 font-bold">ABED</strong> – Associação Brasileira de Educação a Distância, reforçando nosso compromisso com a seriedade, a qualidade e as boas práticas do ensino a distância no Brasil.
-            </p>
-            <p className="text-gray-600 text-sm md:text-base font-medium leading-relaxed max-w-xl">
-              Além disso, somos uma empresa verificada pelo <strong className="text-gray-900 font-bold">Reclame Aqui</strong>, o maior e mais rigoroso site de reputação da América Latina, reconhecimento que reflete nossa dedicação à confiança e à satisfação de cada aluno.
-            </p>
+            {credibilidade.texto ? (
+              credibilidade.texto.split('\n').filter((linha) => linha.trim()).map((paragrafo, i) => (
+                <p key={i} className="text-gray-600 text-sm md:text-base font-medium leading-relaxed mb-4 last:mb-0 max-w-xl">
+                  {paragrafo}
+                </p>
+              ))
+            ) : (
+              <>
+                <p className="text-gray-600 text-sm md:text-base font-medium leading-relaxed mb-4 max-w-xl">
+                  A Estude Seguro é associada à <strong className="text-gray-900 font-bold">ABED</strong> – Associação Brasileira de Educação a Distância, reforçando nosso compromisso com a seriedade, a qualidade e as boas práticas do ensino a distância no Brasil.
+                </p>
+                <p className="text-gray-600 text-sm md:text-base font-medium leading-relaxed max-w-xl">
+                  Além disso, somos uma empresa verificada pelo <strong className="text-gray-900 font-bold">Reclame Aqui</strong>, o maior e mais rigoroso site de reputação da América Latina, reconhecimento que reflete nossa dedicação à confiança e à satisfação de cada aluno.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </section>
