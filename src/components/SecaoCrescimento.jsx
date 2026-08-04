@@ -1,46 +1,43 @@
-import { useRef, useState } from 'react';
-import { useScroll, useMotionValueEvent, useInView } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { useInView } from 'framer-motion';
 import GrowthCard from './GrowthCard';
 
-// Limiares de progresso do scroll dentro da seção (0 a 1) em que cada bloco é
-// revelado. A ordem de revelação é sempre MÊS → SEMESTRE → HOJE, mesmo o
-// bloco "Hoje" ficando visualmente no centro do layout — ele é o clímax da
-// narrativa, por isso só aparece por último, mesmo estando no meio.
-const LIMIAR_MES = 0.12;
-const LIMIAR_SEMESTRE = 0.45;
-const LIMIAR_HOJE = 0.92;
+// Atraso entre a revelação de um bloco e o próximo, depois que a seção
+// aparece na tela — a sequência (mês → semestre → hoje) toca sozinha, sem
+// precisar de mais scroll pra continuar.
+const ATRASO_ENTRE_BLOCOS_MS = 1400;
 
 export default function SecaoCrescimento() {
   const sectionRef = useRef(null);
-  const emVista = useInView(sectionRef, { amount: 0.1 });
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ['start start', 'end end'],
-  });
+  // Dispara UMA vez, quando a seção entra na tela.
+  const emVista = useInView(sectionRef, { once: true, amount: 0.3 });
 
-  // Cada bloco, uma vez revelado, TRAVA nesse estado — nunca volta a ficar
-  // invisível nem reconta o número, mesmo se o usuário subir e descer a
-  // página de novo.
   const [mesRevelado, setMesRevelado] = useState(false);
   const [semestreRevelado, setSemestreRevelado] = useState(false);
   const [hojeRevelado, setHojeRevelado] = useState(false);
 
-  useMotionValueEvent(scrollYProgress, 'change', (v) => {
+  useEffect(() => {
     if (!emVista) return;
-    if (v >= LIMIAR_MES) setMesRevelado(true);
-    if (v >= LIMIAR_SEMESTRE) setSemestreRevelado(true);
-    if (v >= LIMIAR_HOJE) setHojeRevelado(true);
-  });
+    const t1 = setTimeout(() => setMesRevelado(true), 150);
+    const t2 = setTimeout(() => setSemestreRevelado(true), 150 + ATRASO_ENTRE_BLOCOS_MS);
+    const t3 = setTimeout(() => setHojeRevelado(true), 150 + ATRASO_ENTRE_BLOCOS_MS * 2);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [emVista]);
 
   return (
-    <section ref={sectionRef} className="relative w-full bg-[#fcfbfb] min-h-[340vh]">
-      <div
-        className="sticky top-0 z-10 h-screen flex flex-col items-center justify-start pt-20 md:pt-28 overflow-hidden px-6"
-        style={{
-          backgroundImage:
-            'linear-gradient(to bottom, rgba(254,209,6,0.3) 0%, #fffdf3 18%, #fffdf3 82%, rgba(254,209,6,0.3) 100%)',
-        }}
-      >
+    <section
+      ref={sectionRef}
+      className="relative w-full py-24 md:py-32 px-6"
+      style={{
+        backgroundImage:
+          'linear-gradient(to bottom, #fed106 0%, #fffdf3 18%, #fffdf3 82%, #fed106/50 50%)',
+      }}
+    >
+      <div className="max-w-5xl mx-auto flex flex-col items-center">
         <div className="text-center mb-10 md:mb-14">
           <span className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-gray-400 mb-3">
             <span className="w-2 h-2 bg-[#fed106]" />
@@ -54,7 +51,7 @@ export default function SecaoCrescimento() {
         {/* Ordem no JSX = ordem de leitura no mobile (mês, semestre, hoje).
             No desktop, "md:order-*" reposiciona só visualmente, colocando o
             bloco "Hoje" na coluna central sem mudar a ordem de revelação. */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-14 md:gap-8 w-full max-w-5xl items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-14 md:gap-8 w-full items-center">
           <GrowthCard
             className="md:order-1"
             revelado={mesRevelado}

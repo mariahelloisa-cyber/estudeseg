@@ -116,7 +116,7 @@ function CardMarco({ marco, ativo, ehUltimo }) {
           {titulo}
         </h3>
 
-        <p className={`font-medium leading-relaxed text-sm transition-colors duration-300 ${ativo ? 'text-gray-500' : 'text-gray-300'}`}>
+        <p className={`font-medium leading-relaxed text-sm transition-colors duration-300 ${ativo ? 'text-black' : 'text-gray-300'}`}>
           {texto}
         </p>
 

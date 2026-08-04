@@ -87,16 +87,6 @@ export default function GrowthCard({
         {texto}
       </p>
 
-      {destaque && (
-        <span
-          className={`mt-4 inline-flex items-center gap-1.5 rounded-full border transition-colors duration-500 ${
-            destacado ? 'border-[#fed106] bg-[#fed106]/10' : 'border-transparent'
-          } px-3 py-1 text-[10px] font-black uppercase tracking-wider text-black`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#fed106]" />
-          Estude Seguro hoje
-        </span>
-      )}
     </motion.div>
   );
 }

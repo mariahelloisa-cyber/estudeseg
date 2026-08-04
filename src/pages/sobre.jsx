@@ -356,7 +356,7 @@ Assista ao vídeo e descubra como estamos conectando conhecimento, oportunidades
           <div className="relative w-full max-w-4xl aspect-[4/3] sm:aspect-video rounded-[32px] overflow-hidden shadow-2xl group">
             {videoReproduzindo ? (
               <iframe
-                src={`https://drive.google.com/file/d/${VIDEO_DRIVE_ID}/preview`}
+                src={`https://drive.google.com/file/d/${VIDEO_DRIVE_ID}/preview?autoplay=1`}
                 className="w-full h-full"
                 allow="autoplay; fullscreen"
                 allowFullScreen
