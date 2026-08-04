@@ -58,7 +58,7 @@ export default function Navbar() {
             </div>
 
             {/* Links das Abas */}
-            <div className="hidden md:flex space-x-6 items-center">
+            <div className="hidden md:flex space-x-7 items-center">
               {LINKS.map((link) => (
                 <Link
                   key={link.to}

@@ -17,7 +17,7 @@ import fotoYoutube from '../assets/youtube.png';
 import fotoReclameAqui from '../assets/reclameaqui.png';
 import fotoGoogleMeuNegocio from '../assets/google-meu-negocio.png';
 
-const VIDEO_DRIVE_ID = '1PFZab6pHDCmfEseEQjoRVA8Rb1g1FE08';
+const VIDEO_YOUTUBE_ID = 'TC22MoAlzwM';
 
 const SELOS = [
   { nome: 'Selo 1', imagem: selo1 },
@@ -416,9 +416,9 @@ Assista ao vídeo e descubra como estamos conectando conhecimento, oportunidades
           <div className="relative w-full max-w-4xl aspect-[4/3] sm:aspect-video rounded-[32px] overflow-hidden shadow-2xl group">
             {videoReproduzindo ? (
               <iframe
-                src={`https://drive.google.com/file/d/${VIDEO_DRIVE_ID}/preview?autoplay=1`}
+                src={`https://www.youtube.com/embed/${VIDEO_YOUTUBE_ID}?autoplay=1`}
                 className="w-full h-full"
-                allow="autoplay; fullscreen"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
                 title="Vídeo institucional Estude Seguro"
               />
