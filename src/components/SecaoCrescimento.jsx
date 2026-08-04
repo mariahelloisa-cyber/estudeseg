@@ -34,7 +34,7 @@ export default function SecaoCrescimento() {
       className="relative w-full py-24 md:py-32 px-6"
       style={{
         backgroundImage:
-          'linear-gradient(to bottom, #fed106 0%, #fffdf3 18%, #fffdf3 82%, #fed106/50 50%)',
+          'linear-gradient(to bottom, rgba(254,209,6,0.5) 0%, #fffdf3 18%, #fffdf3 82%, rgba(254,209,6,0.5) 100%)',
       }}
     >
       <div className="max-w-5xl mx-auto flex flex-col items-center">
