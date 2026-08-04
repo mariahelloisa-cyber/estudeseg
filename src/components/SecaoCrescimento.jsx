@@ -6,9 +6,9 @@ import GrowthCard from './GrowthCard';
 // revelado. A ordem de revelação é sempre MÊS → SEMESTRE → HOJE, mesmo o
 // bloco "Hoje" ficando visualmente no centro do layout — ele é o clímax da
 // narrativa, por isso só aparece por último, mesmo estando no meio.
-const LIMIAR_MES = 0.15;
-const LIMIAR_SEMESTRE = 0.5;
-const LIMIAR_HOJE = 0.88;
+const LIMIAR_MES = 0.12;
+const LIMIAR_SEMESTRE = 0.45;
+const LIMIAR_HOJE = 0.92;
 
 export default function SecaoCrescimento() {
   const sectionRef = useRef(null);
@@ -33,8 +33,14 @@ export default function SecaoCrescimento() {
   });
 
   return (
-    <section ref={sectionRef} className="relative w-full bg-[#fcfbfb] min-h-[150vh]">
-      <div className="sticky top-0 z-10 h-screen flex flex-col items-center justify-center overflow-hidden px-6">
+    <section ref={sectionRef} className="relative w-full bg-[#fcfbfb] min-h-[340vh]">
+      <div
+        className="sticky top-0 z-10 h-screen flex flex-col items-center justify-start pt-20 md:pt-28 overflow-hidden px-6"
+        style={{
+          backgroundImage:
+            'linear-gradient(to bottom, rgba(254,209,6,0.3) 0%, #fffdf3 18%, #fffdf3 82%, rgba(254,209,6,0.3) 100%)',
+        }}
+      >
         <div className="text-center mb-10 md:mb-14">
           <span className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-gray-400 mb-3">
             <span className="w-2 h-2 bg-[#fed106]" />
