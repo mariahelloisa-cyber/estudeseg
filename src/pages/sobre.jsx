@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { ShieldCheckIcon, StarIcon } from '@heroicons/react/24/solid';
 import Navbar from '../components/Navbar';
+import HistoriaCinematica from '../components/HistoriaCinematica';
 import { supabase } from '../supabaseClient';
 import imagemInstitucional from '../assets/capa-video.png';
-import fundoHero from '../assets/fundoo.png';
+import estudante from '../assets/estudante.png';
 import selo1 from '../assets/selo1.png';
 import selo2 from '../assets/selo2.png';
 import selo3 from '../assets/selo3.png';
 import selo4 from '../assets/selo4.png';
-import selo6 from '../assets/selo6.png';
 import seloAbed from '../assets/abed.png';
 import fotoFacebook from '../assets/facebook.png';
 import fotoInstagram from '../assets/instagram.png';
@@ -67,56 +67,9 @@ function normalizarNomeRede(nome) {
   return (nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 }
 
-// Fallback exibido enquanto a tabela `trajetoria` do Supabase não responde/está vazia
-const LINHA_DO_TEMPO_PADRAO = [
-    {
-      ano: '2020 - 2021',
-      categoria: 'IDEALIZAÇÃO',
-      titulo: 'O Início de um Sonho',
-      descricao: 'A Estude Seguro nasceu para ampliar o acesso à educação técnica de qualidade, tornando as matrículas em cursos EAD mais acessíveis, seguras e eficientes, contribuindo para o desenvolvimento pessoal e profissional.',
-      imagem: selo6 
-    },
-  
-    {
-      ano: '2022',
-      categoria: 'EAD',
-      titulo: 'Metodologia EAD',
-      descricao: 'Com uma metodologia EAD desenvolvida para oferecer flexibilidade, autonomia e praticidade, permitindo que você estude de onde estiver e no horário que melhor se adapte à sua rotina. Unindo tecnologia, eficiência e segurança para facilitar sua formação.',
-      imagem: selo6 
-    },
-    {
-      ano: '2023',
-      categoria: 'EXPANSÃO',
-      titulo: 'Crescimento Exponencial',
-      descricao: 'Oferecemos um amplo portfólio de cursos técnicos alinhados às demandas do mercado, permitindo que cada aluno escolha a formação ideal para alcançar seus objetivos com qualidade e confiança.',
-      imagem: selo6
-    },
-    {
-      ano: '2024',
-      categoria: 'INOVAÇÃO',
-      titulo: 'Crescimento e Impacto',
-      descricao: 'O crescimento da Estude Seguro é baseado em segurança, transparência e credibilidade. Garantimos que cada matrícula seja realizada com respaldo legal, proporcionando confiança desde a inscrição até a conquista do diploma.',
-      imagem: selo6
-    },
-    {
-      ano: '2025 - 2026',
-      categoria: 'CONSOLIDAÇÃO',
-      titulo: 'Suporte e Acompanhamento',
-      descricao: 'Oferecemos atendimento humanizado e acompanhamento durante toda a jornada acadêmica. Nossos consultores educacionais estão prontos para orientar cada etapa com clareza, segurança e conformidade com a legislação.',
-      imagem: selo6
-    },
-    {
-      ano: '2026',
-      categoria: 'O FUTURO CONTINUA',
-      titulo: 'O Futuro Continua',
-      descricao: 'Investimos continuamente em inovação, tecnologia e soluções educacionais para oferecer uma experiência de ensino moderna, acessível e eficiente, preparando nossos alunos para os desafios do futuro.',
-      imagem: selo6
-    }
-  ];
 
 export default function Sobre() {
   const [videoReproduzindo, setVideoReproduzindo] = useState(false);
-  const [linhaDoTempo, setLinhaDoTempo] = useState(LINHA_DO_TEMPO_PADRAO);
   const [redesSociais, setRedesSociais] = useState(REDES_SOCIAIS_PADRAO);
 
   useEffect(() => {
@@ -143,74 +96,53 @@ export default function Sobre() {
     buscarRedesSociaisDoSupabase();
   }, []);
 
-  useEffect(() => {
-    async function buscarTrajetoriaDoSupabase() {
-      try {
-        const { data, error } = await supabase
-          .from('trajetoria')
-          .select('*')
-          .order('created_at', { ascending: true });
-
-        if (error) throw error;
-        if (data && data.length > 0) {
-          setLinhaDoTempo(data.map((item) => ({
-            ano: item.ano,
-            categoria: item.categoria,
-            titulo: item.titulo,
-            descricao: item.descricao,
-            imagem: item.imagem_url || selo6,
-          })));
-        }
-      } catch (err) {
-        console.error("Erro na conexão com a trajetória do Supabase:", err);
-      }
-    }
-
-    buscarTrajetoriaDoSupabase();
-  }, []);
-
   return (
     <>
       <Navbar />
       <div className="w-full bg-[#fcfbfb] font-sans antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* 1. SEÇÃO HERO */}
-      <section className="relative w-full flex items-center overflow-hidden py-10 md:py-14">
-        <img
-          src={fundoHero}
-          alt="Alunos Estude Seguro"
-          className="absolute inset-0 w-full h-full object-cover object-center"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/10"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
-
-        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
-          <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 bg-[#fffbe6] border border-[#fed106]/50 rounded-full px-4 py-1.5 mb-5">
-              <StarIcon className="w-4 h-4 text-[#fed106]" />
-              <span className="text-xs font-black uppercase tracking-wide text-[#8a6d00]">Há mais de 10 anos transformando vidas</span>
+      <section className="relative w-full bg-white overflow-hidden pt-10 md:pt-14">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+          <div className="relative">
+            <div className="absolute -top-7 left-0 flex items-center">
+              <span className="inline-block w-2 h-2 bg-[#fed106] mr-2 align-middle"></span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-gray-500 align-middle">Sobre nós</span>
             </div>
-
-            <h1 className="text-3xl md:text-5xl font-black text-white mb-5 leading-[1.15] tracking-tight">
-              Veja aqui a história da <span className="text-[#fed106]">Estude Seguro</span>
+            <h1 className="text-4xl md:text-5xl font-black text-[#000000] leading-[1.15] tracking-tight">
+              <span className="block">Veja aqui</span>
+              <span className="block">a história da</span>
+              <span className="block text-[#fed106]">Estude Seguro</span>
             </h1>
+          </div>
 
-            <p className="text-base md:text-lg text-gray-200 font-medium mb-8 max-w-md leading-relaxed">
+          <div className="flex justify-center order-first lg:order-none">
+            <img
+              src={estudante}
+              alt="Estudante Estude Seguro"
+              className="w-full max-w-[280px] md:max-w-[320px] h-[380px] md:h-[440px] object-cover object-top"
+            />
+          </div>
+
+          <div>
+            <p className="text-sm md:text-base text-gray-600 font-medium mb-6 leading-relaxed">
               Escolher onde estudar é também escolher como você quer se preparar para o futuro.
             </p>
 
             <a
               href="#historia"
-              className="inline-flex items-center gap-3 bg-[#fed106] hover:bg-black hover:text-white text-black font-bold py-4 px-8 text-base rounded-full transition-all active:scale-95 w-max shadow-md"
+              className="inline-flex items-center gap-3 bg-[#fed106] hover:bg-black hover:text-white text-black font-bold py-3.5 px-7 text-sm rounded-full transition-all active:scale-95 w-max shadow-md"
             >
               Nossa história
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </a>
           </div>
         </div>
       </section>
+
+      <div className="w-full h-6 bg-[#fed106]"></div>
 
       {/* 2. SEÇÃO HISTÓRIA (Ajustada com formas vetorizadas de alta definição e sem os pontos circulados) */}
       <section id="historia" className="relative max-w-7xl mx-auto px-6 py-24 overflow-hidden bg-[#fcfbfb]">
@@ -243,16 +175,12 @@ export default function Sobre() {
             {/* Parágrafos de Conteúdo */}
             <div className="space-y-6 text-gray-700 text-sm md:text-[15px] font-medium leading-relaxed max-w-xl">
               <p>
-                A <strong className="text-gray-900 font-bold">Estude Seguro</strong> nasceu com o propósito de transformar a forma como os brasileiros se matriculam em cursos EAD. Localizada na maior metrópole da América Latina, na Avenida Paulista – São Paulo (SP), nossa equipe está preparada para oferecer o suporte que você precisa com <strong className="text-gray-900 font-bold">transparência, segurança e credibilidade.</strong>
+                A <strong className="text-gray-900 font-bold">Estude Seguro</strong> nasceu com o propósito de transformar a forma como os brasileiros se matriculam em cursos EAD. Nossa equipe está preparada para oferecer o suporte que você precisa com <strong className="text-gray-900 font-bold">transparência, segurança e credibilidade.</strong>
 
               </p>
               <p>
                 Somos <strong className="text-gray-900 font-bold">intermediadores oficiais</strong> entre alunos e instituições de ensino credenciadas, garantindo que todo o processo — da matrícula até a certificação — aconteça com total segurança e respaldo jurídico.
 Aqui, <strong className="text-gray-900 font-bold">não trabalhamos com vendedores</strong>, mas sim com <strong className="text-gray-900 font-bold">consultores educacionais especializados</strong>, capacitados para esclarecer todas as suas dúvidas e orientá-lo de acordo com a  <strong className="text-gray-900 font-bold">legislação educacional vigente.</strong>
-              </p>
-              <p>
-                Nosso compromisso é com o seu sonho.
-Por isso, <strong className="text-gray-900 font-bold">cada matrícula é protegida por lei</strong>, garantindo que seu investimento esteja seguro até o recebimento do diploma devidamente reconhecido.
               </p>
               <p>
                 Você pode <strong className="text-gray-900 font-bold">nos visitar</strong> ou <strong className="text-gray-900 font-bold">entrar em contato</strong> pelos nossos canais oficiais.
@@ -326,7 +254,9 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
           </div>
         </div>
       </div>
-      
+
+      {/* 2.5 SEÇÃO HISTÓRIA CINEMATOGRÁFICA — capelo flutuante acompanhando o scroll */}
+      <HistoriaCinematica />
 
       {/* 2.4 SEÇÃO CREDIBILIDADE (ABED / Reclame Aqui) */}
       <section className="relative w-full bg-[#fcfbfb] overflow-hidden min-h-[360px] sm:min-h-[440px] md:min-h-[530px]">
@@ -456,77 +386,6 @@ Assista ao vídeo e descubra como estamos conectando conhecimento, oportunidades
             )}
           </div>
 
-        </div>
-      </section>
-
-
-      {/* 4. SEÇÃO LINHA DO TEMPO */}
-      <section className="bg-gray-50 py-24 px-6 border-t border-gray-200/60">
-        <div className="max-w-6xl mx-auto">
-          
-          <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-[40px] font-black text-[#1e293b] mb-3 tracking-tight">
-              Uma trajetória de crescimento
-            </h2>
-            <p className="text-gray-500 font-medium text-base md:text-lg">
-              Inovação e compromisso com a educação brasileira
-            </p>
-          </div>
-
-          <div className="relative w-full space-y-12 md:space-y-0">
-            <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-[2px] bg-gray-200 transform md:-translate-x-1/2"></div>
-
-            {linhaDoTempo.map((item, index) => {
-              const renderizaNaEsquerda = index % 2 === 0;
-
-              return (
-                <div 
-                  key={index} 
-                  className={`relative flex flex-col md:flex-row items-start md:items-center w-full md:mb-16 ${
-                    renderizaNaEsquerda ? 'md:flex-row' : 'md:flex-row-reverse'
-                  }`}
-                >
-                  {/* Card Lateral */}
-                  <div className={`w-full md:w-1/2 pl-12 pr-4 md:px-12 flex ${
-                    renderizaNaEsquerda ? 'md:justify-end' : 'md:justify-start'
-                  }`}>
-                    <div className="group bg-white p-6 md:p-7 rounded-2xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.03)] border border-gray-100 border-l-4 border-l-[#fed106] w-full max-w-[510px] transition-all hover:shadow-[0_15px_35px_-5px_rgba(0,0,0,0.06)]">
-                      
-                      <div className="flex items-center gap-2.5 mb-3.5">
-                        <span className="bg-[#fed106] text-white font-extrabold py-1 px-3 rounded-full text-xs tracking-wide">
-                          {item.ano}
-                        </span>
-                        <span className="text-[#fed106] font-black text-xs tracking-wider uppercase">
-                          {item.categoria}
-                        </span>
-                      </div>
-
-                      <h3 className="text-lg md:text-xl font-extrabold text-[#000000] mb-2.5 tracking-tight transition-colors duration-300 group-hover:text-[#fed106]">
-                        {item.titulo}
-                      </h3>
-                      
-                      <p className="text-gray-500 font-medium leading-relaxed text-xs md:text-sm mb-4">
-                        {item.descricao}
-                      </p>
-
-                      {item.imagem && (
-                        <div className="w-full rounded-xl overflow-hidden mt-2 border border-gray-100 shadow-inner">
-                          <img 
-                            src={item.imagem} 
-                            alt={item.titulo} 
-                            className="w-full h-auto max-h-[240px] object-cover transition-transform duration-500 group-hover:scale-105" 
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="absolute left-[10px] md:left-1/2 transform md:-translate-x-1/2 top-7 md:top-auto w-[14px] h-[14px] bg-[#fed106] rounded-full z-10 border-4 border-white shadow-sm"></div>
-                  <div className="hidden md:block w-1/2"></div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       </section>
       </div>

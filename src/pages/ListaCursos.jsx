@@ -377,7 +377,6 @@ export default function ListaCursos() {
                         {nomeItem}
                       </h3>
                     </div>
-
                     {/* Lado Direito: Horas, Preço e Ação */}
                     <div className="flex items-center justify-between w-full md:w-auto md:gap-8 ml-0 md:ml-6 shrink-0">
                       
@@ -391,34 +390,34 @@ export default function ListaCursos() {
                         R$ {precoItem.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
 
-                      {/* Botão de Compra Retangular Rosa */}
+                      {/* Botão de Compra Retangular Amerelo */}
                        <button
-  onClick={() => adicionarAoCarrinho({
-                    id: curso.id,
-                    titulo: nomeItem,
-                    preco: precoItem,
-                    horas: horasItem
-                  })}
-                  className="bg-[#fed106] hover:bg-[#000000] text-white px-4 py-2 rounded font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm active:scale-95"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider">
-                    COMPRAR
-                  </span>
-                </button>
+                        onClick={() => adicionarAoCarrinho({
+                        id: curso.id,
+                        titulo: nomeItem,
+                        preco: precoItem,
+                        horas: horasItem
+                      })}
+                      className="bg-[#fed106] hover:bg-[#000000] text-white px-4 py-2 rounded font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm active:scale-95"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider">
+                        COMPRAR
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              );
+                })
+              )}
+            </div>
+          </div>
+                  </>
+                )}
+
               </div>
             </div>
           );
-        })
-      )}
-    </div>
-  </div>
-          </>
-        )}
-
-      </div>
-    </div>
-  );
-}
+        }

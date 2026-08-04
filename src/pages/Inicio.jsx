@@ -473,8 +473,8 @@ export default function Inicio() {
       {/* --- SEÇÃO 1: BANNER ROTATIVO (AGORA INTEGRADO AO SUPABASE) --- */}
       {banners.length > 0 && (
         <div className="w-full bg-white relative group">
-          <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
-            <div className="w-full relative overflow-hidden rounded-2xl md:rounded-3xl shadow-sm h-[220px] sm:h-[340px] md:h-[460px]">
+          <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pb-2">
+            <div className="w-full relative overflow-hidden rounded-b-2xl md:rounded-b-3xl shadow-sm h-[220px] sm:h-[340px] md:h-[460px]">
               {banners.map((banner, idx) => (
                 <img
                   key={banner.id ?? idx}
@@ -518,7 +518,7 @@ export default function Inicio() {
       )}
 
       {/* --- SEÇÃO 2: BUSCA DE CURSOS (MOBILE) --- */}
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 -mt-2 md:mt-4 relative z-10 pb-6">
+      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 -mt-2 md:mt-4 relative z-10 pb-4">
         {/* Barra de pesquisa de cursos — só no mobile */}
         <div className="md:hidden mt-8 bg-white rounded-3xl shadow-xl border border-gray-100 p-5 flex flex-col items-center text-center">
           <p className="text-[#fed106] text-sm font-black uppercase tracking-wide mb-3">
@@ -555,7 +555,7 @@ export default function Inicio() {
 
       {/* --- SEÇÃO 3: ESTEIRA DE FRASES --- */}
       {listaFrases.length > 0 && (
-        <div className="w-full bg-white mt-4 pb-4 border-b border-gray-100 shadow-inner">
+        <div className="w-full bg-white mt-2 pb-4 border-b border-gray-100 shadow-inner">
           <div className="w-full bg-[#000000] py-4 mb-2 flex justify-center items-center shadow-md">
             <h2 className="text-white text-base md:text-xl font-black uppercase tracking-[0.2em] text-center px-4">
               {tituloEsteira}

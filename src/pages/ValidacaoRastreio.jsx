@@ -120,7 +120,6 @@ export default function ValidacaoRastreio() {
               />
             </div>
           </div>
-
           <button
             type="submit"
             disabled={status === 'buscando'}

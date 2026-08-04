@@ -22,18 +22,18 @@ html {
 }
 
 
-/* Ciclo Fácil → Rápido → Agora → Seguro, igual antes, mas segurando 10s em
+/* Ciclo Fácil → Rápido → Agora → Seguro, igual antes, mas segurando 5s em
    "Seguro" antes de repetir o ciclo inteiro de novo (infinite em vez de rodar
    uma vez só e travar no final). */
 @keyframes wordCycle {
-  0%, 6% { transform: translateY(0%); }
-  9%, 15% { transform: translateY(-25%); }
-  18%, 23% { transform: translateY(-50%); }
-  26%, 100% { transform: translateY(-75%); }
+  0%, 9% { transform: translateY(0%); }
+  14%, 23% { transform: translateY(-25%); }
+  28%, 37% { transform: translateY(-50%); }
+  42%, 100% { transform: translateY(-75%); }
 }
 
 .animate-word-cycle {
-  animation: wordCycle 13.6s ease-in-out infinite;
+  animation: wordCycle 8.6s ease-in-out infinite;
 }
 
 

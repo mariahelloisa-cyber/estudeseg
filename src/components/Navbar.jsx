@@ -24,6 +24,8 @@ export default function Navbar() {
   const location = useLocation();
 
   const linkEstaAtivo = (to) => (to === '/' ? location.pathname === '/' : location.pathname.startsWith(to));
+  // Pedido específico da página "Sobre Nós": sem sombra abaixo do header, só nela.
+  const semSombraHeader = location.pathname === '/sobre';
 
   return (
     <div className="w-full">
@@ -44,7 +46,7 @@ export default function Navbar() {
       </div>
 
       {/* --- NAVBAR PRINCIPAL --- */}
-      <nav className="bg-white shadow-md sticky top-0 z-50">
+      <nav className={`bg-white sticky top-0 z-50 ${semSombraHeader ? '' : 'shadow-md'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20">
             
