@@ -339,6 +339,7 @@ export default function Admin() {
   const [credibilidadeTexto, setCredibilidadeTexto] = useState("");
   const [credibilidadeFotoUrl, setCredibilidadeFotoUrl] = useState("");
   const [listaDiferenciais, setListaDiferenciais] = useState([]);
+  const [listaCarrossel3d, setListaCarrossel3d] = useState([]);
   const [depoimentos, setDepoimentos] = useState([]);
   const [noticiasDestaque, setNoticiasDestaque] = useState([]);
   const [novoTituloNoticia, setNovoTituloNoticia] = useState("");
@@ -692,6 +693,27 @@ export default function Admin() {
     buscarDiferenciaisDoSupabase();
   }, []);
 
+
+  // Buscar Fotos do Carrossel 3D do SUPABASE
+  async function buscarCarrossel3dDoSupabase() {
+    try {
+      const { data, error } = await supabase
+        .from('carrossel_3d_fotos')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setListaCarrossel3d(data || []);
+    } catch (err) {
+      console.error("Erro na conexão com o carrossel 3D do Supabase:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarCarrossel3dDoSupabase();
+  }, []);
+
+  
   // Função para Adicionar um Novo Diferencial
   async function handleAdicionarDiferencial(e) {
     e.preventDefault();
@@ -766,6 +788,62 @@ export default function Admin() {
     }
   }
 
+
+  // Função para Adicionar uma Nova Foto ao Carrossel 3D
+  async function handleAdicionarFotoCarrossel3d(e) {
+    e.preventDefault();
+    const arquivoInput = document.getElementById('imagem-carrossel-3d');
+    const arquivo = arquivoInput?.files[0];
+
+    if (!arquivo) {
+      setMensagemStatus("⚠️ Por favor, selecione uma imagem!");
+      return;
+    }
+
+    try {
+      validarImagem(arquivo);
+      setMensagemStatus("⏳ Fazendo upload da foto...");
+      const nomeArquivo = `carrossel3d-${sanitizarNomeArquivo(arquivo.name)}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('banners')
+        .upload(nomeArquivo, arquivo);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('banners')
+        .getPublicUrl(nomeArquivo);
+
+      const { error: insertError } = await supabase.from('carrossel_3d_fotos').insert([
+        { imagem_url: urlData.publicUrl }
+      ]);
+
+      if (insertError) throw insertError;
+
+      setMensagemStatus("✅ Foto publicada com sucesso!");
+      if (arquivoInput) arquivoInput.value = "";
+      buscarCarrossel3dDoSupabase();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar a foto. Tente novamente.");
+    }
+  }
+
+  // Função para Eliminar uma Foto do Carrossel 3D
+  async function handleEliminarFotoCarrossel3d(id) {
+    if (!window.confirm("Tem a certeza que quer eliminar esta foto?")) return;
+    try {
+      const { error } = await supabase.from('carrossel_3d_fotos').delete().eq('id', id);
+      if (error) throw error;
+      buscarCarrossel3dDoSupabase();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível eliminar a foto. Tente novamente.");
+    }
+  }
+
+  
   // --- TRAJETÓRIA (linha do tempo da página Sobre Nós) ---
   async function buscarTrajetoriaDoSupabase() {
     try {
@@ -3597,6 +3675,38 @@ export default function Admin() {
             </>
           )}
 
+
+          {/* ================= CARROSSEL 3D (HOME) ================= */}
+          {abaAtiva === 'carrossel-3d' && (
+            <>
+              <CabecalhoPagina titulo="Gerenciar Carrossel 3D" subtitulo="Fotos giratórias exibidas na Home, antes do formulário de contato" Icon={Square3Stack3DIcon} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Nova Foto</h3>
+                  <form onSubmit={handleAdicionarFotoCarrossel3d} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Imagem (Do PC)</label>
+                      <input type="file" id="imagem-carrossel-3d" accept="image/*" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
+                    </div>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Foto</button>
+                  </form>
+                </div>
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Fotos Ativas ({listaCarrossel3d.length})</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {listaCarrossel3d.map((f) => (
+                      <div key={f.id} className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden relative shadow-sm">
+                        <img src={f.imagem_url} alt="" className="w-full h-28 object-cover" />
+                        <button onClick={() => handleEliminarFotoCarrossel3d(f.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          
           {/* ================= TRAJETÓRIA (SOBRE NÓS) ================= */}
           {abaAtiva === 'trajetoria' && (
             <>
