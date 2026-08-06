@@ -1027,6 +1027,7 @@ export default function Inicio() {
 </section>
       )}
 
+<br></br>      
       {/* --- SEÇÃO: "QUERO..." (3 colunas de cursos marcados no admin, uma por grupo) --- */}
       <section className="relative py-16 md:py-20 bg-white w-full overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
