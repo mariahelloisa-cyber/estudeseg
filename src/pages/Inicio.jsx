@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import LinhaDivisoriaEsteira from '../components/LinhaDivisoriaEsteira';
+import RoundCarousel from '../components/RoundCarousel';
 import { obterUrlEmbedVideo } from '../utils/video';
 import { GRUPOS_HOME_CURSO, MAX_CURSOS_POR_GRUPO_HOME } from '../utils/gruposHomeCurso';
 
