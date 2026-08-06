@@ -1180,7 +1180,42 @@ export default function Inicio() {
       
       <LinhaDivisoriaEsteira />
 
-    
+      {/* --- SEÇÃO DEPOIMENTOS --- */}
+      {depoimentos.length > 0 && (
+        <div className="w-full bg-gray-50 relative overflow-hidden py-10 md:py-10">
+
+          <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-left mb-10 w-full">
+              <h2 className="text-4xl md:text-[50px] font-black text-gray-900 tracking-tight leading-none mb-4">
+                Depoimentos
+              </h2>
+              <p className="text-xs md:text-sm text-gray-700 font-medium whitespace-normal md:whitespace-nowrap">
+                Descubra como a combinação de projetos reais, professores atuantes e uma plataforma completa mudou o jeito de aprender de quem já passou por aqui.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 px-1">
+              {depoimentos.map((item) => {
+                const estaReproduzindo = depoimentoReproduzindoId === item.id;
+                const urlEmbed = obterUrlEmbedVideo(item.video_url);
+
+                if (estaReproduzindo && urlEmbed) {
+                  return (
+                    <div
+                      key={`depoimento-${item.id}`}
+                      className="w-full h-[290px] md:h-[320px] rounded-3xl shadow-md relative overflow-hidden bg-black"
+                    >
+                      <iframe
+                        src={urlEmbed}
+                        className="w-full h-full"
+                        allow="autoplay; fullscreen"
+                        allowFullScreen
+                        title={`Depoimento de ${item.nome}`}
+                      />
+                    </div>
+                  );
+                }
+
                 const linkWhatsapp = montarLinkWhatsapp(item.whatsapp);
 
                 return (
