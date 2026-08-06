@@ -1203,103 +1203,21 @@ export default function Inicio() {
       
       <LinhaDivisoriaEsteira />
 
-      {/* --- SEÇÃO DEPOIMENTOS --- */}
-      {depoimentos.length > 0 && (
-        <div className="w-full bg-gray-50 relative overflow-hidden py-10 md:py-10">
-
-          <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="text-left mb-10 w-full">
-              <h2 className="text-4xl md:text-[50px] font-black text-gray-900 tracking-tight leading-none mb-4">
-                Depoimentos
-              </h2>
-              <p className="text-xs md:text-sm text-gray-700 font-medium whitespace-normal md:whitespace-nowrap">
-                Descubra como a combinação de projetos reais, professores atuantes e uma plataforma completa mudou o jeito de aprender de quem já passou por aqui.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 px-1">
-              {depoimentos.map((item) => {
-                const estaReproduzindo = depoimentoReproduzindoId === item.id;
-                const urlEmbed = obterUrlEmbedVideo(item.video_url);
-
-                if (estaReproduzindo && urlEmbed) {
-                  return (
-                    <div
-                      key={`depoimento-${item.id}`}
-                      className="w-full h-[290px] md:h-[320px] rounded-3xl shadow-md relative overflow-hidden bg-black"
-                    >
-                      <iframe
-                        src={urlEmbed}
-                        className="w-full h-full"
-                        allow="autoplay; fullscreen"
-                        allowFullScreen
-                        title={`Depoimento de ${item.nome}`}
-                      />
-                    </div>
-                  );
-                }
-
-                const linkWhatsapp = montarLinkWhatsapp(item.whatsapp);
-
-                return (
-                  <div
-                    key={`depoimento-${item.id}`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setDepoimentoReproduzindoId(item.id)}
-                    onKeyDown={(e) => e.key === 'Enter' && setDepoimentoReproduzindoId(item.id)}
-                    style={{ backgroundImage: `url(${item.foto_url})` }}
-                    className="w-full h-[290px] md:h-[320px] rounded-3xl bg-cover bg-center shadow-md relative overflow-hidden flex flex-col justify-between p-5 group cursor-pointer transform hover:-translate-y-1.5 transition-all duration-300 text-left"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent z-10"></div>
-                    <div></div>
-                    <div className="relative z-20 flex justify-center items-center">
-                      <div className="w-14 h-14 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex justify-center items-center group-hover:scale-110 group-hover:bg-[#fed106] transition-all duration-300 shadow-lg">
-                        <svg className="w-5 h-5 text-[#fed106] group-hover:text-white fill-current transform translate-x-0.5 transition-colors" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                      </div>
-                    </div>
-                    <div className="relative z-20 text-left">
-                      <h4 className="text-white text-base font-extrabold tracking-wide leading-tight">
-                        {item.nome}
-                      </h4>
-                      {item.instagram && (
-                        <p className="text-white/70 text-xs font-medium mt-0.5">
-                          {item.instagram}
-                        </p>
-                      )}
-                      {linkWhatsapp && (
-                        <a
-                          href={linkWhatsapp}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="mt-2 inline-flex items-center gap-1.5 text-white hover:text-[#fed106] text-xs font-extrabold tracking-wide transition-colors"
-                        >
-                          Tire suas dúvidas já
-                          <svg className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                          </svg>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex justify-center mt-10">
-              <Link
-                to="/depoimentos"
-                className="inline-flex items-center gap-2 bg-[#fed106] hover:bg-black text-white hover:text-white px-8 py-3.5 rounded-full font-black text-sm uppercase tracking-wider transition-all shadow-sm"
-              >
-                Ver mais
-              </Link>
-            </div>
-          </div>
+            {/* --- SEÇÃO: CARROSSEL 3D DE FOTOS --- */}
+      <section className="w-full bg-white pt-16 md:pt-20 pb-4 md:pb-6">
+        <div className="max-w-3xl mx-auto px-4 text-center mb-10">
+          <h2 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight">
+            Faça igual a eles, e se junte a <span className="text-[#cd146e]">LATEC</span>
+          </h2>
         </div>
-      )}
+        <div className="w-full h-[320px] md:h-[420px]">
+          <RoundCarousel
+            background="#ffffff"
+            images={fotosCarrossel3d.length > 0 ? fotosCarrossel3d.map((f) => ({ src: f.imagem_url })) : undefined}
+          />
+        </div>
+      </section>
+
 
       <LinhaDivisoriaEsteira />
 
