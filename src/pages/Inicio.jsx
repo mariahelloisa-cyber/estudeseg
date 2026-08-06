@@ -665,69 +665,6 @@ export default function Inicio() {
         </form>
       </div>
 
-      {/* --- SEÇÃO 4: DIFERENCIAIS --- */}
-{listaDiferenciais.length > 0 && (
-  <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-16 pb-16">
-    <div className="text-center md:text-left mb-8 pl-2">
-      <h2 className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Nossos Diferenciais</h2>
-      <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Por que escolher a Estude Seguro para impulsionar o seu futuro profissional?</p>
-    </div>
-    <div className="w-full flex flex-col items-center">
-      <div className="w-full min-h-[460px] flex items-center justify-center relative overflow-x-hidden overflow-y-visible px-2 py-10 gap-3 md:gap-6">
-        {[0, 1, 2, 3, 4].map((posicaoFisica) => {
-          const itemData = obterDadoDoCard(posicaoFisica);
-          if (!itemData) return null;
-          let estiloDestaque = posicaoFisica === 2 ? "scale-110 md:scale-115 opacity-100 z-30 shadow-2xl ring-4 ring-[#fed106]/100" : (posicaoFisica === 1 || posicaoFisica === 3 ? "opacity-40 scale-95 z-20 shadow-md" : "opacity-10 scale-85 z-10 hidden sm:flex");
-
-          const urlImagem = itemData.fotoUrl || itemData.imagem_url || itemData.foto_url;
-
-          return (
-            <div
-              key={`card-fisico-${posicaoFisica}`}
-              style={{ backgroundImage: `url('${urlImagem}')` }}
-              className={`w-[22%] min-w-[220px] md:min-w-[300px] h-[360px] rounded-2xl relative bg-cover bg-center transition-all duration-500 ease-in-out transform flex flex-col justify-end p-6 overflow-hidden ${estiloDestaque}`}
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10"></div>
-              <div className="relative z-20 text-left pl-1 pr-2 pb-1">
-                <h4 className="text-white text-base md:text-lg font-extrabold tracking-wide leading-snug uppercase">{itemData.titulo}</h4>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-6 flex items-center justify-center gap-4">
-        <button
-          type="button"
-          onClick={irParaEsquerda}
-          aria-label="Ver diferencial anterior"
-          className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-md transition-all cursor-pointer"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-
-        <div className="flex items-center gap-2">
-          {listaDiferenciais.map((_, idx) => (
-            <span key={idx} className={`w-2 h-2 rounded-full transition-colors ${idx === indiceAtivo ? 'bg-[#fed106]' : 'bg-gray-200'}`} />
-          ))}
-        </div>
-
-        <button
-          type="button"
-          onClick={irParaDireita}
-          aria-label="Ver próximo diferencial"
-          className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-md transition-all cursor-pointer"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
       {/* --- SEÇÃO 5: CURSOS EM DESTAQUE — desativada, troque SECAO_CURSOS_DESTAQUE_ATIVA
       pra `true` no topo do arquivo pra reativar --- */}
       {SECAO_CURSOS_DESTAQUE_ATIVA && cursosDestaque.length > 0 && (
@@ -1177,6 +1114,69 @@ export default function Inicio() {
         </div>
       </section>
 
+ {/* --- SEÇÃO 4: DIFERENCIAIS --- */}
+{listaDiferenciais.length > 0 && (
+  <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-16 pb-16">
+    <div className="text-center md:text-left mb-8 pl-2">
+      <h2 className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Nossos Diferenciais</h2>
+      <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Por que escolher a Estude Seguro para impulsionar o seu futuro profissional?</p>
+    </div>
+    <div className="w-full flex flex-col items-center">
+      <div className="w-full min-h-[460px] flex items-center justify-center relative overflow-x-hidden overflow-y-visible px-2 py-10 gap-3 md:gap-6">
+        {[0, 1, 2, 3, 4].map((posicaoFisica) => {
+          const itemData = obterDadoDoCard(posicaoFisica);
+          if (!itemData) return null;
+          let estiloDestaque = posicaoFisica === 2 ? "scale-110 md:scale-115 opacity-100 z-30 shadow-2xl ring-4 ring-[#fed106]/100" : (posicaoFisica === 1 || posicaoFisica === 3 ? "opacity-40 scale-95 z-20 shadow-md" : "opacity-10 scale-85 z-10 hidden sm:flex");
+
+          const urlImagem = itemData.fotoUrl || itemData.imagem_url || itemData.foto_url;
+
+          return (
+            <div
+              key={`card-fisico-${posicaoFisica}`}
+              style={{ backgroundImage: `url('${urlImagem}')` }}
+              className={`w-[22%] min-w-[220px] md:min-w-[300px] h-[360px] rounded-2xl relative bg-cover bg-center transition-all duration-500 ease-in-out transform flex flex-col justify-end p-6 overflow-hidden ${estiloDestaque}`}
+            >
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10"></div>
+              <div className="relative z-20 text-left pl-1 pr-2 pb-1">
+                <h4 className="text-white text-base md:text-lg font-extrabold tracking-wide leading-snug uppercase">{itemData.titulo}</h4>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-6 flex items-center justify-center gap-4">
+        <button
+          type="button"
+          onClick={irParaEsquerda}
+          aria-label="Ver diferencial anterior"
+          className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-md transition-all cursor-pointer"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        <div className="flex items-center gap-2">
+          {listaDiferenciais.map((_, idx) => (
+            <span key={idx} className={`w-2 h-2 rounded-full transition-colors ${idx === indiceAtivo ? 'bg-[#fed106]' : 'bg-gray-200'}`} />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={irParaDireita}
+          aria-label="Ver próximo diferencial"
+          className="w-10 h-10 rounded-full bg-[#fed106] hover:bg-black text-white flex items-center justify-center shadow-md transition-all cursor-pointer"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+      
       <LinhaDivisoriaEsteira />
 
       {/* --- SEÇÃO DEPOIMENTOS --- */}
