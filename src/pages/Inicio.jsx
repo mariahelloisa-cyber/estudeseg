@@ -93,6 +93,7 @@ export default function Inicio() {
   const [bannerLateral, setBannerLateral] = useState(null);
   const [depoimentos, setDepoimentos] = useState([]);
   const [depoimentoReproduzindoId, setDepoimentoReproduzindoId] = useState(null);
+  const [fotosCarrossel3d, setFotosCarrossel3d] = useState([]);
 
   // --- Estado do Formulário de Contato ---
   const [contatoForm, setContatoForm] = useState({ nome: '', email: '', telefone: '', curso_desejado: '', mensagem: '' });
@@ -380,6 +381,27 @@ export default function Inicio() {
     buscarDepoimentosDoSupabase();
   }, []);
 
+
+  // Buscar Fotos do Carrossel 3D do SUPABASE
+  async function buscarCarrossel3dDoSupabase() {
+    try {
+      const { data, error } = await supabase
+        .from('carrossel_3d_fotos')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setFotosCarrossel3d(data || []);
+    } catch (err) {
+      console.error("Erro na conexão com o carrossel 3D do Supabase:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarCarrossel3dDoSupabase();
+  }, []);
+
+  
   // Buscar Cursos Mais Vendidos e Banner Lateral do Blog do Supabase
   useEffect(() => {
     async function buscarCursosMaisVendidos() {
