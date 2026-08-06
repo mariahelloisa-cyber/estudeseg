@@ -1207,7 +1207,7 @@ export default function Inicio() {
       <section className="w-full bg-white pt-16 md:pt-20 pb-4 md:pb-6">
         <div className="max-w-3xl mx-auto px-4 text-center mb-10">
           <h2 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight">
-            Faça igual a eles, e se junte a <span className="text-[#cd146e]">LATEC</span>
+            Faça igual a eles, e se junte a <span className="text-[#fed106]">ESTUDE SEGURO</span>
           </h2>
         </div>
         <div className="w-full h-[320px] md:h-[420px]">
