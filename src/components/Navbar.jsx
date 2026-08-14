@@ -77,7 +77,7 @@ export default function Navbar() {
               <div className="hidden sm:flex flex-col items-center gap-1 -translate-y-1">
                 <span className="text-[11px] text-gray-400 font-medium">Já é aluno?</span>
                 <a href={`https://wa.me/5511995987197?text=${encodeURIComponent('Olá! Vim pelo site e gostaria de falar com a ouvidoria.')}`} target="_blank" rel="noreferrer" className="inline-block bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#fed106] transition-all shadow-sm whitespace-nowrap">
-                  Fale com a ouvidoria
+                  Ouvidoria
                 </a>
               </div>
 
