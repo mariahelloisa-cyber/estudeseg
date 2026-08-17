@@ -311,16 +311,9 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
       <SecaoCrescimento />
 
       {/* 2.4 SEÇÃO CREDIBILIDADE (ABED / Reclame Aqui) */}
-      <section className="relative w-full bg-[#fcfbfb] overflow-hidden min-h-[360px] sm:min-h-[440px] md:min-h-[530px]">
+      <section className="relative w-full bg-[#fcfbfb] overflow-hidden md:min-h-[530px]">
 
-        <img
-          src={credibilidade.foto || seloAbed}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none select-none absolute bottom-6 md:bottom-10 right-0 h-[320px] sm:h-[400px] md:h-[490px] w-auto max-w-none z-0"
-        />
-
-        <div className="max-w-7xl mx-auto px-6 pt-20 pb-20 md:pt-24 md:pb-28 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 pt-16 pb-12 md:pt-24 md:pb-28 relative z-10">
           <div className="max-w-xl text-left">
             <div className="self-start inline-flex items-center gap-2 border border-[#fed106] rounded-full px-4 py-1.5 mb-6 bg-white">
               <ShieldCheckIcon className="w-4 h-4 text-black" />
@@ -350,6 +343,13 @@ A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-9
               </>
             )}
           </div>
+
+          <img
+            src={credibilidade.foto || seloAbed}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none select-none block mx-auto mt-10 h-[220px] max-w-full md:absolute md:mt-0 md:mx-0 md:bottom-10 md:right-0 md:top-auto md:h-[490px] md:w-auto md:max-w-none z-0"
+          />
         </div>
       </section>
 

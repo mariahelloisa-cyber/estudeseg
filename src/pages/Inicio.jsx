@@ -95,6 +95,15 @@ export default function Inicio() {
   const [depoimentoReproduzindoId, setDepoimentoReproduzindoId] = useState(null);
   const [fotosCarrossel3d, setFotosCarrossel3d] = useState([]);
 
+  // --- Detecta mobile para reduzir o tamanho do carrossel 3D (RoundCarousel usa px fixo) ---
+  const [carrossel3dMobile, setCarrossel3dMobile] = useState(false);
+  useEffect(() => {
+    const verificarMobile = () => setCarrossel3dMobile(window.innerWidth < 640);
+    verificarMobile();
+    window.addEventListener('resize', verificarMobile);
+    return () => window.removeEventListener('resize', verificarMobile);
+  }, []);
+
   // --- Estado do Formulário de Contato ---
   const [contatoForm, setContatoForm] = useState({ nome: '', email: '', telefone: '', curso_desejado: '', mensagem: '' });
   const [contatoStatus, setContatoStatus] = useState('');
@@ -540,41 +549,6 @@ export default function Inicio() {
         </div>
       )}
 
-      {/* --- SEÇÃO 2: BUSCA DE CURSOS (MOBILE) --- */}
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 -mt-2 md:mt-4 relative z-10 pb-4">
-        {/* Barra de pesquisa de cursos — só no mobile */}
-        <div className="md:hidden mt-8 bg-white rounded-3xl shadow-xl border border-gray-100 p-5 flex flex-col items-center text-center">
-          <p className="text-[#fed106] text-sm font-black uppercase tracking-wide mb-3">
-            Pesquise nossos cursos
-          </p>
-          <form
-            onSubmit={handleBuscarCursoMobile}
-            className="relative w-full bg-gray-50 rounded-full border border-gray-100 p-1 flex items-center"
-          >
-            <span className="pl-4 text-gray-400">
-              <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </span>
-            <input
-              type="text"
-              value={buscaCursoMobile}
-              onChange={(e) => setBuscaCursoMobile(e.target.value)}
-              placeholder="Pesquisar curso..."
-              className="w-full pl-2 pr-2 py-3 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none font-medium"
-            />
-            <button
-              type="submit"
-              aria-label="Pesquisar curso"
-              className="bg-[#000000] hover:bg-[#fed106] text-white p-2.5 rounded-full transition-all flex items-center justify-center shrink-0"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
-          </form>
-        </div>
-      </div>
 
       {/* --- SEÇÃO 3: ESTEIRA DE FRASES --- */}
       {listaFrases.length > 0 && (
@@ -1210,9 +1184,11 @@ export default function Inicio() {
             Faça igual a eles, e se junte a <span className="text-[#fed106]">ESTUDE SEGURO</span>
           </h2>
         </div>
-        <div className="w-full h-[320px] md:h-[420px]">
+        <div className="w-full h-[220px] sm:h-[320px] md:h-[420px]">
           <RoundCarousel
             background="#ffffff"
+            imageWidth={carrossel3dMobile ? 190 : 300}
+            imageHeight={carrossel3dMobile ? 190 : 300}
             images={fotosCarrossel3d.length > 0 ? fotosCarrossel3d.map((f) => ({ src: f.imagem_url })) : undefined}
           />
         </div>
