@@ -139,6 +139,18 @@ function validarVideo(arquivo) {
   }
 }
 
+// --- Validação do PDF da ementa do curso antes do upload para o Storage ---
+const TAMANHO_MAXIMO_PDF_MB = 15;
+
+function validarPdf(arquivo) {
+  if (arquivo.type !== 'application/pdf') {
+    throw new Error('Formato não suportado. Envie um arquivo PDF.');
+  }
+  if (arquivo.size > TAMANHO_MAXIMO_PDF_MB * 1024 * 1024) {
+    throw new Error(`Arquivo muito grande (máx. ${TAMANHO_MAXIMO_PDF_MB}MB).`);
+  }
+}
+
 // Remove caracteres perigosos do nome original (barras, "..", espaços, acentos)
 // antes de usá-lo como chave de objeto no Supabase Storage.
 function sanitizarNomeArquivo(nomeOriginal) {
@@ -2759,6 +2771,8 @@ export default function Admin() {
     const arquivo = arquivoInput?.files[0];
     const arquivoCapaInput = document.getElementById(cursoEditando ? 'imagem-capa-curso-edit' : 'imagem-capa-curso');
     const arquivoCapa = arquivoCapaInput?.files[0];
+    const arquivoEmentaInput = document.getElementById(cursoEditando ? 'ementa-pdf-curso-edit' : 'ementa-pdf-curso');
+    const arquivoEmenta = arquivoEmentaInput?.files[0];
 
     if (!cursoEditando && !arquivo) {
       setMensagemStatus("⚠️ Selecione uma imagem para o curso!");
@@ -2794,6 +2808,19 @@ export default function Admin() {
         urlImagemCapa = urlCapaData.publicUrl;
       }
 
+      let urlEmentaPdf = null;
+      if (arquivoEmenta) {
+        validarPdf(arquivoEmenta);
+        const nomeArquivoEmenta = `ementa-curso-${sanitizarNomeArquivo(arquivoEmenta.name)}`;
+        const { error: uploadEmentaError } = await supabase.storage.from('banners').upload(nomeArquivoEmenta, arquivoEmenta);
+        if (uploadEmentaError) {
+          console.error("Erro no upload da ementa do curso:", uploadEmentaError);
+          throw new Error(`[upload da ementa] ${uploadEmentaError.message}`);
+        }
+        const { data: urlEmentaData } = supabase.storage.from('banners').getPublicUrl(nomeArquivoEmenta);
+        urlEmentaPdf = urlEmentaData.publicUrl;
+      }
+
       const dadosCurso = {
         titulo: formCurso.titulo,
         descricao: formCurso.descricao,
@@ -2812,6 +2839,7 @@ export default function Admin() {
       };
       if (urlImagem) dadosCurso.imagem_url = urlImagem;
       if (urlImagemCapa) dadosCurso.imagem_capa_url = urlImagemCapa;
+      if (urlEmentaPdf) dadosCurso.ementa_pdf_url = urlEmentaPdf;
 
       if (cursoEditando) {
         const { error } = await supabase.from('cursos_cadastrados').update(dadosCurso).eq('id', cursoEditando);
@@ -2832,6 +2860,7 @@ export default function Admin() {
       cancelarEdicaoCurso();
       if (arquivoInput) arquivoInput.value = "";
       if (arquivoCapaInput) arquivoCapaInput.value = "";
+      if (arquivoEmentaInput) arquivoEmentaInput.value = "";
       buscarCursosAdmin();
     } catch (err) {
       console.error(err);
@@ -3427,6 +3456,27 @@ export default function Admin() {
                           accept="image/*"
                           className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
                         />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                          Ementa do Curso (PDF){cursoEditando ? " (Opcional)" : ""}
+                        </label>
+                        <input
+                          type="file"
+                          id={cursoEditando ? "ementa-pdf-curso-edit" : "ementa-pdf-curso"}
+                          accept="application/pdf"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+                        />
+                        {cursoEditando && cursosAdmin.find((c) => c.id === cursoEditando)?.ementa_pdf_url && (
+                          <a
+                            href={cursosAdmin.find((c) => c.id === cursoEditando).ementa_pdf_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block mt-1.5 text-[11px] font-bold text-[#8a6d00] underline"
+                          >
+                            Ver PDF atual
+                          </a>
+                        )}
                       </div>
                       <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
                         {cursoEditando ? "💾 Salvar Alterações" : "➕ Publicar Curso"}

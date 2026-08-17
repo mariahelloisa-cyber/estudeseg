@@ -247,6 +247,17 @@ function CardCompra({ curso, precoAtual, precoOriginal, valorParcela, percentual
         >
           Comprar
         </button>
+
+        {curso.ementa_pdf_url && (
+          <a
+            href={curso.ementa_pdf_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 w-full bg-white hover:bg-[#fed106] text-[#fed106] hover:text-black border-2 border-[#fed106] py-4 rounded-full font-black uppercase tracking-wider text-sm transition-all active:scale-[0.98] cursor-pointer shadow-lg flex items-center justify-center"
+          >
+            Ver Ementa
+          </a>
+        )}
       </div>
     </div>
   );
