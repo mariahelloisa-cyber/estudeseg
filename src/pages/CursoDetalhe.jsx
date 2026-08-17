@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
 import {
   ClockIcon,
@@ -199,6 +200,20 @@ function CursoRelacionadoCard({ curso }) {
 
 // --- Card de compra/inscrição: fica sticky ao lado do conteúdo no desktop ---
 function CardCompra({ curso, precoAtual, precoOriginal, valorParcela, percentualDesconto, onComprar }) {
+  const [modalEmendaAberto, setModalEmendaAberto] = useState(false);
+  const [aceiteWhatsapp, setAceiteWhatsapp] = useState(false);
+
+  function abrirModalEmenda() {
+    setAceiteWhatsapp(false);
+    setModalEmendaAberto(true);
+  }
+
+  function confirmarAceiteEAbrirEmenda() {
+    if (!aceiteWhatsapp) return;
+    window.open(curso.ementa_pdf_url, '_blank', 'noopener,noreferrer');
+    setModalEmendaAberto(false);
+  }
+
   return (
     <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
       <div className="relative w-full h-48 sm:h-52 bg-gray-800">
@@ -249,16 +264,59 @@ function CardCompra({ curso, precoAtual, precoOriginal, valorParcela, percentual
         </button>
 
         {curso.ementa_pdf_url && (
-          <a
-            href={curso.ementa_pdf_url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={abrirModalEmenda}
             className="mt-3 w-full bg-white hover:bg-[#fed106] text-[#fed106] hover:text-black border-2 border-[#fed106] py-4 rounded-full font-black uppercase tracking-wider text-sm transition-all active:scale-[0.98] cursor-pointer shadow-lg flex items-center justify-center"
           >
             Ver Ementa
-          </a>
+          </button>
         )}
       </div>
+
+      {modalEmendaAberto && createPortal(
+        <div
+          className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60"
+          onClick={() => setModalEmendaAberto(false)}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-black text-gray-900 mb-3">Antes de ver a ementa</h3>
+            <p className="text-sm text-gray-600 leading-relaxed mb-4">
+              Para acessar a ementa completa do curso, confirme que você concorda em receber comunicações via WhatsApp sobre este e outros cursos da Estude Seguro.
+            </p>
+            <label className="flex items-start gap-3 mb-5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={aceiteWhatsapp}
+                onChange={(e) => setAceiteWhatsapp(e.target.checked)}
+                className="mt-1 w-4 h-4 accent-[#fed106] cursor-pointer shrink-0"
+              />
+              <span className="text-sm text-gray-700">Li e aceito receber comunicações via WhatsApp.</span>
+            </label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setModalEmendaAberto(false)}
+                className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-full font-bold text-sm hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={!aceiteWhatsapp}
+                onClick={confirmarAceiteEAbrirEmenda}
+                className="flex-1 bg-[#fed106] disabled:opacity-40 disabled:cursor-not-allowed text-black py-3 rounded-full font-black text-sm hover:bg-black hover:text-white transition-colors cursor-pointer"
+              >
+                Ver Ementa
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
