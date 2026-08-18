@@ -32,6 +32,3 @@ create policy "Admin pode ver mensagens da IA"
   on public.ia_mensagens for select
   to authenticated using (true);
 
--- Não existe policy de insert para anon/authenticated de propósito:
--- quem grava é exclusivamente a Supabase Edge Function (chat-agent),
--- que usa a Service Role Key e por isso ignora RLS.

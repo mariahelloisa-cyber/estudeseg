@@ -617,7 +617,7 @@ export default function Inicio() {
       </div>
 
       {/* --- SEÇÃO 3.5: "ESTUDE FÁCIL / RÁPIDO / AGORA / SEGURO" --- */}
-      <div ref={estudeSecaoRef} className="w-full bg-gray-50 py-8 md:py-17 flex items-center justify-center overflow-hidden">
+      <div ref={estudeSecaoRef} className="w-full bg-gray-50 pt-8 pb-4 md:py-17 flex items-center justify-center overflow-hidden">
         <div className="flex items-center gap-4 md:gap-7 text-5xl sm:text-7xl md:text-8xl font-medium tracking-tight">
           <span className="text-black font-black">Estude</span>
           <div className="relative h-20 sm:h-32 md:h-36 overflow-hidden pr-2">
@@ -632,7 +632,7 @@ export default function Inicio() {
       </div>
 
       {/* --- SEÇÃO: BUSCA DE CURSOS (acima de Diferenciais) --- */}
-      <div className="max-w-2xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-8 md:mt-16">
+      <div className="max-w-2xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-4 md:mt-16">
         <div className="text-center mb-6">
           <h2 className="text-xl md:text-2xl font-extrabold text-gray-900 tracking-tight">Encontre o curso ideal para você</h2>
           <p className="text-sm text-gray-500 mt-1 font-medium">Pesquise por nome, área ou palavra-chave</p>
@@ -1026,7 +1026,7 @@ export default function Inicio() {
 
 <br></br>      
       {/* --- SEÇÃO: "QUERO..." (3 colunas de cursos marcados no admin, uma por grupo) --- */}
-      <section className="relative py-16 md:py-20 bg-white w-full overflow-hidden">
+      <section className="relative pt-6 pb-16 md:pt-10 md:pb-20 bg-white w-full overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
             {GRUPOS_HOME_CURSO.map((grupo) => {
@@ -1178,7 +1178,7 @@ export default function Inicio() {
       <LinhaDivisoriaEsteira />
 
             {/* --- SEÇÃO: CARROSSEL 3D DE FOTOS --- */}
-      <section className="w-full bg-white pt-16 md:pt-20 pb-4 md:pb-6">
+      <section className="w-full bg-white pt-6 md:pt-8 pb-4 md:pb-6">
         <div className="max-w-3xl mx-auto px-4 text-center mb-10">
           <h2 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight">
             Faça igual a eles, e se junte a <span className="text-[#fed106]">ESTUDE SEGURO</span>
