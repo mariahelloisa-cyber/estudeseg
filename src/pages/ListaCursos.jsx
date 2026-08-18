@@ -62,6 +62,7 @@ export default function ListaCursos() {
     () => new URLSearchParams(window.location.search).get('busca') || ''
   );
   const [categoriaSelecionada, setCategoriaSelecionada] = useState('Todas');
+  const [filtroCategoriaAberto, setFiltroCategoriaAberto] = useState(false);
   const adicionarAoCarrinho = useCartStore((state) => state.adicionarAoCarrinho);
   const carrinho = useCartStore((state) => state.carrinho);
   const setCarrinhoAberto = useCartStore((state) => state.setCarrinhoAberto);
@@ -254,8 +255,8 @@ export default function ListaCursos() {
       {/* 2. FILTROS E CONTEÚDO */}
       <div className="max-w-6xl w-full mx-auto px-6 mt-10">
         
-        {/* Abas de Categorias (catálogo antigo + categorias cadastradas pelo admin, juntas) */}
-        <div className="flex flex-wrap gap-3 mb-8 justify-start">
+        {/* Abas de Categorias (catálogo antigo + categorias cadastradas pelo admin, juntas) — desktop: todas visíveis */}
+        <div className="hidden md:flex flex-wrap gap-3 mb-8 justify-start">
           {categoriasFiltroUnificadas.map((cat) => {
             const isSelected = categoriaSelecionada.toLowerCase() === cat.toLowerCase();
             return (
@@ -274,6 +275,85 @@ export default function ListaCursos() {
             );
           })}
         </div>
+
+        {/* Abas de Categorias — mobile: só "Todas" + botão que abre a lista completa, pra não ocupar a tela toda */}
+        <div className="flex md:hidden gap-3 mb-8">
+          <button
+            onClick={() => { setCategoriaSelecionada('Todas'); setPaginaCadastrados(0); }}
+            className={`shrink-0 px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 border flex items-center gap-2 cursor-pointer ${
+              categoriaSelecionada === 'Todas'
+                ? 'bg-[#fed106] text-white border-[#fed106] shadow-sm'
+                : 'bg-white text-[#000000]/80 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {getCategoriaIcon('Todas')}
+            Todas
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFiltroCategoriaAberto(true)}
+            className={`flex-1 min-w-0 px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 border flex items-center justify-center gap-2 cursor-pointer ${
+              categoriaSelecionada !== 'Todas'
+                ? 'bg-[#fed106] text-white border-[#fed106] shadow-sm'
+                : 'bg-white text-[#000000]/80 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h18M6 9h12M10 13.5h4" />
+            </svg>
+            <span className="truncate capitalize">
+              {categoriaSelecionada === 'Todas' ? 'Filtrar por categoria' : categoriaSelecionada}
+            </span>
+          </button>
+        </div>
+
+        {/* Painel (bottom sheet) com todas as categorias, aberto pelo botão "Filtrar por categoria" no mobile */}
+        {filtroCategoriaAberto && (
+          <div
+            className="fixed inset-0 z-50 md:hidden flex items-end"
+            onClick={() => setFiltroCategoriaAberto(false)}
+          >
+            <div className="absolute inset-0 bg-black/40" />
+            <div
+              className="relative w-full bg-white rounded-t-3xl p-6 max-h-[75vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-base font-black text-gray-900">Filtrar por categoria</h3>
+                <button
+                  type="button"
+                  onClick={() => setFiltroCategoriaAberto(false)}
+                  aria-label="Fechar"
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                {categoriasFiltroUnificadas.map((cat) => {
+                  const isSelected = categoriaSelecionada.toLowerCase() === cat.toLowerCase();
+                  return (
+                    <button
+                      key={`btn-filtro-mobile-${cat}`}
+                      onClick={() => { setCategoriaSelecionada(cat); setPaginaCadastrados(0); setFiltroCategoriaAberto(false); }}
+                      className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all duration-200 border flex items-center gap-3 cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#fed106] text-white border-[#fed106] shadow-sm'
+                          : 'bg-white text-[#000000]/80 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {getCategoriaIcon(cat)}
+                      <span className="capitalize">{cat}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quantidade de cursos encontrados na categoria/busca filtrada */}
         <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-bold mb-4 uppercase tracking-wider">

@@ -151,8 +151,8 @@ export default function Sobre() {
       <div className="w-full bg-[#fcfbfb] font-sans antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* 1. SEÇÃO HERO */}
-      <section className="relative w-full bg-white overflow-hidden pt-10 md:pt-14">
-        <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+      <section className="relative w-full bg-white overflow-hidden pt-10 pb-6 md:pt-14 md:pb-8">
+        <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8 items-center">
           <div className="relative">
             <div className="absolute -top-7 left-0 flex items-center">
               <span className="inline-block w-2 h-2 bg-[#fed106] mr-2 align-middle"></span>
@@ -169,7 +169,7 @@ export default function Sobre() {
             <img
               src={estudante}
               alt="Estudante Estude Seguro"
-              className="w-full max-w-[280px] md:max-w-[320px] h-[380px] md:h-[440px] object-cover object-top"
+              className="w-full max-w-[230px] md:max-w-[320px] h-[320px] md:h-[440px] object-cover object-top"
             />
           </div>
 
@@ -194,7 +194,7 @@ export default function Sobre() {
       <div className="w-full h-6 bg-[#fed106]"></div>
 
       {/* 2. SEÇÃO HISTÓRIA (Ajustada com formas vetorizadas de alta definição e sem os pontos circulados) */}
-      <section id="historia" className="relative max-w-7xl mx-auto px-6 py-24 overflow-hidden bg-[#fcfbfb]">
+      <section id="historia" className="relative max-w-7xl mx-auto px-6 pt-10 pb-24 md:py-24 overflow-hidden bg-[#fcfbfb]">
         
         {/* Padrão de Pontos Decorativos (Mantido apenas o do Canto Inferior Esquerdo) */}
         <div className="absolute bottom-12 left-2 pointer-events-none opacity-40 hidden md:block">

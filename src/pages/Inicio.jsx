@@ -1026,7 +1026,7 @@ export default function Inicio() {
 
 <br></br>      
       {/* --- SEÇÃO: "QUERO..." (3 colunas de cursos marcados no admin, uma por grupo) --- */}
-      <section className="relative pt-6 pb-16 md:pt-10 md:pb-20 bg-white w-full overflow-hidden">
+      <section className="relative pt-6 pb-6 md:pt-10 md:pb-20 bg-white w-full overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
             {GRUPOS_HOME_CURSO.map((grupo) => {
@@ -1098,7 +1098,7 @@ export default function Inicio() {
             })}
           </div>
 
-          <div className="mt-12 flex justify-center">
+          <div className="mt-6 md:mt-12 flex justify-center">
             <a
               href="/cursos"
               className="bg-[#fed106] hover:bg-[#000000] text-white font-extrabold text-sm py-4 px-8 rounded-full transition-colors flex items-center gap-2 shadow-md cursor-pointer"
@@ -1114,13 +1114,13 @@ export default function Inicio() {
 
  {/* --- SEÇÃO 4: DIFERENCIAIS --- */}
 {listaDiferenciais.length > 0 && (
-  <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-16 pb-16">
-    <div className="text-center md:text-left mb-8 pl-2">
+  <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-6 md:mt-16 pb-16">
+    <div className="text-center md:text-left mb-3 md:mb-8 pl-2">
       <h2 className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Nossos Diferenciais</h2>
       <p className="text-sm md:text-base text-gray-500 mt-2 font-medium">Por que escolher a Estude Seguro para impulsionar o seu futuro profissional?</p>
     </div>
     <div className="w-full flex flex-col items-center">
-      <div className="w-full min-h-[460px] flex items-center justify-center relative overflow-x-hidden overflow-y-visible px-2 py-10 gap-3 md:gap-6">
+      <div className="w-full min-h-[460px] flex items-center justify-center relative overflow-x-hidden overflow-y-visible px-2 pt-3 pb-10 md:py-10 gap-3 md:gap-6">
         {[0, 1, 2, 3, 4].map((posicaoFisica) => {
           const itemData = obterDadoDoCard(posicaoFisica);
           if (!itemData) return null;
