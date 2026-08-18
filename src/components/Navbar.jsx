@@ -35,13 +35,6 @@ export default function Navbar() {
           <div className="flex gap-6">
 
           </div>
-          
-          {/* 👇 AQUI ESTÁ O NOVO BOTÃO ADMIN 👇 */}
-          <div className="flex items-center gap-5">
-            <Link to="/login" className="font-bold hover:underline text-white/80 hover:text-white transition-colors">Admin</Link>
-          </div>
-          {/* 👆 ============================= 👆 */}
-
         </div>
       </div>
 

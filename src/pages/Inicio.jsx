@@ -617,22 +617,22 @@ export default function Inicio() {
       </div>
 
       {/* --- SEÇÃO 3.5: "ESTUDE FÁCIL / RÁPIDO / AGORA / SEGURO" --- */}
-      <div ref={estudeSecaoRef} className="w-full bg-gray-50 py-17 md:py-17 flex items-center justify-center overflow-hidden">
-        <div className="flex items-center gap-6 md:gap-7 text-6xl sm:text-7xl md:text-8xl font-medium tracking-tight">
+      <div ref={estudeSecaoRef} className="w-full bg-gray-50 py-8 md:py-17 flex items-center justify-center overflow-hidden">
+        <div className="flex items-center gap-4 md:gap-7 text-5xl sm:text-7xl md:text-8xl font-medium tracking-tight">
           <span className="text-black font-black">Estude</span>
-          <div className="relative h-28 sm:h-32 md:h-36 overflow-hidden pr-2">
+          <div className="relative h-20 sm:h-32 md:h-36 overflow-hidden pr-2">
             <div className={`flex flex-col ${estudeAnimacaoAtiva ? 'animate-word-cycle' : ''}`}>
-              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Fácil</span>
-              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Rápido</span>
-              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Agora</span>
-              <span className="h-28 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#fed106] sombra-3d-texto">Seguro</span>
+              <span className="h-20 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Fácil</span>
+              <span className="h-20 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Rápido</span>
+              <span className="h-20 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#ffeea0] sombra-3d-texto">Agora</span>
+              <span className="h-20 sm:h-32 md:h-36 overflow-hidden flex items-center justify-center pr-3 pb-3 leading-none text-[#fed106] sombra-3d-texto">Seguro</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* --- SEÇÃO: BUSCA DE CURSOS (acima de Diferenciais) --- */}
-      <div className="max-w-2xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+      <div className="max-w-2xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-8 md:mt-16">
         <div className="text-center mb-6">
           <h2 className="text-xl md:text-2xl font-extrabold text-gray-900 tracking-tight">Encontre o curso ideal para você</h2>
           <p className="text-sm text-gray-500 mt-1 font-medium">Pesquise por nome, área ou palavra-chave</p>
