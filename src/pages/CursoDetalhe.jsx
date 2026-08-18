@@ -571,21 +571,29 @@ export default function CursoDetalhe() {
                         onClick={() => alternarSemestre(idx)}
                         className="w-full flex items-center justify-between gap-3 bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 text-left cursor-pointer"
                       >
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 min-w-0 flex-1">
                           <span className="w-11 h-11 rounded-full bg-black text-[#fed106] flex items-center justify-center font-black text-base shrink-0">
                             {idx + 1}º
                           </span>
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-base font-black text-gray-900">{semestre.titulo}</p>
-                            <p className="text-sm text-gray-500 font-medium">
-                              {semestre.disciplinas.length} {semestre.disciplinas.length === 1 ? 'disciplina' : 'disciplinas'}
-                            </p>
+                            <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-0.5">
+                              <p className="text-sm text-gray-500 font-medium">
+                                {semestre.disciplinas.length} {semestre.disciplinas.length === 1 ? 'disciplina' : 'disciplinas'}
+                              </p>
+                              {horasSemestre && (
+                                <span className="sm:hidden inline-flex items-center gap-1 bg-[#fed106] text-[#000000] text-xs font-bold px-2.5 py-1 rounded-full">
+                                  <ClockIcon className="w-3.5 h-3.5" />
+                                  {horasSemestre}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           {horasSemestre && (
-                            <span className="inline-flex items-center gap-1 sm:gap-1.5 bg-[#fed106] text-[#000000] text-xs sm:text-sm font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full">
-                              <ClockIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <span className="hidden sm:inline-flex items-center gap-1.5 bg-[#fed106] text-[#000000] text-sm font-bold px-3 py-1.5 rounded-full">
+                              <ClockIcon className="w-4 h-4" />
                               {horasSemestre}
                             </span>
                           )}

@@ -248,20 +248,20 @@ export default function Aproveitamento() {
           </div>
 
           {selecionado && (
-            <div ref={tabelaRef} className="mt-12">
-              <h3 className="text-center font-bold text-lg mb-6">
+            <div ref={tabelaRef} className="mt-6 sm:mt-12">
+              <h3 className="text-center font-bold text-base sm:text-lg mb-3 sm:mb-6">
                 Escolha uma das opções para fazer seu <span className="text-[#b8930a]">CURSO TECNÓLOGO</span>
               </h3>
 
               {resultados.length > 0 ? (
                 <div className="overflow-x-auto rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-                  <table className="w-full min-w-[560px] bg-white text-sm">
+                  <table className="w-full min-w-[460px] sm:min-w-[560px] bg-white text-xs sm:text-sm">
                     <thead>
-                      <tr className="bg-black text-white text-xs uppercase tracking-wide">
-                        <th className="px-5 py-3 text-left font-bold">Curso Tecnólogo</th>
-                        <th className="px-5 py-3 text-left font-bold">Tempo de Formação</th>
-                        <th className="px-5 py-3 text-left font-bold">Carga Horária a Cursar</th>
-                        <th className="px-5 py-3 text-left font-bold">Informações Sobre o Curso</th>
+                      <tr className="bg-black text-white text-[10px] sm:text-xs uppercase tracking-wide">
+                        <th className="px-3 py-2 sm:px-5 sm:py-3 text-left font-bold">Curso Tecnólogo</th>
+                        <th className="px-3 py-2 sm:px-5 sm:py-3 text-left font-bold">Tempo de Formação</th>
+                        <th className="px-3 py-2 sm:px-5 sm:py-3 text-left font-bold">Carga Horária a Cursar</th>
+                        <th className="px-3 py-2 sm:px-5 sm:py-3 text-left font-bold">Informações Sobre o Curso</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -271,15 +271,15 @@ export default function Aproveitamento() {
 
                         return (
                           <tr key={`${curso}-${idx}`} className="hover:bg-[#FFFDEF] transition-colors">
-                            <td className="px-5 py-4 font-semibold">{curso}</td>
-                            <td className="px-5 py-4 text-gray-500">{tempo || '-'}</td>
-                            <td className="px-5 py-4 text-gray-500">{cargaHoraria || '-'}</td>
-                            <td className="px-5 py-4">
+                            <td className="px-3 py-2 sm:px-5 sm:py-4 font-semibold">{curso}</td>
+                            <td className="px-3 py-2 sm:px-5 sm:py-4 text-gray-500">{tempo || '-'}</td>
+                            <td className="px-3 py-2 sm:px-5 sm:py-4 text-gray-500">{cargaHoraria || '-'}</td>
+                            <td className="px-3 py-2 sm:px-5 sm:py-4">
                               <a
                                 href={whatsUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-full bg-[#fed106] hover:bg-black text-[#1f1f21] hover:text-white text-xs font-bold px-4 py-2 whitespace-nowrap transition-all"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-[#fed106] hover:bg-black text-[#1f1f21] hover:text-white text-[11px] sm:text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 whitespace-nowrap transition-all"
                               >
                                 Matricule-se
                               </a>

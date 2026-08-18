@@ -255,29 +255,8 @@ export default function ListaCursos() {
       {/* 2. FILTROS E CONTEÚDO */}
       <div className="max-w-6xl w-full mx-auto px-6 mt-10">
         
-        {/* Abas de Categorias (catálogo antigo + categorias cadastradas pelo admin, juntas) — desktop: todas visíveis */}
-        <div className="hidden md:flex flex-wrap gap-3 mb-8 justify-start">
-          {categoriasFiltroUnificadas.map((cat) => {
-            const isSelected = categoriaSelecionada.toLowerCase() === cat.toLowerCase();
-            return (
-              <button
-                key={`btn-filtro-${cat}`}
-                onClick={() => { setCategoriaSelecionada(cat); setPaginaCadastrados(0); }}
-                className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 border flex items-center gap-2 cursor-pointer ${
-                  isSelected
-                    ? 'bg-[#fed106] text-white border-[#fed106] shadow-sm'
-                    : 'bg-white text-[#000000]/80 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                {getCategoriaIcon(cat)}
-                <span className="capitalize">{cat}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Abas de Categorias — mobile: só "Todas" + botão que abre a lista completa, pra não ocupar a tela toda */}
-        <div className="flex md:hidden gap-3 mb-8">
+        {/* Abas de Categorias: só "Todas" + botão que abre a lista completa, pra não ocupar a tela com dezenas de pills */}
+        <div className="flex gap-3 mb-8 max-w-md">
           <button
             onClick={() => { setCategoriaSelecionada('Todas'); setPaginaCadastrados(0); }}
             className={`shrink-0 px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 border flex items-center gap-2 cursor-pointer ${
@@ -308,15 +287,15 @@ export default function ListaCursos() {
           </button>
         </div>
 
-        {/* Painel (bottom sheet) com todas as categorias, aberto pelo botão "Filtrar por categoria" no mobile */}
+        {/* Painel com todas as categorias, aberto pelo botão "Filtrar por categoria" — bottom sheet no mobile, modal centralizado no desktop */}
         {filtroCategoriaAberto && (
           <div
-            className="fixed inset-0 z-50 md:hidden flex items-end"
+            className="fixed inset-0 z-50 flex items-end md:items-center md:justify-center"
             onClick={() => setFiltroCategoriaAberto(false)}
           >
             <div className="absolute inset-0 bg-black/40" />
             <div
-              className="relative w-full bg-white rounded-t-3xl p-6 max-h-[75vh] overflow-y-auto"
+              className="relative w-full md:w-[420px] bg-white rounded-t-3xl md:rounded-3xl p-6 max-h-[75vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-5">

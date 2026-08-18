@@ -159,13 +159,6 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                to="/login"
-                onClick={() => setMenuAberto(false)}
-                className="text-gray-700 hover:text-[#fed106] hover:bg-gray-50 font-medium text-sm transition-colors px-3 py-3 rounded-lg"
-              >
-                Admin
-              </Link>
             </nav>
 
             <div className="px-5 py-4 mt-auto border-t border-gray-100">
