@@ -12,6 +12,14 @@ html {
   scroll-behavior: smooth;
 }
 
+.sem-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sem-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes slideInRight {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }

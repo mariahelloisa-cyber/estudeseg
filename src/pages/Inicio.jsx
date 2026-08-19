@@ -5,12 +5,14 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import LinhaDivisoriaEsteira from '../components/LinhaDivisoriaEsteira';
 import RoundCarousel from '../components/RoundCarousel';
+import CursoCardNovo from '../components/CursoCardNovo';
 import { obterUrlEmbedVideo } from '../utils/video';
 import { GRUPOS_HOME_CURSO, MAX_CURSOS_POR_GRUPO_HOME } from '../utils/gruposHomeCurso';
 
 
 const SECAO_CURSOS_MAIS_VENDIDOS_ATIVA = false;
 const SECAO_CURSOS_DESTAQUE_ATIVA = false;
+const SECAO_ESTEIRA_FRASES_ATIVA = false;
 
 function montarLinkWhatsapp(numero) {
   const apenasDigitos = (numero || '').replace(/\D/g, '');
@@ -34,6 +36,17 @@ export default function Inicio() {
 
   // --- Animação "Estude fácil/rápido/agora/seguro": só dispara ao entrar na tela ---
   const estudeSecaoRef = useRef(null);
+
+  // --- Esteiras horizontais das categorias em "Quero fazer meu curso..." ---
+  const esteirasGrupoHomeRef = useRef({});
+  const rolarEsteiraGrupoHome = (chave, direcao) => {
+    const elemento = esteirasGrupoHomeRef.current[chave];
+    if (!elemento) return;
+    const primeiroCard = elemento.firstElementChild;
+    const gap = parseFloat(getComputedStyle(elemento).columnGap || '0') || 0;
+    const distancia = primeiroCard ? primeiroCard.getBoundingClientRect().width + gap : elemento.clientWidth;
+    elemento.scrollBy({ left: direcao * distancia, behavior: 'smooth' });
+  };
   const [estudeAnimacaoAtiva, setEstudeAnimacaoAtiva] = useState(false);
 
   useEffect(() => {
@@ -90,6 +103,7 @@ export default function Inicio() {
   const [cursosMaisVendidos, setCursosMaisVendidos] = useState([]);
   const [paginaMaisVendidos, setPaginaMaisVendidos] = useState(0);
   const [cursosPorGrupoHome, setCursosPorGrupoHome] = useState({});
+  const [esteirasComTransbordo, setEsteirasComTransbordo] = useState({});
   const [bannerLateral, setBannerLateral] = useState(null);
   const [depoimentos, setDepoimentos] = useState([]);
   const [depoimentoReproduzindoId, setDepoimentoReproduzindoId] = useState(null);
@@ -476,16 +490,29 @@ export default function Inicio() {
 
         const agrupados = {};
         for (const grupo of GRUPOS_HOME_CURSO) {
+          const titulosJaVistos = new Set();
           agrupados[grupo.chave] = (data || [])
             .filter((item) => item.grupo_home === grupo.chave)
+            // Alguns cursos foram cadastrados duas vezes com o mesmo título (ex.: EJA);
+            // como já vem ordenado por created_at desc, mantém só o mais recente de cada.
+            .filter((item) => {
+              const chaveTitulo = (item.titulo || '').trim().toLowerCase();
+              if (titulosJaVistos.has(chaveTitulo)) return false;
+              titulosJaVistos.add(chaveTitulo);
+              return true;
+            })
             .slice(0, MAX_CURSOS_POR_GRUPO_HOME)
             .map((item) => ({
               id: item.id,
               titulo: item.titulo || "Curso sem Título",
+              descricao: item.descricao || "",
               categoria: (item.categorias_cursos?.nome || "Curso").toUpperCase(),
               duracao: item.duracao || "Curta Duração",
+              carga_horaria: item.carga_horaria || "",
+              modalidade: item.modalidade || "EAD",
+              selo_mec: item.selo_mec || false,
               preco: item.preco || 0,
-              fotoUrl: item.imagem_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600",
+              imagem_url: item.imagem_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600",
             }));
         }
         setCursosPorGrupoHome(agrupados);
@@ -497,6 +524,22 @@ export default function Inicio() {
     buscarCursosPorGrupoHome();
   }, []);
 
+  // Só mostra as setas de navegação das esteiras quando os cards realmente não cabem
+  // todos na tela de uma vez (ex.: um grupo com só 3 cursos pode caber inteiro, sem rolar).
+  useEffect(() => {
+    function medirTransbordos() {
+      const resultado = {};
+      for (const [chave, elemento] of Object.entries(esteirasGrupoHomeRef.current)) {
+        if (elemento) resultado[chave] = elemento.scrollWidth > elemento.clientWidth + 1;
+      }
+      setEsteirasComTransbordo(resultado);
+    }
+
+    medirTransbordos();
+    window.addEventListener('resize', medirTransbordos);
+    return () => window.removeEventListener('resize', medirTransbordos);
+  }, [cursosPorGrupoHome]);
+
   // --- RENDERIZAÇÃO NORMAL DO SITE PÚBLICO (COM TODOS OS COMPONENTES INTACTOS) ---
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col overflow-x-hidden">
@@ -505,8 +548,8 @@ export default function Inicio() {
       {/* --- SEÇÃO 1: BANNER ROTATIVO (AGORA INTEGRADO AO SUPABASE) --- */}
       {banners.length > 0 && (
         <div className="w-full bg-white relative group">
-          <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pb-2">
-            <div className="w-full relative overflow-hidden rounded-b-2xl md:rounded-b-3xl shadow-sm h-[220px] sm:h-[340px] md:h-[460px]">
+          <div className="w-full pb-2">
+            <div className="w-full relative overflow-hidden rounded-b-2xl md:rounded-b-3xl shadow-sm h-[230px] sm:h-[360px] md:h-[480px]">
               {banners.map((banner, idx) => (
                 <img
                   key={banner.id ?? idx}
@@ -546,12 +589,43 @@ export default function Inicio() {
               )}
             </div>
           </div>
+
+          {/* --- FAIXA DE CONFIANÇA: flutua sobre a borda inferior do banner --- */}
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8 relative z-10 pb-6 sm:pb-3">
+            <div className="bg-white rounded-3xl sm:rounded-full shadow-xl px-6 sm:px-10 py-5 sm:py-6 flex flex-col sm:flex-row items-stretch sm:items-center divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+              <div className="flex items-center gap-3 sm:flex-1 py-3 sm:py-0 first:pt-0 sm:px-4 sm:first:pl-0">
+                <span className="w-10 h-10 rounded-full bg-[#fff4cc] text-[#c99a00] flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </span>
+                <span className="text-sm text-gray-700 font-semibold leading-snug">Certificado reconhecido pelo MEC</span>
+              </div>
+              <div className="flex items-center gap-3 sm:flex-1 py-3 sm:py-0 sm:px-4">
+                <span className="w-10 h-10 rounded-full bg-[#fff4cc] text-[#c99a00] flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 2.239-8 5v1h11" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 19l2 2 4-4" />
+                  </svg>
+                </span>
+                <span className="text-sm text-gray-700 font-semibold leading-snug">Consultores educacionais especializados</span>
+              </div>
+              <div className="flex items-center gap-3 sm:flex-1 py-3 sm:py-0 sm:px-4 sm:last:pr-0">
+                <span className="w-10 h-10 rounded-full bg-[#fff4cc] text-[#c99a00] flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 17l6-6 4 4 8-8M21 7v6M21 7h-6" />
+                  </svg>
+                </span>
+                <span className="text-sm text-gray-700 font-semibold leading-snug">Mais oportunidades no mercado de trabalho</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
 
       {/* --- SEÇÃO 3: ESTEIRA DE FRASES --- */}
-      {listaFrases.length > 0 && (
+      {SECAO_ESTEIRA_FRASES_ATIVA && listaFrases.length > 0 && (
         <div className="w-full bg-white mt-2 pb-4 border-b border-gray-100 shadow-inner">
           <div className="w-full bg-[#000000] py-4 mb-2 flex justify-center items-center shadow-md">
             <h2 className="text-white text-base md:text-xl font-black uppercase tracking-[0.2em] text-center px-4">
@@ -602,7 +676,7 @@ export default function Inicio() {
       --- */}
 
       {/* --- CTA: BOTÃO DE MATRÍCULA (acima da seção de Diferenciais) --- */}
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-12 flex justify-center">
+      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-6 flex justify-center">
         <a
           href={`https://wa.me/5511995987197?text=${encodeURIComponent('Olá! Vim pelo site e gostaria de fazer minha matrícula.')}`}
           target="_blank"
@@ -617,7 +691,7 @@ export default function Inicio() {
       </div>
 
       {/* --- SEÇÃO 3.5: "ESTUDE FÁCIL / RÁPIDO / AGORA / SEGURO" --- */}
-      <div ref={estudeSecaoRef} className="w-full bg-gray-50 pt-8 pb-4 md:py-17 flex items-center justify-center overflow-hidden">
+      <div ref={estudeSecaoRef} className="w-full bg-gray-50 pt-8 pb-4 md:pt-6 md:pb-2 flex items-center justify-center overflow-hidden">
         <div className="flex items-center gap-4 md:gap-7 text-5xl sm:text-7xl md:text-8xl font-medium tracking-tight">
           <span className="text-black font-black">Estude</span>
           <div className="relative h-20 sm:h-32 md:h-36 overflow-hidden pr-2">
@@ -632,7 +706,7 @@ export default function Inicio() {
       </div>
 
       {/* --- SEÇÃO: BUSCA DE CURSOS (acima de Diferenciais) --- */}
-      <div className="max-w-2xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-4 md:mt-16">
+      <div className="max-w-2xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-4 md:mt-6">
         <div className="text-center mb-6">
           <h2 className="text-xl md:text-2xl font-extrabold text-gray-900 tracking-tight">Encontre o curso ideal para você</h2>
           <p className="text-sm text-gray-500 mt-1 font-medium">Pesquise por nome, área ou palavra-chave</p>
@@ -1025,74 +1099,84 @@ export default function Inicio() {
       )}
 
 <br></br>      
-      {/* --- SEÇÃO: "QUERO..." (3 colunas de cursos marcados no admin, uma por grupo) --- */}
+      {/* --- SEÇÃO: "QUERO..." (uma esteira horizontal por grupo, empilhadas) --- */}
       <section className="relative pt-6 pb-6 md:pt-10 md:pb-20 bg-white w-full overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
+          <div className="flex flex-col gap-10 md:gap-12">
             {GRUPOS_HOME_CURSO.map((grupo) => {
               const cursosDoGrupo = cursosPorGrupoHome[grupo.chave] || [];
 
               return (
                 <div key={grupo.chave} className="flex flex-col">
-                  <h3 className="text-xl md:text-2xl font-extrabold text-[#000000] tracking-tight text-center mb-6">
-                    {grupo.linhas.map((linha, idx) => {
-                      const indiceDestaque = linha.indexOf(grupo.trechoDestaque);
-                      const antes = indiceDestaque >= 0 ? linha.slice(0, indiceDestaque) : linha;
-                      const depois = indiceDestaque >= 0 ? linha.slice(indiceDestaque + grupo.trechoDestaque.length) : '';
+                  <div className="flex items-end justify-between gap-4 mb-5">
+                    <h3 className="text-2xl md:text-4xl font-extrabold text-[#000000] tracking-tight">
+                      {grupo.linhas.map((linha, idx) => {
+                        const indiceDestaque = linha.indexOf(grupo.trechoDestaque);
+                        const antes = indiceDestaque >= 0 ? linha.slice(0, indiceDestaque) : linha;
+                        const depois = indiceDestaque >= 0 ? linha.slice(indiceDestaque + grupo.trechoDestaque.length) : '';
 
-                      return (
-                        <span key={idx} className="block">
-                          {antes}
-                          {indiceDestaque >= 0 && (
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#fed106] to-[#000000]">{grupo.trechoDestaque}</span>
-                          )}
-                          {depois}
-                        </span>
-                      );
-                    })}
-                  </h3>
-
-                  <div className="flex flex-col gap-4">
-                    {cursosDoGrupo.length === 0 ? (
-                      <p className="text-gray-400 text-xs py-8 text-center font-medium bg-gray-50 rounded-2xl border border-dashed border-slate-200">
-                        Nenhum curso marcado para este grupo ainda.
-                      </p>
-                    ) : (
-                      cursosDoGrupo.map((curso) => (
-                        <a
-                          key={curso.id}
-                          href={`/cursos/${curso.id}`}
-                          className="relative bg-black rounded-3xl overflow-hidden group min-h-[200px] flex flex-col cursor-pointer shadow-lg"
-                        >
-                          <img
-                            src={curso.fotoUrl}
-                            alt={curso.titulo}
-                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-90"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/70 to-transparent"></div>
-                          <div className="relative z-10 mt-auto p-5 flex flex-col">
-                            <span className="bg-[#fed106] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider mb-2.5 w-max">
-                              {curso.categoria}
-                            </span>
-                            <h4 className="text-white text-base md:text-lg font-bold mb-3 leading-snug line-clamp-2">
-                              {curso.titulo}
-                            </h4>
-                            <div className="flex items-center gap-2.5 text-gray-300 text-[11px] font-medium">
-                              <span className="flex items-center gap-1">
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                {curso.duracao}
-                              </span>
-                              <span className="w-px h-3 bg-gray-500"></span>
-                              <span className="flex items-center gap-1">
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .672-3 1.5S10.343 11 12 11s3 .672 3 1.5-1.343 1.5-3 1.5m0-6c1.11 0 2.08.402 2.599 1M12 8V6.5m0 7.5v1.5m0-9C8.686 6 6 8.686 6 12s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6z" /></svg>
-                                R$ {curso.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </span>
-                            </div>
-                          </div>
-                        </a>
-                      ))
-                    )}
+                        return (
+                          <span key={idx} className="block">
+                            {antes}
+                            {indiceDestaque >= 0 && (
+                              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#fed106] to-[#000000]">{grupo.trechoDestaque}</span>
+                            )}
+                            {depois}
+                          </span>
+                        );
+                      })}
+                    </h3>
+                    <a href="/cursos" className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-black transition-colors shrink-0">
+                      Ver todos
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
                   </div>
+
+                  {cursosDoGrupo.length === 0 ? (
+                    <p className="text-gray-400 text-xs py-8 text-center font-medium bg-gray-50 rounded-2xl border border-dashed border-slate-200">
+                      Nenhum curso marcado para este grupo ainda.
+                    </p>
+                  ) : (
+                    <div className="relative">
+                      <div
+                        ref={(el) => { esteirasGrupoHomeRef.current[grupo.chave] = el; }}
+                        className="flex gap-3 md:gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 sem-scrollbar"
+                      >
+                        {cursosDoGrupo.map((curso) => (
+                          <div key={curso.id} className="w-[80%] sm:w-[300px] shrink-0 snap-start">
+                            <CursoCardNovo curso={curso} />
+                          </div>
+                        ))}
+                      </div>
+
+                      {esteirasComTransbordo[grupo.chave] && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => rolarEsteiraGrupoHome(grupo.chave, -1)}
+                            aria-label={`Ver ${grupo.rotulo} anterior`}
+                            className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white hover:bg-[#fed106] text-black items-center justify-center shadow-md border border-gray-100 transition-all cursor-pointer z-10"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => rolarEsteiraGrupoHome(grupo.chave, 1)}
+                            aria-label={`Ver ${grupo.rotulo} seguinte`}
+                            className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white hover:bg-[#fed106] text-black items-center justify-center shadow-md border border-gray-100 transition-all cursor-pointer z-10"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
