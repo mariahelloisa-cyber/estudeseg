@@ -6,7 +6,7 @@ export default function CursoCardNovo({ curso }) {
   return (
     <Link
       to={`/cursos/${curso.id}`}
-      className="flex flex-col bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 group"
+      className="flex flex-col h-full bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 group"
     >
       <div className="relative w-full h-44 overflow-hidden bg-gray-100">
         {curso.imagem_url ? (
