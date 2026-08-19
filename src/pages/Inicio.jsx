@@ -501,6 +501,14 @@ export default function Inicio() {
               titulosJaVistos.add(chaveTitulo);
               return true;
             })
+            // Cursos com ordem_home definida aparecem primeiro, na ordem escolhida no admin;
+            // os demais (ordem_home vazio) ficam depois, na ordem que já vinham (mais recentes primeiro).
+            .sort((a, b) => {
+              if (a.ordem_home == null && b.ordem_home == null) return 0;
+              if (a.ordem_home == null) return 1;
+              if (b.ordem_home == null) return -1;
+              return a.ordem_home - b.ordem_home;
+            })
             .slice(0, MAX_CURSOS_POR_GRUPO_HOME)
             .map((item) => ({
               id: item.id,

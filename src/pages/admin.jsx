@@ -92,15 +92,12 @@ const CURSO_FORM_INICIAL = {
   precoOriginal: "",
   preco: "",
   seloMec: true,
-  destaque: false,
-  maisVendido: false,
   grupoHome: '',
+  ordemHome: '',
   gradeCurricular: [],
   blocosConteudo: [],
 };
 
-const MAX_CURSOS_DESTAQUE = 5;
-const MAX_CURSOS_MAIS_VENDIDOS = 8;
 const MAX_DEPOIMENTOS_DESTAQUE = 10;
 
 const POPUP_FORM_INICIAL = { titulo: "", modelo: null, dados: {}, ativo: false, atrasoSegundos: 0 };
@@ -2713,9 +2710,8 @@ export default function Admin() {
       precoOriginal: curso.preco_original != null ? String(curso.preco_original) : "",
       preco: curso.preco != null ? String(curso.preco) : "",
       seloMec: curso.selo_mec ?? true,
-      destaque: curso.destaque ?? false,
-      maisVendido: curso.mais_vendido ?? false,
       grupoHome: curso.grupo_home || '',
+      ordemHome: curso.ordem_home != null ? String(curso.ordem_home) : '',
       gradeCurricular: parseGradeCurricular(curso.grade_curricular),
       blocosConteudo: parseBlocosConteudo(curso.blocos_conteudo),
     });
@@ -2740,22 +2736,6 @@ export default function Admin() {
     if (!formCurso.titulo.trim() || !formCurso.descricao.trim()) {
       setMensagemStatus("⚠️ Preencha ao menos o título e a descrição do curso!");
       return;
-    }
-
-    if (formCurso.destaque) {
-      const totalDestacados = cursosAdmin.filter((c) => c.destaque && c.id !== cursoEditando).length;
-      if (totalDestacados >= MAX_CURSOS_DESTAQUE) {
-        setMensagemStatus(`⚠️ Você já tem ${MAX_CURSOS_DESTAQUE} cursos em destaque. Remova um antes de adicionar outro.`);
-        return;
-      }
-    }
-
-    if (formCurso.maisVendido) {
-      const totalMaisVendidos = cursosAdmin.filter((c) => c.mais_vendido && c.id !== cursoEditando).length;
-      if (totalMaisVendidos >= MAX_CURSOS_MAIS_VENDIDOS) {
-        setMensagemStatus(`⚠️ Você já tem ${MAX_CURSOS_MAIS_VENDIDOS} cursos marcados como mais vendidos. Remova um antes de adicionar outro.`);
-        return;
-      }
     }
 
     if (formCurso.grupoHome) {
@@ -2831,9 +2811,8 @@ export default function Admin() {
         preco_original: formCurso.precoOriginal ? parseFloat(formCurso.precoOriginal) : null,
         preco: parseFloat(formCurso.preco) || 0,
         selo_mec: formCurso.seloMec,
-        destaque: formCurso.destaque,
-        mais_vendido: formCurso.maisVendido,
         grupo_home: formCurso.grupoHome || null,
+        ordem_home: formCurso.ordemHome !== '' ? Number(formCurso.ordemHome) : null,
         grade_curricular: serializarGradeCurricular(formCurso.gradeCurricular),
         blocos_conteudo: serializarBlocosConteudo(formCurso.blocosConteudo),
       };
@@ -3058,11 +3037,9 @@ export default function Admin() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 mb-6">
                 <CardEstatistica label="Cursos Cadastrados" valor={cursosAdmin.length} Icon={AcademicCapIcon} cor="bg-indigo-500" />
                 <CardEstatistica label="Categorias" valor={categoriasCursos.length} Icon={TagIcon} cor="bg-[#fed106]" />
-                <CardEstatistica label="Em Destaque (Home)" valor={`${cursosAdmin.filter((c) => c.destaque).length}/${MAX_CURSOS_DESTAQUE}`} Icon={StarIcon} cor="bg-[#fed106]" />
-                <CardEstatistica label="Mais Vendidos (Home)" valor={`${cursosAdmin.filter((c) => c.mais_vendido).length}/${MAX_CURSOS_MAIS_VENDIDOS}`} Icon={StarIcon} cor="bg-emerald-500" />
               </div>
 
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
@@ -3116,12 +3093,17 @@ export default function Admin() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-gray-800 truncate flex items-center gap-1.5">
                               {curso.titulo}
-                              {curso.destaque && <span title="Destaque na Home">⭐</span>}
                             </p>
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                               <span className="text-[10px] font-extrabold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
                                 {curso.categorias_cursos?.nome || 'Sem categoria'}
                               </span>
+                              {curso.grupo_home && (
+                                <span className="text-[10px] font-extrabold bg-[#fed106]/15 text-[#8a6d00] px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
+                                  {GRUPOS_HOME_CURSO.find((g) => g.chave === curso.grupo_home)?.rotulo || curso.grupo_home}
+                                  {curso.ordem_home != null ? ` · ordem ${curso.ordem_home}` : ''}
+                                </span>
+                              )}
                               <span className="text-xs text-gray-400">
                                 {curso.duracao || '-'} · R$ {(curso.preco || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </span>
@@ -3274,26 +3256,6 @@ export default function Admin() {
                         />
                         <label htmlFor="curso-selo-mec" className="text-xs text-gray-500 font-bold uppercase">Exibir selo MEC</label>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="curso-destaque"
-                          checked={formCurso.destaque}
-                          onChange={(e) => atualizarCampoFormCurso('destaque', e.target.checked)}
-                          className="w-4 h-4 rounded border-gray-300 cursor-pointer"
-                        />
-                        <label htmlFor="curso-destaque" className="text-xs text-gray-500 font-bold uppercase">Destacar na Home (máx. {MAX_CURSOS_DESTAQUE})</label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="curso-mais-vendido"
-                          checked={formCurso.maisVendido}
-                          onChange={(e) => atualizarCampoFormCurso('maisVendido', e.target.checked)}
-                          className="w-4 h-4 rounded border-gray-300 cursor-pointer"
-                        />
-                        <label htmlFor="curso-mais-vendido" className="text-xs text-gray-500 font-bold uppercase">Mais Vendido (máx. {MAX_CURSOS_MAIS_VENDIDOS})</label>
-                      </div>
                       <div>
                         <label htmlFor="curso-grupo-home" className="text-xs text-gray-500 font-bold block mb-1 uppercase">
                           Seção "Quero..." na Home (máx. {MAX_CURSOS_POR_GRUPO_HOME} por grupo)
@@ -3310,6 +3272,22 @@ export default function Admin() {
                           ))}
                         </select>
                       </div>
+                      {formCurso.grupoHome && (
+                        <div>
+                          <label htmlFor="curso-ordem-home" className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                            Ordem de exibição na esteira
+                          </label>
+                          <input
+                            type="number"
+                            id="curso-ordem-home"
+                            value={formCurso.ordemHome}
+                            onChange={(e) => atualizarCampoFormCurso('ordemHome', e.target.value)}
+                            placeholder="Ex: 1 (menor número aparece primeiro)"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                          />
+                          <p className="text-[10px] text-gray-400 mt-1">Deixe em branco para usar a ordem padrão (mais recentes primeiro).</p>
+                        </div>
+                      )}
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <label className="text-xs text-gray-500 font-bold uppercase">Grade Curricular</label>
