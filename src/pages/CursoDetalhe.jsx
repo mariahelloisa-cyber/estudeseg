@@ -134,27 +134,27 @@ function CardBeneficio({ Icon, titulo, descricao }) {
 function BlocoConteudo({ titulo, texto, ultimo }) {
   return (
     <div className={ultimo ? 'pb-0' : 'pb-6 mb-6 border-b border-gray-100'}>
-      {titulo && <h3 className="text-lg font-black text-gray-900 mb-2">{titulo}</h3>}
-      <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{texto}</p>
+      {titulo && <h3 className="text-xl font-black text-gray-900 mb-2">{titulo}</h3>}
+      <p className="text-base text-gray-800 leading-relaxed whitespace-pre-line">{texto}</p>
     </div>
   );
 }
 
 function ItemFAQ({ pergunta, resposta, aberto, onToggle }) {
   return (
-    <div className="border border-gray-100 rounded-2xl overflow-hidden bg-white">
+    <div className="rounded-2xl overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left cursor-pointer hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left cursor-pointer transition-colors rounded-2xl bg-gray-100 hover:bg-gray-200"
       >
-        <span className="text-sm font-black text-gray-900">{pergunta}</span>
-        <span className="w-8 h-8 rounded-full bg-[#fff4cc] text-[#8a6d00] flex items-center justify-center shrink-0">
+        <span className="text-base font-black text-gray-900">{pergunta}</span>
+        <span className="w-8 h-8 rounded-full bg-white text-gray-700 flex items-center justify-center shrink-0">
           {aberto ? <MinusIcon className="w-4 h-4" /> : <PlusIcon className="w-4 h-4" />}
         </span>
       </button>
       {aberto && (
-        <div className="px-5 pb-5 text-sm text-gray-600 leading-relaxed">
+        <div className="px-5 pt-3 pb-4 text-sm text-gray-700 leading-relaxed text-justify">
           {resposta}
         </div>
       )}
@@ -495,7 +495,7 @@ export default function CursoDetalhe() {
                 <span className="absolute left-0 -bottom-2 w-16 h-1.5 rounded-full bg-[#fed106]"></span>
               </h2>
             </div>
-            <p className="text-gray-600 text-base leading-relaxed mt-8 whitespace-pre-line">
+            <p className="text-gray-800 text-base leading-relaxed mt-8 whitespace-pre-line">
               {curso.descricao || 'Descrição indisponível.'}
             </p>
           </AoRolar>
@@ -565,11 +565,11 @@ export default function CursoDetalhe() {
                   const aberto = !!semestresAbertos[idx];
                   const horasSemestre = calcularHorasSemestre(semestre.disciplinas);
                   return (
-                    <div key={idx} className="border border-gray-100 rounded-2xl overflow-hidden bg-white">
+                    <div key={idx} className="rounded-2xl overflow-hidden bg-white shadow-sm">
                       <button
                         type="button"
                         onClick={() => alternarSemestre(idx)}
-                        className="w-full flex items-center justify-between gap-3 bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 text-left cursor-pointer"
+                        className="w-full flex items-center justify-between gap-3 transition-colors px-5 py-4 text-left cursor-pointer bg-gray-100 hover:bg-gray-200"
                       >
                         <div className="flex items-center gap-4 min-w-0 flex-1">
                           <span className="w-11 h-11 rounded-full bg-black text-[#fed106] flex items-center justify-center font-black text-base shrink-0">
