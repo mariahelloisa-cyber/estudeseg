@@ -2,10 +2,21 @@ import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import CursoCardNovo from '../components/CursoCardNovo';
 import { listaCursosGiga } from './cursosData';
+import { GRUPOS_HOME_CURSO } from '../utils/gruposHomeCurso';
 import imagemFundo from '../assets/imghero.png';
 import { useCartStore } from '../store/cartStore';
 import { supabase } from '../supabaseClient';
 import CarrinhoSidebar from '../components/CarrinhoSidebar';// <-- ADICIONE ESTA LINHA AQUI
+
+// Nome da categoria (cadastrada no admin) que corresponde visualmente a cada grupo da Home,
+// só para destacar a aba certa quando se chega em /cursos?grupo=... — a filtragem em si usa
+// a coluna grupo_home, não este nome, então uma categoria renomeada só afeta o destaque da aba.
+const CATEGORIA_PILL_POR_GRUPO = {
+  tecnico: 'Técnico',
+  tecnico_competencia: 'Técnico Por Competência',
+  tecnologos: 'Tecnólogos',
+  ead: 'EJA',
+};
 
 export default function ListaCursos() {
   const [pesquisa, setPesquisa] = useState(
@@ -13,6 +24,16 @@ export default function ListaCursos() {
   );
   const [categoriaSelecionada, setCategoriaSelecionada] = useState('Todas');
   const [filtroCategoriaAberto, setFiltroCategoriaAberto] = useState(false);
+  // Grupo da Home (ex.: "tecnico") vindo do botão "Ver todos" de cada esteira em GRUPOS_HOME_CURSO;
+  // quando presente, restringe a listagem aos cursos daquele grupo até o usuário trocar de categoria.
+  const [grupoHomeFiltro, setGrupoHomeFiltro] = useState(
+    () => new URLSearchParams(window.location.search).get('grupo') || null
+  );
+  const grupoHomeInfo = grupoHomeFiltro
+    ? GRUPOS_HOME_CURSO.find((g) => g.chave === grupoHomeFiltro) || null
+    : null;
+  // Rótulo usado só para destacar visualmente a aba de categoria correspondente ao grupo ativo
+  const rotuloPillAtivo = grupoHomeInfo ? CATEGORIA_PILL_POR_GRUPO[grupoHomeInfo.chave] || null : categoriaSelecionada;
   const adicionarAoCarrinho = useCartStore((state) => state.adicionarAoCarrinho);
   const carrinho = useCartStore((state) => state.carrinho);
   const setCarrinhoAberto = useCartStore((state) => state.setCarrinhoAberto);
@@ -50,7 +71,8 @@ export default function ListaCursos() {
     const combinaTexto = (curso.titulo || '').toLowerCase().includes(pesquisa.toLowerCase());
     const combinaCategoria = categoriaSelecionada === 'Todas' ||
       (curso.categorias_cursos?.nome || 'Geral') === categoriaSelecionada;
-    return combinaTexto && combinaCategoria;
+    const combinaGrupo = !grupoHomeInfo || curso.grupo_home === grupoHomeInfo.chave;
+    return combinaTexto && combinaCategoria && combinaGrupo;
   });
 
   const totalPaginasCadastrados = Math.max(1, Math.ceil(cursosCadastradosFiltrados.length / CARDS_POR_PAGINA_CADASTRADOS));
@@ -114,10 +136,14 @@ export default function ListaCursos() {
 
   // Uma categoria "nova" é a que só existe entre os cursos cadastrados pelo admin (não no catálogo antigo)
   const categoriaEhNova = categoriaSelecionada !== 'Todas' && !categoriasFiltro.includes(categoriaSelecionada);
+  // A lista antiga (catálogo hardcoded) some quando a categoria é exclusiva dos cadastrados ou quando
+  // veio um filtro de grupo da Home (ex.: "Cursos Técnicos EAD"), já que ela não tem essa marcação.
+  const ocultarListaAntiga = categoriaEhNova || !!grupoHomeInfo;
 
-  // Filtro de Busca e Categoria
+  // Filtro de Busca e Categoria (a lista antiga não tem `grupo_home`, então some quando um grupo da Home está ativo)
   const cursosFiltrados = dadosCursos.filter((curso) => {
     if (!curso) return false;
+    if (grupoHomeInfo) return false;
     const nomeCurso = curso.nome || curso.titulo || "";
     const categoriaCurso = curso.categoriaNome || "";
 
@@ -131,7 +157,7 @@ export default function ListaCursos() {
   // Quando a lista antiga (em formato de lista) também aparece na tela, o total exibido soma
   // os cards cadastrados pelo admin + os cursos dessa lista antiga; quando a categoria é
   // exclusiva dos cadastrados (ex.: Tecnólogos), a lista antiga fica oculta e não entra na conta.
-  const totalCursosEncontrados = categoriaEhNova
+  const totalCursosEncontrados = ocultarListaAntiga
     ? cursosCadastradosFiltrados.length
     : cursosCadastradosFiltrados.length + cursosFiltrados.length;
 
@@ -204,15 +230,15 @@ export default function ListaCursos() {
 
       {/* 2. FILTROS E CONTEÚDO */}
       <div className="max-w-6xl w-full mx-auto px-6 mt-10">
-        
+
         {/* Abas de Categorias (catálogo antigo + categorias cadastradas pelo admin, juntas) — desktop: todas visíveis */}
         <div className="hidden md:flex flex-wrap gap-3 mb-8 justify-start">
           {categoriasFiltroUnificadas.map((cat) => {
-            const isSelected = categoriaSelecionada.toLowerCase() === cat.toLowerCase();
+            const isSelected = !!rotuloPillAtivo && rotuloPillAtivo.toLowerCase() === cat.toLowerCase();
             return (
               <button
                 key={`btn-filtro-${cat}`}
-                onClick={() => { setCategoriaSelecionada(cat); setPaginaCadastrados(0); }}
+                onClick={() => { setCategoriaSelecionada(cat); setPaginaCadastrados(0); setGrupoHomeFiltro(null); }}
                 className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 border flex items-center gap-2 cursor-pointer ${
                   isSelected
                     ? 'bg-[#fed106] text-white border-[#fed106] shadow-sm'
@@ -229,9 +255,9 @@ export default function ListaCursos() {
         {/* Abas de Categorias — mobile: só "Todas" + botão que abre a lista completa, pra não ocupar a tela toda */}
         <div className="flex md:hidden gap-3 mb-8">
           <button
-            onClick={() => { setCategoriaSelecionada('Todas'); setPaginaCadastrados(0); }}
+            onClick={() => { setCategoriaSelecionada('Todas'); setPaginaCadastrados(0); setGrupoHomeFiltro(null); }}
             className={`shrink-0 px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 border flex items-center gap-2 cursor-pointer ${
-              categoriaSelecionada === 'Todas'
+              !grupoHomeInfo && categoriaSelecionada === 'Todas'
                 ? 'bg-[#fed106] text-white border-[#fed106] shadow-sm'
                 : 'bg-white text-[#000000]/80 border-gray-200 hover:bg-gray-50'
             }`}
@@ -244,7 +270,7 @@ export default function ListaCursos() {
             type="button"
             onClick={() => setFiltroCategoriaAberto(true)}
             className={`flex-1 min-w-0 px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 border flex items-center justify-center gap-2 cursor-pointer ${
-              categoriaSelecionada !== 'Todas'
+              grupoHomeInfo || categoriaSelecionada !== 'Todas'
                 ? 'bg-[#fed106] text-white border-[#fed106] shadow-sm'
                 : 'bg-white text-[#000000]/80 border-gray-200 hover:bg-gray-50'
             }`}
@@ -253,7 +279,7 @@ export default function ListaCursos() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h18M6 9h12M10 13.5h4" />
             </svg>
             <span className="truncate capitalize">
-              {categoriaSelecionada === 'Todas' ? 'Filtrar por categoria' : categoriaSelecionada}
+              {rotuloPillAtivo && rotuloPillAtivo !== 'Todas' ? rotuloPillAtivo : 'Filtrar por categoria'}
             </span>
           </button>
         </div>
@@ -284,11 +310,11 @@ export default function ListaCursos() {
               </div>
               <div className="flex flex-col gap-2">
                 {categoriasFiltroUnificadas.map((cat) => {
-                  const isSelected = categoriaSelecionada.toLowerCase() === cat.toLowerCase();
+                  const isSelected = !!rotuloPillAtivo && rotuloPillAtivo.toLowerCase() === cat.toLowerCase();
                   return (
                     <button
                       key={`btn-filtro-mobile-${cat}`}
-                      onClick={() => { setCategoriaSelecionada(cat); setPaginaCadastrados(0); setFiltroCategoriaAberto(false); }}
+                      onClick={() => { setCategoriaSelecionada(cat); setPaginaCadastrados(0); setFiltroCategoriaAberto(false); setGrupoHomeFiltro(null); }}
                       className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all duration-200 border flex items-center gap-3 cursor-pointer ${
                         isSelected
                           ? 'bg-[#fed106] text-white border-[#fed106] shadow-sm'
@@ -357,7 +383,7 @@ export default function ListaCursos() {
         )}
 
         {/* Quando a categoria escolhida é exclusiva dos cursos cadastrados, não mostra a lista antiga */}
-        {!categoriaEhNova && (
+        {!ocultarListaAntiga && (
           <>
 
         {/* 3. LISTAGEM DE CURSOS */}

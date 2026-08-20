@@ -1134,7 +1134,7 @@ export default function Inicio() {
                         );
                       })}
                     </h3>
-                    <a href="/cursos" className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-black transition-colors shrink-0">
+                    <a href={`/cursos?grupo=${grupo.chave}`} className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-gray-500 hover:text-black transition-colors shrink-0">
                       Ver todos
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
