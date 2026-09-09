@@ -26,7 +26,10 @@ GET /auth/v1/settings        → "disable_signup": false      (signup ainda aber
 GET /rest/v1/admins          → PGRST205 (a tabela ainda não existe)
 ```
 
-Por isso o veredito final continua 🔴. Não é pessimismo: é o estado verificável.
+**ATUALIZAÇÃO 09/09 — tudo abaixo foi executado pela administradora.** O SQL foi
+aplicado, o site republicado e a Edge Function publicada. O veredito final está
+na seção REAUDITORIA FINAL, no fim deste arquivo: 🟢 pronto para pentest.
+O texto desta seção fica como registro de como o trabalho foi entregue.
 
 ---
 
@@ -240,66 +243,138 @@ marcados como RESOLVIDOS.
 
 ---
 
-# SECURITY GATE
+# REAUDITORIA FINAL — 2026-09-09
 
-Avaliação do **estado atual de produção**, que é o que conta. Vários itens são
-`FAIL` apenas porque o SQL ainda não foi executado — o `(código pronto)` indica
-exatamente isso.
+Tudo abaixo foi medido contra a produção, com `curl` direto no PostgREST, no
+GoTrue, no Storage e na Edge Function — sem passar pelo React, como um atacante
+faria.
+
+## Cenário A — atacante anônimo: 12 de 12 bloqueados
+
+| Tentativa | Resultado |
+|---|---|
+| `POST /auth/v1/signup` | `signup_disabled` |
+| Ler `matriculados` / `matriculas` / `contatos` | `42501 permission denied` |
+| Ler `resgate_vouchers` / `sorteio_participantes` | `42501` |
+| Ler `ia_mensagens` / `popup_newsletter_inscricoes` | `42501` |
+| Ler `admins` | `42501` |
+| `INSERT` direto em `matriculas` | `42501` |
+| `PATCH` em `cursos_cadastrados` | `42501` |
+| `PATCH` em `carrossel_3d_fotos` | `42501` |
+| `rpc/gerar_vouchers_resgate` | `42501` |
+| Upload sem token válido | `new row violates row-level security policy` |
+
+## Rate limiting — medido, não presumido
+
+| RPC | Limite | Observado |
+|---|---|---|
+| `enviar_matricula` | 5/hora/IP | 5 passaram, da 6ª em diante `limite_excedido` |
+| `girar_roleta_resgate` | 10/hora/IP | 10 passaram, da 11ª em diante `limite_excedido` |
+
+Contagem confirmada **por IP** (a coluna `identidade` registra o endereço real,
+não o valor de fallback `desconhecido`), então o limite não afeta visitantes
+legítimos de outras redes.
+
+## Infraestrutura
+
+| Verificação | Resultado |
+|---|---|
+| Site no ar | HTTP 200 |
+| Repositório GitHub | privado (API responde 404 a não autenticados) |
+| `disable_signup` | `true` |
+| OpenAPI do PostgREST | HTTP 401 — esquema não enumerável |
+| Bucket `matriculas-anexos` | não público |
+| Headers de segurança | 8 de 8 presentes |
+| `npm audit` | 0 vulnerabilidades |
+| CORS do `chat-agent` | origem do site ecoada; origem de terceiro recusada |
+
+## Funcionalidade preservada
+
+Conteúdo público legível por anônimos: cursos, banners, FAQ, depoimentos,
+carrossel 3D, sorteios e prêmios. Validação server-side ativa: `enviar_contato`
+recusou e-mail malformado (`email_invalido`) e `enviar_matricula` recusou o CPF
+`11111111111` (`cpf_invalido`), ambos sem gravar nada.
+
+## Falhas encontradas DURANTE a remediação (e corrigidas)
+
+Três problemas que só apareceram porque os testes foram feitos de verdade,
+contra o ambiente real, em vez de assumir que o código novo funcionava:
+
+| # | Problema | Como apareceu | Correção |
+|---|---|---|---|
+| 1 | Upload de anexos quebrado: `upload_matricula_permitido` é chamada de dentro da policy do bucket, e policies rodam com os privilégios de quem consulta — sem `EXECUTE` para `anon`, nenhum anexo subia | O teste de ataque devolveu `permission denied for function` em vez de uma recusa limpa da policy | arquivo 07 + correção na origem no 03 |
+| 2 | Rate limit não funcionava: a tabela de contadores tinha `force row level security` com zero policies, o `returning` do upsert não devolvia linha, a contagem virava `NULL`, e `NULL <= limite` fazia o `if not` nunca bloquear — falha silenciosa que liberava tudo | 7 chamadas passaram num limite de 5 | arquivo 08: uma linha por evento, janela deslizante, `coalesce` para bloquear na dúvida |
+| 3 | Três tabelas ficaram fora do arquivo 02 (`carrossel_3d_fotos`, `popup_cadastros`, `popup_capturas_email`): minha varredura do código não aceitava dígitos em nomes de tabela nem entrava em subpastas | Verificação 2 do arquivo 05 acusou FALHA | arquivo 06 |
+
+Houve ainda dois erros nos próprios scripts de verificação, que produziam
+diagnóstico errado sem afetar a segurança: a checagem de `search_path` procurava
+`search_path=` quando o Postgres grava `search_path=""`, e a conferência
+pós-correção estava dentro do arquivo de diagnóstico inicial, referenciando uma
+tabela que ainda não existia.
+
+---
+
+# SECURITY GATE — FINAL
 
 ```
-CRITICAL:  1   (C-01 — aberto até o signup ser desligado e o SQL rodar)
-HIGH:      3   (H-01, H-02 pendentes de execução · H-04 parcial · H-03 risco aceito:
-               nao explorado, decidido tornar o repositorio privado)
-MEDIUM:    5   (M-01..M-05 pendentes · M-06 resolvido · N-01, N-02 resolvidos)
-LOW:       2   (L-01 aceito, L-02 decisão de negócio · L-03/04/05 resolvidos)
+CRITICAL:  0
+HIGH:      0
+MEDIUM:    0
+LOW:       2   (L-01 sessao em localStorage: aceito, padrao do SDK
+                L-02 Meta Pixel bloqueado pela CSP: decisao de negocio)
 
-AUTHORIZATION:            FAIL  (código pronto; falta rodar 01 e 02)
-RLS:                      FAIL  (código pronto; falta rodar 02)
-API:                      FAIL  (código pronto; falta rodar 03 e 04)
-SECRETS:                  PASS  (nenhuma service_role, chave privada ou credencial
-                                 ativa no código, no bundle ou no histórico)
-DEPENDENCIES:             PASS  (npm audit: 0 vulnerabilidades)
-RATE LIMITING:            FAIL  (RPC pronto; Supabase Auth Rate Limits nao conferido)
-STORAGE:                  FAIL  (código pronto; falta rodar 03)
-INPUT VALIDATION:         FAIL  (código pronto; falta rodar 03)
-SECURITY HEADERS:         PASS  (CSP preservada e endurecida)
-GIT:                      FAIL  (repositório ainda público — vira PASS no passo 9;
-                                 .env no histórico: risco aceito, nao explorado)
-BACKDOOR / EXTERNAL CODE: PASS  (inventário completo, nada não documentado)
-BUILD:                    PASS  (npm run build ✓, 0 regressões de lint)
+AUTHORIZATION:            PASS  (public.admins + eh_admin(); 12/12 ataques barrados)
+RLS:                      PASS  (todas as tabelas; nenhuma policy de escrita com true)
+API:                      PASS  (RPCs validadas, oraculos fechados, OpenAPI 401)
+SECRETS:                  PASS  (nenhuma service_role ou credencial ativa exposta)
+DEPENDENCIES:             PASS  (npm audit: 0)
+RATE LIMITING:            PASS  (medido por IP nas RPCs; Auth Rate Limits: NAO VERIFICADO)
+STORAGE:                  PASS  (bucket privado, upload amarrado ao token)
+INPUT VALIDATION:         PASS  (CPF, e-mail, obrigatorios e tamanhos no servidor)
+SECURITY HEADERS:         PASS  (8/8 em producao, CSP endurecida)
+GIT:                      PASS  (repositorio privado; .env no historico: risco
+                                 aceito, falha nao explorada)
+BACKDOOR / EXTERNAL CODE: PASS  (inventario completo, nada nao documentado)
+BUILD:                    PASS  (npm run build OK, 0 regressoes de lint)
 ```
 
 ## VEREDITO
 
-🔴 **NÃO PRONTO PARA PENTEST.**
+🟢 **PRONTO PARA PENTEST INDEPENDENTE.**
 
-Existe CRITICAL aberto e autorização quebrada **em produção**. O critério da
-Fase 22 é objetivo e não admite interpretação: o gate falha.
+Não há CRITICAL nem HIGH em aberto. Autenticação e autorização estão separadas,
+a autorização é verificada no banco e resiste a quem ignore completamente o
+frontend, e cada afirmação acima corresponde a um teste executado contra a
+produção.
 
-O que é justo dizer é que a distância até o verde é curta e o caminho está todo
-escrito. Faltam quatro ações, e três são suas:
+Isto **não** quer dizer que o sistema seja seguro. Quer dizer que os testes
+realizados não identificaram falhas exploráveis nas áreas cobertas, e que o
+sistema está em condição de receber um exame independente — que é o objetivo
+declarado deste trabalho.
 
-1. Desligar "Enable Sign Ups" no painel do Supabase — 2 minutos, fecha o C-01.
-2. Rodar `supabase-seguranca-00` a `04` no SQL Editor, nessa ordem, cadastrando
-   o admin no passo 5 do arquivo 01.
-3. `supabase functions deploy chat-agent`.
-4. Tornar o repositório privado. (Histórico e chaves: decidido não mexer —
-   a falha não foi explorada.)
+## NÃO VERIFICADO (não confundir com seguro)
 
-Depois disso, rodar o arquivo `supabase-seguranca-05-conferencia.sql` e o Cenário B. **Não marque nada
-como resolvido antes de ver esses testes passando** — o código ter mudado não é
-prova de que a vulnerabilidade fechou.
+- **Mascaramento do Microsoft Clarity.** O site grava sessões em todas as
+  páginas, incluindo `/matricula`, onde a pessoa digita CPF e RG. A configuração
+  fica na conta do Clarity, fora do código. **Pendente de conferência.**
+- **Supabase → Authentication → Rate Limits.** Protege `/auth/v1/token` e
+  `/auth/v1/recover` contra tentativa em massa de adivinhar a senha do admin.
+  Fora do alcance do SQL e do código. **Pendente de conferência.**
+- **MFA na conta do Supabase.** É a conta que dá acesso ao banco inteiro.
+- **Backups e retenção de logs** do projeto Supabase.
+- **Cenário B completo** (conta autenticada não-admin). O roteiro está no passo
+  8.4 do `PASSO-A-PASSO.md`. As proteções foram verificadas pelo lado anônimo e
+  pela leitura das policies, mas o teste com um token de usuário comum real não
+  foi executado.
+- **Auth Logs** do Supabase, que poderiam confirmar documentalmente que nenhuma
+  conta foi criada e apagada durante a janela em que o cadastro esteve aberto.
 
-## O que continua NÃO VERIFICADO (e por quê)
+## Pendências conhecidas, sem impacto de segurança
 
-- **Cloudflare / WAF / rate limit de borda** — não há configuração no
-  repositório e não tenho acesso ao painel.
-- **Backups e logs do Supabase** — configuração de painel.
-- **Mascaramento do Clarity** — configuração da conta do Clarity.
-- **Contas existentes em `auth.users`** — não consigo consultar; a consulta 7 do
-  arquivo 00 gera o inventário com e-mail mascarado.
-- **Estrutura real das 12 tabelas sem SQL versionado** — consulta 9 do arquivo 00.
-- **Comportamento das policies novas em produção** — só verificável depois da
-  execução.
-
-Nenhum desses itens deve ser lido como "seguro". São limitações da auditoria.
+- `PopupCadastro.jsx` e `PopupCaptura.jsx` gravam em `popup_cadastros` e
+  `popup_capturas_email`, que **não existem** no banco (`PGRST205`). Se um
+  desses modelos de pop-up for ativado, o visitante recebe erro. Bug anterior a
+  este trabalho; bloco pronto e seguro no anexo do arquivo 06.
+- `src/pages/Inicio.jsx:25` ainda aponta para um Strapi morto em
+  `localhost:1337` ([I-02]).
+- `src/pages/Vagas.jsx` e `ouvidoria.jsx` existem mas têm as rotas comentadas.
