@@ -1,3 +1,5 @@
+import { sanitizarLinkExterno } from './linkSeguro';
+
 export function obterUrlEmbedVideo(url) {
   if (!url) return null;
 
@@ -13,5 +15,10 @@ export function obterUrlEmbedVideo(url) {
     return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
   }
 
-  return url;
+  // Não reconhecemos o formato. O valor vem da coluna `video_url` da tabela
+  // `depoimentos` e vai direto para o src de um <iframe>, então não pode ser
+  // devolvido cru: um valor como `javascript:...` ou `data:text/html,...`
+  // gravado no banco viraria execução de script na página.
+  // Só passa o que for http(s) de verdade.
+  return sanitizarLinkExterno(url);
 }
