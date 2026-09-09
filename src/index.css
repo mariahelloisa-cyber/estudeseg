@@ -12,6 +12,14 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Fonte dos títulos das páginas de sorteio (Roleta Premiada e Resgate seu
+   Prêmio). Fica num lugar só: para trocar a fonte das duas páginas, mude aqui
+   e ajuste o link do Google Fonts no index.html. */
+.fonte-titulo-sorteio {
+  font-family: 'Sora', 'Inter', sans-serif;
+  letter-spacing: -0.02em;
+}
+
 .sem-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -79,6 +87,23 @@ html {
 
 .animate-segurinho-pulse {
   animation: segurinhoPulse 2.4s ease-in-out infinite;
+}
+
+/* Pulsar discreto para botões pretos: só cresce e volta, com a sombra
+   acompanhando. Sem brilho colorido, para o botão continuar preto. */
+@keyframes pulsoPreto {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.45);
+  }
+  50% {
+    transform: scale(1.045);
+    box-shadow: 0 14px 28px -8px rgba(0, 0, 0, 0.55);
+  }
+}
+
+.animate-pulso-preto {
+  animation: pulsoPreto 2.4s ease-in-out infinite;
 }
 
 

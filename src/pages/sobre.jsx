@@ -151,7 +151,7 @@ export default function Sobre() {
       <div className="w-full bg-[#fcfbfb] font-sans antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* 1. SEÇÃO HERO */}
-      <section className="relative w-full bg-white overflow-hidden pt-10 pb-6 md:pt-14 md:pb-8">
+      <section className="relative w-full bg-white overflow-hidden pt-10 pb-0 md:pt-12 md:pb-0">
         <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8 items-center">
           <div className="relative">
             <div className="absolute -top-7 left-0 flex items-center">
@@ -165,11 +165,11 @@ export default function Sobre() {
             </h1>
           </div>
 
-          <div className="flex justify-center order-first lg:order-none">
+          <div className="flex justify-center items-end self-end order-first lg:order-none">
             <img
               src={estudante}
               alt="Estudante Estude Seguro"
-              className="w-full max-w-[230px] md:max-w-[320px] h-[320px] md:h-[440px] object-cover object-top"
+              className="w-full max-w-[210px] md:max-w-[290px] h-[260px] md:h-[360px] object-cover object-top"
             />
           </div>
 

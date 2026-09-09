@@ -32,6 +32,7 @@ import {
   EyeIcon,
   ArrowUpIcon,
   ArrowDownIcon,
+  TicketIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -72,6 +73,8 @@ const ITENS_MENU = [
   { id: 'assistente-ia', label: 'Assistente Virtual (IA)', Icon: CpuChipIcon },
   { id: 'meta-pixel', label: 'Meta Pixel', Icon: PresentationChartLineIcon },
   { id: 'roleta-premiada', label: 'Roleta Premiada', Icon: GiftIcon },
+  { id: 'resgate-premio', label: 'Resgate seu Prêmio', Icon: TrophyIcon },
+  { id: 'sorteios-menu', label: 'Sorteios (Menu)', Icon: TicketIcon },
   { id: 'blog', label: 'Blog', Icon: NewspaperIcon },
   { id: 'vagas', label: 'Vagas', Icon: BriefcaseIcon },
   { id: 'faq', label: 'FAQ', Icon: QuestionMarkCircleIcon },
@@ -81,6 +84,51 @@ const ITENS_MENU = [
   { id: 'matriculas', label: 'Matrículas', Icon: DocumentTextIcon },
   { id: 'matriculados', label: 'Matriculados', Icon: UserGroupIcon },
 ];
+
+// Data de hoje como 'AAAA-MM-DD', no mesmo formato das colunas date do Supabase
+function hojeISO() {
+  const agora = new Date();
+  const mes = String(agora.getMonth() + 1).padStart(2, '0');
+  const dia = String(agora.getDate()).padStart(2, '0');
+  return `${agora.getFullYear()}-${mes}-${dia}`;
+}
+
+// Mesma regra usada pela Navbar: ativo e dentro do período informado
+function sorteioAparecendoNoMenu(sorteio) {
+  if (!sorteio.ativo) return false;
+  const hoje = hojeISO();
+  if (sorteio.data_inicio && sorteio.data_inicio > hoje) return false;
+  if (sorteio.data_fim && sorteio.data_fim < hoje) return false;
+  return true;
+}
+
+const dataBR = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
+
+function formatarPeriodoSorteio({ data_inicio: inicio, data_fim: fim }) {
+  if (inicio && fim) return `de ${dataBR(inicio)} a ${dataBR(fim)}`;
+  if (inicio) return `a partir de ${dataBR(inicio)}`;
+  if (fim) return `até ${dataBR(fim)}`;
+  return 'sem prazo';
+}
+
+// Formulário de um prêmio da roleta "Resgate seu Prêmio" (tabela `resgate_premios`)
+const PREMIO_RESGATE_FORM_INICIAL = {
+  nome: '',
+  rotulo: '',
+  rotulo_secundario: '',
+  peso: '1',
+  ativo: true,
+};
+
+// Formulário de um sorteio do menu (tabela `sorteios`)
+const SORTEIO_MENU_FORM_INICIAL = {
+  nome: '',
+  descricao: '',
+  link: '/sorteios',
+  ativo: true,
+  data_inicio: '',
+  data_fim: '',
+};
 
 const CURSO_FORM_INICIAL = {
   titulo: "",
@@ -337,6 +385,26 @@ export default function Admin() {
   const [novaVagaTipoContrato, setNovaVagaTipoContrato] = useState("CLT");
   const [novaVagaDescricao, setNovaVagaDescricao] = useState("");
   const [novaVagaLink, setNovaVagaLink] = useState("");
+
+  // --- Campanha "Resgate seu Prêmio" ---
+  const [listaFuncionariosResgate, setListaFuncionariosResgate] = useState([]);
+  const [novoFuncionarioResgate, setNovoFuncionarioResgate] = useState('');
+  const [listaPremiosResgate, setListaPremiosResgate] = useState([]);
+  const [formPremioResgate, setFormPremioResgate] = useState(PREMIO_RESGATE_FORM_INICIAL);
+  const [premioResgateEditando, setPremioResgateEditando] = useState(null);
+  const [listaBannersResgate, setListaBannersResgate] = useState([]);
+  const [listaVouchersResgate, setListaVouchersResgate] = useState([]);
+  const [quantidadeVouchers, setQuantidadeVouchers] = useState('1');
+  const [vouchersGerados, setVouchersGerados] = useState([]);
+  const [gerandoVouchers, setGerandoVouchers] = useState(false);
+  const [resgateWhatsappNumero, setResgateWhatsappNumero] = useState('');
+  const [resgateWhatsappMensagem, setResgateWhatsappMensagem] = useState('');
+  const [codigoCopiado, setCodigoCopiado] = useState('');
+
+  // --- Sorteios do menu (dropdown "Sorteios" da Navbar) ---
+  const [listaSorteiosMenu, setListaSorteiosMenu] = useState([]);
+  const [formSorteioMenu, setFormSorteioMenu] = useState(SORTEIO_MENU_FORM_INICIAL);
+  const [sorteioMenuEditando, setSorteioMenuEditando] = useState(null);
 
   // --- Estados para as restantes seções ---
   const [listaSelos, setListaSelos] = useState([]);
@@ -2860,6 +2928,437 @@ export default function Admin() {
     }
   }
 
+  // ================= CAMPANHA "RESGATE SEU PRÊMIO" =================
+  async function buscarDadosResgate() {
+    try {
+      const [funcionariosRes, premiosRes, vouchersRes, bannersRes, configRes] = await Promise.all([
+        supabase.from('resgate_funcionarios').select('*').order('nome', { ascending: true }),
+        supabase.from('resgate_premios').select('*').order('ordem', { ascending: true }),
+        supabase.from('resgate_vouchers').select('*').order('created_at', { ascending: false }),
+        supabase.from('resgate_banners').select('*').order('ordem', { ascending: true }),
+        supabase
+          .from('configuracoes')
+          .select('chave, valor')
+          .in('chave', ['resgate_whatsapp_numero', 'resgate_whatsapp_mensagem']),
+      ]);
+
+      const mapaConfig = Object.fromEntries((configRes.data || []).map((item) => [item.chave, item.valor]));
+      setResgateWhatsappNumero(mapaConfig.resgate_whatsapp_numero || '');
+      setResgateWhatsappMensagem(mapaConfig.resgate_whatsapp_mensagem || '');
+
+      if (funcionariosRes.error) throw funcionariosRes.error;
+      if (premiosRes.error) throw premiosRes.error;
+      if (vouchersRes.error) throw vouchersRes.error;
+      if (bannersRes.error) throw bannersRes.error;
+
+      setListaFuncionariosResgate(funcionariosRes.data || []);
+      setListaPremiosResgate(premiosRes.data || []);
+      setListaVouchersResgate(vouchersRes.data || []);
+      setListaBannersResgate(bannersRes.data || []);
+    } catch (err) {
+      console.error("Erro ao buscar os dados da campanha Resgate seu Prêmio:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarDadosResgate();
+  }, []);
+
+  // --- Configurações do resgate (WhatsApp do botão "Resgatar meu prêmio") ---
+  async function handleSalvarConfigResgate(e) {
+    e.preventDefault();
+    if (!resgateWhatsappNumero.replace(/\D/g, '')) {
+      setMensagemStatus("⚠️ Informe o número de WhatsApp para o resgate!");
+      return;
+    }
+    try {
+      setMensagemStatus("⏳ Salvando configurações do Resgate seu Prêmio...");
+      const { error } = await supabase.from('configuracoes').upsert(
+        [
+          { chave: 'resgate_whatsapp_numero', valor: resgateWhatsappNumero.replace(/\D/g, '') },
+          { chave: 'resgate_whatsapp_mensagem', valor: resgateWhatsappMensagem.trim() },
+        ],
+        { onConflict: 'chave' },
+      );
+      if (error) throw error;
+      setMensagemStatus("✅ Configurações do Resgate seu Prêmio atualizadas!");
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus(`❌ Não foi possível salvar as configurações: ${err.message || err}`);
+    }
+  }
+
+  // --- Banners do hero ---
+  async function handleAdicionarBannerResgate(e) {
+    e.preventDefault();
+    const arquivoInput = document.getElementById('arquivo-banner-resgate');
+    const arquivo = arquivoInput?.files[0];
+    if (!arquivo) {
+      setMensagemStatus("⚠️ Selecione uma imagem para o banner!");
+      return;
+    }
+    try {
+      validarImagem(arquivo);
+      setMensagemStatus("⏳ Fazendo upload do banner...");
+      const nomeArquivo = `resgate-${sanitizarNomeArquivo(arquivo.name)}`;
+
+      const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
+
+      const { error: insertError } = await supabase.from('resgate_banners').insert([
+        { imagem_url: urlData.publicUrl, ordem: listaBannersResgate.length },
+      ]);
+      if (insertError) throw insertError;
+
+      setMensagemStatus("✅ Banner do Resgate seu Prêmio publicado com sucesso!");
+      if (arquivoInput) arquivoInput.value = "";
+      buscarDadosResgate();
+    } catch (err) {
+      console.error(err);
+      // Mostra o motivo real (tabela ausente, permissão, arquivo inválido...) —
+      // sem isso qualquer falha vira a mesma mensagem genérica.
+      setMensagemStatus(`❌ Não foi possível publicar o banner: ${err.message || err}`);
+    }
+  }
+
+  async function handleEliminarBannerResgate(id) {
+    if (!window.confirm("Tem certeza que quer eliminar este banner?")) return;
+    try {
+      const { error } = await supabase.from('resgate_banners').delete().eq('id', id);
+      if (error) throw error;
+      buscarDadosResgate();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível eliminar o banner. Tente novamente.");
+    }
+  }
+
+  // Troca a "ordem" com a do vizinho (direcao: -1 sobe / +1 desce)
+  async function handleMoverBannerResgate(indice, direcao) {
+    const indiceAlvo = indice + direcao;
+    if (indiceAlvo < 0 || indiceAlvo >= listaBannersResgate.length) return;
+
+    const atual = listaBannersResgate[indice];
+    const vizinho = listaBannersResgate[indiceAlvo];
+
+    try {
+      await Promise.all([
+        supabase.from('resgate_banners').update({ ordem: vizinho.ordem }).eq('id', atual.id),
+        supabase.from('resgate_banners').update({ ordem: atual.ordem }).eq('id', vizinho.id),
+      ]);
+      buscarDadosResgate();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível reordenar os banners. Tente novamente.");
+    }
+  }
+
+  // --- Funcionários participantes ---
+  async function handleAdicionarFuncionarioResgate(e) {
+    e.preventDefault();
+    if (!novoFuncionarioResgate.trim()) {
+      setMensagemStatus("⚠️ Escreva o nome do funcionário!");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('resgate_funcionarios')
+        .insert([{ nome: novoFuncionarioResgate.trim() }]);
+      if (error) throw error;
+      setMensagemStatus("✅ Funcionário cadastrado na campanha!");
+      setNovoFuncionarioResgate('');
+      buscarDadosResgate();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível cadastrar o funcionário. Tente novamente.");
+    }
+  }
+
+  async function handleAlternarAtivoFuncionarioResgate(item) {
+    try {
+      const { error } = await supabase
+        .from('resgate_funcionarios')
+        .update({ ativo: !item.ativo })
+        .eq('id', item.id);
+      if (error) throw error;
+      buscarDadosResgate();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível alterar o status do funcionário. Tente novamente.");
+    }
+  }
+
+  async function handleEliminarFuncionarioResgate(id) {
+    if (!window.confirm("Remover este funcionário da campanha? Os giros que ele já indicou continuam no histórico.")) return;
+    try {
+      const { error } = await supabase.from('resgate_funcionarios').delete().eq('id', id);
+      if (error) throw error;
+      buscarDadosResgate();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível remover o funcionário. Tente novamente.");
+    }
+  }
+
+  // --- Prêmios e chances ---
+  function cancelarEdicaoPremioResgate() {
+    setPremioResgateEditando(null);
+    setFormPremioResgate(PREMIO_RESGATE_FORM_INICIAL);
+  }
+
+  function iniciarEdicaoPremioResgate(item) {
+    setPremioResgateEditando(item.id);
+    setFormPremioResgate({
+      nome: item.nome || '',
+      rotulo: item.rotulo || '',
+      rotulo_secundario: item.rotulo_secundario || '',
+      peso: String(item.peso ?? 1),
+      ativo: item.ativo !== false,
+    });
+  }
+
+  async function handleSalvarPremioResgate(e) {
+    e.preventDefault();
+    if (!formPremioResgate.nome.trim()) {
+      setMensagemStatus("⚠️ Dê um nome ao prêmio!");
+      return;
+    }
+    const peso = parseInt(formPremioResgate.peso, 10);
+    if (Number.isNaN(peso) || peso < 0) {
+      setMensagemStatus("⚠️ A chance precisa ser um número igual ou maior que zero!");
+      return;
+    }
+    // O nome é o que liga o resultado do sorteio à fatia certa da roleta
+    const nomeRepetido = listaPremiosResgate.some(
+      (p) => p.id !== premioResgateEditando && p.nome.trim().toLowerCase() === formPremioResgate.nome.trim().toLowerCase(),
+    );
+    if (nomeRepetido) {
+      setMensagemStatus("⚠️ Já existe um prêmio com esse nome. Use nomes diferentes.");
+      return;
+    }
+
+    const dados = {
+      nome: formPremioResgate.nome.trim(),
+      rotulo: formPremioResgate.rotulo.trim() || null,
+      rotulo_secundario: formPremioResgate.rotulo_secundario.trim() || null,
+      peso,
+      ativo: formPremioResgate.ativo,
+    };
+
+    try {
+      if (premioResgateEditando) {
+        const { error } = await supabase.from('resgate_premios').update(dados).eq('id', premioResgateEditando);
+        if (error) throw error;
+        setMensagemStatus("✅ Prêmio atualizado com sucesso!");
+      } else {
+        const { error } = await supabase
+          .from('resgate_premios')
+          .insert([{ ...dados, ordem: listaPremiosResgate.length }]);
+        if (error) throw error;
+        setMensagemStatus("✅ Prêmio adicionado à roleta!");
+      }
+      cancelarEdicaoPremioResgate();
+      buscarDadosResgate();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar o prêmio. Tente novamente.");
+    }
+  }
+
+  async function handleEliminarPremioResgate(id) {
+    if (!window.confirm("Tem a certeza que quer eliminar este prêmio da roleta?")) return;
+    try {
+      const { error } = await supabase.from('resgate_premios').delete().eq('id', id);
+      if (error) throw error;
+      if (premioResgateEditando === id) cancelarEdicaoPremioResgate();
+      buscarDadosResgate();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível eliminar o prêmio. Tente novamente.");
+    }
+  }
+
+  // --- Vouchers ---
+  async function handleGerarVouchers(e) {
+    e.preventDefault();
+    const quantidade = parseInt(quantidadeVouchers, 10);
+    if (Number.isNaN(quantidade) || quantidade < 1 || quantidade > 200) {
+      setMensagemStatus("⚠️ Gere de 1 a 200 vouchers por vez.");
+      return;
+    }
+
+    setGerandoVouchers(true);
+    try {
+      const { data, error } = await supabase.rpc('gerar_vouchers_resgate', { p_quantidade: quantidade });
+      if (error) throw error;
+
+      setVouchersGerados(data || []);
+      setMensagemStatus(`✅ ${(data || []).length} voucher(s) gerado(s) com sucesso!`);
+      buscarDadosResgate();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível gerar os vouchers. Tente novamente.");
+    } finally {
+      setGerandoVouchers(false);
+    }
+  }
+
+  async function handleCopiarCodigo(codigo) {
+    try {
+      await navigator.clipboard.writeText(codigo);
+      setCodigoCopiado(codigo);
+      setTimeout(() => setCodigoCopiado(''), 1500);
+    } catch (err) {
+      console.error(err);
+      alert(`Copie o código manualmente: ${codigo}`);
+    }
+  }
+
+  async function handleEliminarVoucher(id, usado) {
+    const aviso = usado
+      ? "Este voucher já foi usado. Apagar remove o giro do histórico e do ranking. Continuar?"
+      : "Apagar este voucher? Quem receber o código não vai conseguir girar.";
+    if (!window.confirm(aviso)) return;
+    try {
+      const { error } = await supabase.from('resgate_vouchers').delete().eq('id', id);
+      if (error) throw error;
+      buscarDadosResgate();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível apagar o voucher. Tente novamente.");
+    }
+  }
+
+  // ===================== SORTEIOS DO MENU (Navbar) =====================
+  async function buscarSorteiosMenu() {
+    try {
+      const { data, error } = await supabase
+        .from('sorteios')
+        .select('*')
+        .order('ordem', { ascending: true })
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setListaSorteiosMenu(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar os sorteios do menu:", err);
+    }
+  }
+
+  useEffect(() => {
+    buscarSorteiosMenu();
+  }, []);
+
+  function cancelarEdicaoSorteioMenu() {
+    setSorteioMenuEditando(null);
+    setFormSorteioMenu(SORTEIO_MENU_FORM_INICIAL);
+  }
+
+  function iniciarEdicaoSorteioMenu(item) {
+    setSorteioMenuEditando(item.id);
+    setFormSorteioMenu({
+      nome: item.nome || '',
+      descricao: item.descricao || '',
+      link: item.link || '/sorteios',
+      ativo: item.ativo !== false,
+      data_inicio: item.data_inicio || '',
+      data_fim: item.data_fim || '',
+    });
+  }
+
+  async function handleSalvarSorteioMenu(e) {
+    e.preventDefault();
+    if (!formSorteioMenu.nome.trim()) {
+      setMensagemStatus("⚠️ Dê um nome ao sorteio!");
+      return;
+    }
+    if (!formSorteioMenu.link.trim()) {
+      setMensagemStatus("⚠️ Informe para onde o item do menu deve levar!");
+      return;
+    }
+    if (formSorteioMenu.data_inicio && formSorteioMenu.data_fim && formSorteioMenu.data_inicio > formSorteioMenu.data_fim) {
+      setMensagemStatus("⚠️ A data de início não pode ser depois da data de fim!");
+      return;
+    }
+
+    const dados = {
+      nome: formSorteioMenu.nome.trim(),
+      descricao: formSorteioMenu.descricao.trim() || null,
+      link: formSorteioMenu.link.trim(),
+      ativo: formSorteioMenu.ativo,
+      data_inicio: formSorteioMenu.data_inicio || null,
+      data_fim: formSorteioMenu.data_fim || null,
+    };
+
+    try {
+      if (sorteioMenuEditando) {
+        const { error } = await supabase.from('sorteios').update(dados).eq('id', sorteioMenuEditando);
+        if (error) throw error;
+        setMensagemStatus("✅ Sorteio atualizado com sucesso!");
+      } else {
+        const { error } = await supabase
+          .from('sorteios')
+          .insert([{ ...dados, ordem: listaSorteiosMenu.length }]);
+        if (error) throw error;
+        setMensagemStatus("✅ Sorteio adicionado ao menu com sucesso!");
+      }
+      cancelarEdicaoSorteioMenu();
+      buscarSorteiosMenu();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus("❌ Não foi possível salvar o sorteio. Tente novamente.");
+    }
+  }
+
+  async function handleAlternarAtivoSorteioMenu(item) {
+    try {
+      const { error } = await supabase.from('sorteios').update({ ativo: !item.ativo }).eq('id', item.id);
+      if (error) throw error;
+      buscarSorteiosMenu();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível alterar o status do sorteio. Tente novamente.");
+    }
+  }
+
+  // Troca a posição do sorteio com o vizinho de cima/baixo e regrava a ordem
+  async function handleMoverSorteioMenu(item, direcao) {
+    const indice = listaSorteiosMenu.findIndex((s) => s.id === item.id);
+    const destino = indice + direcao;
+    if (indice === -1 || destino < 0 || destino >= listaSorteiosMenu.length) return;
+
+    const reordenada = [...listaSorteiosMenu];
+    [reordenada[indice], reordenada[destino]] = [reordenada[destino], reordenada[indice]];
+    setListaSorteiosMenu(reordenada);
+
+    try {
+      await Promise.all(
+        reordenada.map((sorteio, posicao) =>
+          supabase.from('sorteios').update({ ordem: posicao }).eq('id', sorteio.id),
+        ),
+      );
+      buscarSorteiosMenu();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível reordenar os sorteios. Tente novamente.");
+      buscarSorteiosMenu();
+    }
+  }
+
+  async function handleEliminarSorteioMenu(id) {
+    if (!window.confirm("Tem a certeza que quer remover este sorteio do menu?")) return;
+    try {
+      const { error } = await supabase.from('sorteios').delete().eq('id', id);
+      if (error) throw error;
+      if (sorteioMenuEditando === id) cancelarEdicaoSorteioMenu();
+      buscarSorteiosMenu();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível remover o sorteio. Tente novamente.");
+    }
+  }
+
   // Enquanto verifica se existe sessão Supabase válida, mostra um loading
   if (verificandoSessao) {
     return (
@@ -2876,6 +3375,21 @@ export default function Admin() {
     setAbaAtiva(id);
     setSidebarAberta(false);
   };
+
+  // --- Números derivados da campanha "Resgate seu Prêmio" ---
+  const vouchersDisponiveis = listaVouchersResgate.filter((v) => !v.usado);
+  const girosResgate = listaVouchersResgate.filter((v) => v.usado);
+  const pesoTotalResgate = listaPremiosResgate
+    .filter((p) => p.ativo && p.peso > 0)
+    .reduce((soma, p) => soma + Number(p.peso || 0), 0);
+
+  // Ranking: quem indicou mais gente que efetivamente girou a roleta
+  const rankingResgate = listaFuncionariosResgate
+    .map((funcionario) => ({
+      ...funcionario,
+      giros: girosResgate.filter((v) => v.funcionario_id === funcionario.id).length,
+    }))
+    .sort((a, b) => b.giros - a.giros || a.nome.localeCompare(b.nome));
 
   const noticiasDestacadas = noticiasDestaque.filter((n) => n.destaque).length;
   const depoimentosComVideo = depoimentos.filter((d) => d.video_url).length;
@@ -4432,6 +4946,754 @@ export default function Admin() {
                   </div>
                 </PopupModalShell>
               )}
+            </>
+          )}
+
+          {/* ================= RESGATE SEU PRÊMIO ================= */}
+          {abaAtiva === 'resgate-premio' && (
+            <>
+              <CabecalhoPagina
+                titulo="Resgate seu Prêmio"
+                subtitulo="Página pública /resgate-premio — funcionários, prêmios, vouchers, ranking e giros"
+                Icon={TrophyIcon}
+              />
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <CardEstatistica label="Funcionários" valor={listaFuncionariosResgate.length} Icon={UserGroupIcon} cor="bg-indigo-500" />
+                <CardEstatistica label="Vouchers Válidos" valor={vouchersDisponiveis.length} subtitulo="Ainda não usados" Icon={TicketIcon} cor="bg-[#fed106]" />
+                <CardEstatistica label="Giros Realizados" valor={girosResgate.length} subtitulo="Vouchers já queimados" Icon={GiftIcon} cor="bg-emerald-500" />
+                <CardEstatistica
+                  label="Líder do Ranking"
+                  valor={rankingResgate[0]?.giros ? rankingResgate[0].nome.split(' ')[0] : '—'}
+                  subtitulo={rankingResgate[0]?.giros ? `${rankingResgate[0].giros} indicação(ões)` : 'Ninguém indicou ainda'}
+                  Icon={TrophyIcon}
+                  cor="bg-rose-500"
+                />
+              </div>
+
+              {/* --- WHATSAPP DO RESGATE --- */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
+                  💬 WhatsApp do Resgate
+                </h3>
+                <p className="text-[11px] text-gray-400 mb-4">
+                  Para onde vai o botão "Resgatar meu prêmio" que aparece quando a pessoa ganha.
+                </p>
+
+                <form onSubmit={handleSalvarConfigResgate} className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                        Número (só números, com DDI+DDD)
+                      </label>
+                      <input
+                        type="text"
+                        value={resgateWhatsappNumero}
+                        onChange={(e) => setResgateWhatsappNumero(e.target.value)}
+                        placeholder="5511995987197"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Mensagem automática</label>
+                    <textarea
+                      rows={5}
+                      value={resgateWhatsappMensagem}
+                      onChange={(e) => setResgateWhatsappMensagem(e.target.value)}
+                      placeholder={'Olá! Acabei de girar a roleta...\n\nNome: {{nome}}\nVoucher: {{voucher}}\nIndicado por: {{indicadoPor}}\n\nPrêmio ganho: {{premio}}'}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Use <code className="bg-gray-100 px-1 rounded">{'{{nome}}'}</code>,{' '}
+                      <code className="bg-gray-100 px-1 rounded">{'{{voucher}}'}</code>,{' '}
+                      <code className="bg-gray-100 px-1 rounded">{'{{indicadoPor}}'}</code> e{' '}
+                      <code className="bg-gray-100 px-1 rounded">{'{{premio}}'}</code> — são trocados pelos dados do
+                      giro. Em branco, usa a mensagem padrão.
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer w-fit"
+                  >
+                    💾 Salvar Configurações
+                  </button>
+                </form>
+              </div>
+
+              {/* --- BANNERS DO HERO --- */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">🖼️ Novo Banner</h3>
+                  <p className="text-[11px] text-gray-400 mb-4">Carrossel no topo da página /resgate-premio.</p>
+                  <form onSubmit={handleAdicionarBannerResgate} className="flex flex-col gap-3">
+                    <input
+                      type="file"
+                      id="arquivo-banner-resgate"
+                      accept="image/*"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+                    />
+                    <button
+                      type="submit"
+                      className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                      ➕ Publicar Banner
+                    </button>
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
+                    Banners do Hero ({listaBannersResgate.length})
+                  </h3>
+                  <p className="text-[11px] text-gray-400 mb-3">
+                    O primeiro da lista é a capa. Sem nenhum banner, a página começa direto pelo título.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {listaBannersResgate.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">Nenhum banner cadastrado ainda.</p>
+                    ) : (
+                      listaBannersResgate.map((banner, indice) => (
+                        <div key={banner.id} className="flex items-center gap-3 border border-gray-100 rounded-xl p-2">
+                          <img src={banner.imagem_url} alt="" className="w-20 h-12 object-cover rounded-lg shrink-0" />
+                          <span className="text-xs text-gray-400 font-bold shrink-0">
+                            {indice === 0 ? 'Capa' : `#${indice + 1}`}
+                          </span>
+                          <div className="flex-1" />
+                          <button
+                            disabled={indice === 0}
+                            onClick={() => handleMoverBannerResgate(indice, -1)}
+                            className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-30 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+                          >
+                            <ArrowUpIcon className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            disabled={indice === listaBannersResgate.length - 1}
+                            onClick={() => handleMoverBannerResgate(indice, 1)}
+                            className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 disabled:opacity-30 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+                          >
+                            <ArrowDownIcon className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleEliminarBannerResgate(banner.id)}
+                            className="w-7 h-7 rounded-md bg-red-50 hover:bg-red-500 hover:text-white text-red-500 flex items-center justify-center cursor-pointer"
+                          >
+                            <XMarkIcon className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* --- GERAR VOUCHERS --- */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">🎟️ Gerar Vouchers</h3>
+                <p className="text-[11px] text-gray-400 mb-4">
+                  Cada código tem 5 caracteres e vale um único giro. Envie o código para a pessoa indicada.
+                </p>
+
+                <form onSubmit={handleGerarVouchers} className="flex flex-col sm:flex-row gap-4 sm:items-end">
+                  <div className="sm:w-48">
+                    <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Quantos códigos?</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="200"
+                      value={quantidadeVouchers}
+                      onChange={(e) => setQuantidadeVouchers(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={gerandoVouchers}
+                    className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {gerandoVouchers ? 'Gerando...' : '➕ Gerar Códigos'}
+                  </button>
+                </form>
+
+                {vouchersGerados.length > 0 && (
+                  <div className="mt-5 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                    <p className="text-xs font-black uppercase text-emerald-700 mb-3">
+                      Códigos gerados agora ({vouchersGerados.length}) — clique para copiar
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {vouchersGerados.map((voucher) => (
+                        <button
+                          key={voucher.id}
+                          onClick={() => handleCopiarCodigo(voucher.codigo)}
+                          className="bg-white border border-emerald-300 hover:border-emerald-500 text-emerald-800 font-black text-sm tracking-[0.2em] px-4 py-2 rounded-lg cursor-pointer transition-colors"
+                          title="Copiar código"
+                        >
+                          {codigoCopiado === voucher.codigo ? '✓ Copiado' : voucher.codigo}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* --- FUNCIONÁRIOS --- */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
+                    👥 Funcionários na Campanha ({listaFuncionariosResgate.length})
+                  </h3>
+                  <p className="text-[11px] text-gray-400 mb-4">
+                    Só os ativos aparecem na lista de "quem indicou você" na página pública.
+                  </p>
+
+                  <form onSubmit={handleAdicionarFuncionarioResgate} className="flex gap-2 mb-4">
+                    <input
+                      type="text"
+                      value={novoFuncionarioResgate}
+                      onChange={(e) => setNovoFuncionarioResgate(e.target.value)}
+                      placeholder="Nome do funcionário"
+                      className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                    />
+                    <button
+                      type="submit"
+                      className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-2.5 px-5 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0"
+                    >
+                      ➕ Add
+                    </button>
+                  </form>
+
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {listaFuncionariosResgate.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">Nenhum funcionário cadastrado ainda.</p>
+                    ) : (
+                      listaFuncionariosResgate.map((funcionario) => (
+                        <div
+                          key={funcionario.id}
+                          className="flex items-center justify-between gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-gray-700 truncate">{funcionario.nome}</p>
+                            {!funcionario.ativo && (
+                              <span className="text-[10px] font-black uppercase text-gray-400">Fora da campanha</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => handleAlternarAtivoFuncionarioResgate(funcionario)}
+                              className="bg-white border border-gray-200 hover:border-gray-400 text-gray-600 text-[11px] font-black px-3 py-1.5 rounded-lg uppercase cursor-pointer"
+                            >
+                              {funcionario.ativo ? 'Desativar' : 'Ativar'}
+                            </button>
+                            <button
+                              onClick={() => handleEliminarFuncionarioResgate(funcionario.id)}
+                              className="bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* --- RANKING --- */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">🏆 Ranking de Indicações</h3>
+                  <p className="text-[11px] text-gray-400 mb-4">
+                    Conta quantas pessoas indicadas por cada funcionário realmente giraram a roleta.
+                  </p>
+
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {rankingResgate.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">Cadastre os funcionários para ver o ranking.</p>
+                    ) : (
+                      rankingResgate.map((funcionario, indice) => {
+                        const medalhas = ['🥇', '🥈', '🥉'];
+                        return (
+                          <div
+                            key={funcionario.id}
+                            className={`flex items-center gap-3 p-3 rounded-xl border ${
+                              indice === 0 && funcionario.giros > 0
+                                ? 'bg-[#fffbe6] border-[#fed106]/50'
+                                : 'bg-gray-50 border-gray-100'
+                            }`}
+                          >
+                            <span className="w-8 text-center font-black text-sm shrink-0">
+                              {funcionario.giros > 0 && medalhas[indice] ? medalhas[indice] : `${indice + 1}º`}
+                            </span>
+                            <p className="flex-1 text-sm font-bold text-gray-700 truncate">{funcionario.nome}</p>
+                            <span className="shrink-0 text-sm font-black text-gray-900">
+                              {funcionario.giros}
+                              <span className="text-[11px] font-bold text-gray-400 ml-1">giro(s)</span>
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* --- PRÊMIOS E CHANCES --- */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">
+                    {premioResgateEditando ? '✏️ Editar Prêmio' : '🎁 Novo Prêmio'}
+                  </h3>
+                  <form onSubmit={handleSalvarPremioResgate} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nome do prêmio</label>
+                      <input
+                        type="text"
+                        value={formPremioResgate.nome}
+                        onChange={(e) => setFormPremioResgate({ ...formPremioResgate, nome: e.target.value })}
+                        placeholder="Ex: 10% de desconto"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Roleta linha 1</label>
+                        <input
+                          type="text"
+                          value={formPremioResgate.rotulo}
+                          onChange={(e) => setFormPremioResgate({ ...formPremioResgate, rotulo: e.target.value })}
+                          placeholder="10%"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Roleta linha 2</label>
+                        <input
+                          type="text"
+                          value={formPremioResgate.rotulo_secundario}
+                          onChange={(e) => setFormPremioResgate({ ...formPremioResgate, rotulo_secundario: e.target.value })}
+                          placeholder="DE DESCONTO"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-gray-400 -mt-2">
+                      Texto escrito dentro da fatia. Em branco, usa o nome do prêmio.
+                    </p>
+
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Chance (peso)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formPremioResgate.peso}
+                        onChange={(e) => setFormPremioResgate({ ...formPremioResgate, peso: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Peso 3 sai 3× mais que peso 1. Peso 0 nunca é sorteado, mas continua desenhado na roleta.
+                      </p>
+                    </div>
+
+                    <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
+                      <input
+                        type="checkbox"
+                        checked={formPremioResgate.ativo}
+                        onChange={(e) => setFormPremioResgate({ ...formPremioResgate, ativo: e.target.checked })}
+                        className="w-4 h-4 accent-[#fed106] cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-gray-700 uppercase">Mostrar na roleta</span>
+                    </label>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                      {premioResgateEditando ? '💾 Salvar Alterações' : '➕ Adicionar Prêmio'}
+                    </button>
+
+                    {premioResgateEditando && (
+                      <button
+                        type="button"
+                        onClick={cancelarEdicaoPremioResgate}
+                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
+                    Prêmios da Roleta ({listaPremiosResgate.length})
+                  </h3>
+                  <p className="text-[11px] text-gray-400 mb-4">
+                    A % ao lado é a chance real de cada prêmio, calculada sobre a soma dos pesos ativos.
+                  </p>
+
+                  <div className="space-y-2">
+                    {listaPremiosResgate.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">Nenhum prêmio cadastrado ainda.</p>
+                    ) : (
+                      listaPremiosResgate.map((premio) => {
+                        const chance =
+                          premio.ativo && premio.peso > 0 && pesoTotalResgate > 0
+                            ? ((Number(premio.peso) / pesoTotalResgate) * 100).toFixed(1)
+                            : null;
+                        return (
+                          <div
+                            key={premio.id}
+                            className="flex items-center gap-3 bg-gray-50 p-3.5 rounded-xl border border-gray-100"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-black text-gray-800 truncate">{premio.nome}</p>
+                                {!premio.ativo && (
+                                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-gray-200 text-gray-500">
+                                    Oculto
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-gray-400 truncate">
+                                Na roleta: {premio.rotulo || premio.nome}
+                                {premio.rotulo_secundario ? ` · ${premio.rotulo_secundario}` : ''}
+                              </p>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-black text-gray-900">{chance ? `${chance}%` : '—'}</p>
+                              <p className="text-[10px] text-gray-400 font-bold">peso {premio.peso}</p>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={() => iniciarEdicaoPremioResgate(premio)}
+                                className="bg-black hover:bg-gray-800 text-white text-[11px] font-black px-3 py-1.5 rounded-lg uppercase cursor-pointer"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => handleEliminarPremioResgate(premio.id)}
+                                className="bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* --- VOUCHERS VÁLIDOS --- */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
+                  🎟️ Vouchers Válidos ({vouchersDisponiveis.length})
+                </h3>
+                <p className="text-[11px] text-gray-400 mb-4">
+                  Códigos ainda não usados. Clique em um código para copiar e enviar para a pessoa indicada.
+                </p>
+
+                {vouchersDisponiveis.length === 0 ? (
+                  <p className="text-xs text-gray-400 italic">Nenhum voucher disponível. Gere novos códigos acima.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {vouchersDisponiveis.map((voucher) => (
+                      <div
+                        key={voucher.id}
+                        className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg pl-1 pr-1 py-1"
+                      >
+                        <button
+                          onClick={() => handleCopiarCodigo(voucher.codigo)}
+                          className="text-gray-800 font-black text-sm tracking-[0.2em] px-3 py-1 rounded-md hover:bg-white cursor-pointer transition-colors"
+                          title="Copiar código"
+                        >
+                          {codigoCopiado === voucher.codigo ? '✓ Copiado' : voucher.codigo}
+                        </button>
+                        <button
+                          onClick={() => handleEliminarVoucher(voucher.id, false)}
+                          className="text-gray-300 hover:text-red-600 w-5 h-5 flex items-center justify-center font-bold text-xs cursor-pointer"
+                          title="Apagar voucher"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* --- GIROS REALIZADOS --- */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
+                  📋 Giros Realizados ({girosResgate.length})
+                </h3>
+                <p className="text-[11px] text-gray-400 mb-4">
+                  Histórico completo: quem girou, quem indicou, o que ganhou e o voucher queimado.
+                </p>
+
+                {girosResgate.length === 0 ? (
+                  <p className="text-xs text-gray-400 italic">Ninguém girou a roleta ainda.</p>
+                ) : (
+                  <div className="overflow-x-auto -mx-2">
+                    <table className="w-full text-left min-w-[720px]">
+                      <thead>
+                        <tr className="text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                          <th className="px-2 py-2">Participante</th>
+                          <th className="px-2 py-2">Indicado por</th>
+                          <th className="px-2 py-2">Prêmio</th>
+                          <th className="px-2 py-2">Voucher</th>
+                          <th className="px-2 py-2">Data</th>
+                          <th className="px-2 py-2" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {girosResgate.map((voucher) => (
+                          <tr key={voucher.id} className="border-b border-gray-50 hover:bg-gray-50/60">
+                            <td className="px-2 py-3 text-sm font-bold text-gray-800">{voucher.participante_nome}</td>
+                            <td className="px-2 py-3 text-sm text-gray-600">{voucher.funcionario_nome || '—'}</td>
+                            <td className="px-2 py-3">
+                              <span className="text-xs font-black bg-[#fffbe6] text-[#8a6d00] border border-[#fed106]/40 px-2.5 py-1 rounded-full">
+                                {voucher.premio_nome}
+                              </span>
+                            </td>
+                            <td className="px-2 py-3 text-xs font-black tracking-[0.15em] text-gray-500">{voucher.codigo}</td>
+                            <td className="px-2 py-3 text-xs text-gray-400 whitespace-nowrap">
+                              {voucher.usado_em ? new Date(voucher.usado_em).toLocaleString('pt-BR') : '—'}
+                            </td>
+                            <td className="px-2 py-3 text-right">
+                              <button
+                                onClick={() => handleEliminarVoucher(voucher.id, true)}
+                                className="text-gray-300 hover:text-red-600 w-6 h-6 font-bold text-xs cursor-pointer"
+                                title="Apagar do histórico"
+                              >
+                                ✕
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ================= SORTEIOS (MENU DA NAVBAR) ================= */}
+          {abaAtiva === 'sorteios-menu' && (
+            <>
+              <CabecalhoPagina
+                titulo="Sorteios do Menu"
+                subtitulo='Itens que aparecem no dropdown "Sorteios" da barra de navegação do site'
+                Icon={TicketIcon}
+              />
+
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <CardEstatistica label="Cadastrados" valor={listaSorteiosMenu.length} Icon={TicketIcon} cor="bg-indigo-500" />
+                <CardEstatistica
+                  label="Acontecendo Agora"
+                  valor={listaSorteiosMenu.filter(sorteioAparecendoNoMenu).length}
+                  subtitulo="Aparecem no menu neste momento"
+                  Icon={EyeIcon}
+                  cor="bg-emerald-500"
+                />
+                <CardEstatistica
+                  label="Programados"
+                  valor={listaSorteiosMenu.filter((s) => s.ativo && s.data_inicio && s.data_inicio > hojeISO()).length}
+                  subtitulo="Começam em data futura"
+                  Icon={ClockIcon}
+                  cor="bg-[#fed106]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">
+                    {sorteioMenuEditando ? '✏️ Editar Sorteio' : '➕ Novo Sorteio'}
+                  </h3>
+                  <form onSubmit={handleSalvarSorteioMenu} className="flex flex-col gap-4">
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nome no menu</label>
+                      <input
+                        type="text"
+                        value={formSorteioMenu.nome}
+                        onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, nome: e.target.value })}
+                        placeholder="Ex: Roleta da Sorte"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Descrição curta (opcional)</label>
+                      <input
+                        type="text"
+                        value={formSorteioMenu.descricao}
+                        onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, descricao: e.target.value })}
+                        placeholder="Ex: Gire e concorra a descontos"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Para onde leva</label>
+                      <input
+                        type="text"
+                        value={formSorteioMenu.link}
+                        onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, link: e.target.value })}
+                        placeholder="/sorteios ou https://..."
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                      />
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Página do site (começa com /) ou link externo completo (https://).
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Começa em</label>
+                        <input
+                          type="date"
+                          value={formSorteioMenu.data_inicio}
+                          onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, data_inicio: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Termina em</label>
+                        <input
+                          type="date"
+                          value={formSorteioMenu.data_fim}
+                          onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, data_fim: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-gray-400 -mt-2">
+                      Deixe em branco para o sorteio ficar no menu sem prazo.
+                    </p>
+
+                    <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
+                      <input
+                        type="checkbox"
+                        checked={formSorteioMenu.ativo}
+                        onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, ativo: e.target.checked })}
+                        className="w-4 h-4 accent-[#fed106] cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-gray-700 uppercase">Mostrar no menu</span>
+                    </label>
+
+                    <button
+                      type="submit"
+                      className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                      {sorteioMenuEditando ? '💾 Salvar Alterações' : '➕ Adicionar ao Menu'}
+                    </button>
+
+                    {sorteioMenuEditando && (
+                      <button
+                        type="button"
+                        onClick={cancelarEdicaoSorteioMenu}
+                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </form>
+                </div>
+
+                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
+                    Sorteios no Menu ({listaSorteiosMenu.length})
+                  </h3>
+                  <p className="text-[11px] text-gray-400 mb-4">
+                    A ordem abaixo é a mesma que o visitante vê ao abrir "Sorteios" no site.
+                  </p>
+
+                  <div className="space-y-3">
+                    {listaSorteiosMenu.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">
+                        Nenhum sorteio cadastrado ainda. Sem nenhum sorteio no ar, "Sorteios" continua sendo um link simples no menu.
+                      </p>
+                    ) : (
+                      listaSorteiosMenu.map((item, indice) => {
+                        const noAr = sorteioAparecendoNoMenu(item);
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex flex-col sm:flex-row sm:items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-xs"
+                          >
+                            <div className="flex flex-col gap-1 shrink-0">
+                              <button
+                                onClick={() => handleMoverSorteioMenu(item, -1)}
+                                disabled={indice === 0}
+                                className="w-6 h-6 rounded-md bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                title="Subir"
+                              >
+                                <ArrowUpIcon className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleMoverSorteioMenu(item, 1)}
+                                disabled={indice === listaSorteiosMenu.length - 1}
+                                className="w-6 h-6 rounded-md bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                title="Descer"
+                              >
+                                <ArrowDownIcon className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-black text-gray-800 truncate">{item.nome}</p>
+                                <span
+                                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                    noAr ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'
+                                  }`}
+                                >
+                                  {noAr ? 'No ar' : 'Fora do menu'}
+                                </span>
+                              </div>
+                              {item.descricao && <p className="text-xs text-gray-500 truncate">{item.descricao}</p>}
+                              <p className="text-[11px] text-gray-400 truncate">
+                                {item.link}
+                                {(item.data_inicio || item.data_fim) && (
+                                  <> · {formatarPeriodoSorteio(item)}</>
+                                )}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={() => handleAlternarAtivoSorteioMenu(item)}
+                                className="bg-white border border-gray-200 hover:border-gray-400 text-gray-600 text-[11px] font-black px-3 py-1.5 rounded-lg uppercase cursor-pointer"
+                                title={item.ativo ? 'Tirar do menu' : 'Colocar no menu'}
+                              >
+                                {item.ativo ? 'Desativar' : 'Ativar'}
+                              </button>
+                              <button
+                                onClick={() => iniciarEdicaoSorteioMenu(item)}
+                                className="bg-black hover:bg-gray-800 text-white text-[11px] font-black px-3 py-1.5 rounded-lg uppercase cursor-pointer"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => handleEliminarSorteioMenu(item.id)}
+                                className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
+                                title="Remover do menu"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
             </>
           )}
 

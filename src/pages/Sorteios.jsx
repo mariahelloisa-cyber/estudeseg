@@ -252,8 +252,7 @@ export default function Sorteios() {
             </div>
 
             <h1
-              className="relative z-10 text-3xl md:text-5xl font-extrabold text-[#000000] tracking-tight leading-[1.2] mb-4 px-2"
-              style={{ fontFamily: "'Baloo 2', sans-serif" }}
+              className="fonte-titulo-sorteio relative z-10 text-3xl md:text-5xl font-extrabold text-[#000000] leading-[1.2] mb-4 px-2"
             >
               {renderizarTituloComDestaque(titulo)}
             </h1>

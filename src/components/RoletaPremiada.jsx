@@ -27,8 +27,17 @@ function pontoNoAngulo(anguloGraus, cx, cy, r) {
  * O prêmio já vem DECIDIDO pelo backend (função girar_roleta_premiada) — este
  * componente só recebe o nome do prêmio vencedor e faz a animação de giro até
  * parar exatamente nele. Nunca decide o resultado no cliente.
+ *
+ * `montarConteudoSegmento` permite reaproveitar a mesma roda com outra fonte de
+ * prêmios (ex.: a campanha "Resgate seu Prêmio", cujos rótulos vêm do admin).
  */
-export default function RoletaPremiada({ premios, girando, nomePremioVencedor, aoTerminarGiro }) {
+export default function RoletaPremiada({
+  premios,
+  girando,
+  nomePremioVencedor,
+  aoTerminarGiro,
+  montarConteudoSegmento = conteudoSegmento,
+}) {
   const [rotacao, setRotacao] = useState(0);
   const timeoutRef = useRef(null);
 
@@ -85,10 +94,10 @@ export default function RoletaPremiada({ premios, girando, nomePremioVencedor, a
         corTexto: cor.texto,
         meio,
         inverterParaLeitura,
-        ...conteudoSegmento(premio),
+        ...montarConteudoSegmento(premio),
       };
     });
-  }, [premios, anguloSegmento, rotacao]);
+  }, [premios, anguloSegmento, rotacao, montarConteudoSegmento]);
 
   return (
     <div className="relative w-full max-w-[420px] mx-auto pb-10">

@@ -18,8 +18,10 @@ export default function HeroCarrossel({ banners, altura = 'h-[220px] sm:h-[340px
 
   return (
     <div className="w-full bg-white relative group">
-      <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
-        <div className={`w-full relative overflow-hidden rounded-2xl md:rounded-3xl shadow-sm ${altura}`}>
+      {/* Sem margem, borda arredondada ou respiro: o banner encosta no header e
+          vai de ponta a ponta da tela. */}
+      <div className="w-full">
+        <div className={`w-full relative overflow-hidden ${altura}`}>
           {banners.map((banner, idx) => (
             <img
               key={banner.id ?? idx}

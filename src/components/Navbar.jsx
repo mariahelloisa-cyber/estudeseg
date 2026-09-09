@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import logo from '../assets/logo-estud.png';
 import { useCartStore } from '../store/cartStore';
+import { supabase } from '../supabaseClient';
 
 const LINKS = [
   { to: '/', label: 'Início' },
@@ -9,7 +10,7 @@ const LINKS = [
   { to: '/cursos', label: 'Cursos' },
   { to: '/aproveitamento', label: 'Téc./Tecnólogo' },
   { to: '/depoimentos', label: 'Depoimentos' },
-  { to: '/sorteios', label: 'Sorteios' },
+  { to: '/sorteios', label: 'Sorteios', dropdownSorteios: true },
   { to: '/blog', label: 'Blog' },
   // Desativado temporariamente — reativar quando as páginas entrarem no ar
   // { to: '/vagas', label: 'Vagas' },
@@ -17,15 +18,71 @@ const LINKS = [
   { to: '/validacaoRastreio', label: 'Consulte sua tragetória' },
 ];
 
+// Data de hoje como 'AAAA-MM-DD' (fuso do visitante), para comparar com as
+// colunas date do Supabase sem passar por UTC e errar o dia.
+function hojeISO() {
+  const agora = new Date();
+  const mes = String(agora.getMonth() + 1).padStart(2, '0');
+  const dia = String(agora.getDate()).padStart(2, '0');
+  return `${agora.getFullYear()}-${mes}-${dia}`;
+}
+
+// Só entram no menu os sorteios dentro do período informado no admin.
+function estaAcontecendo(sorteio) {
+  const hoje = hojeISO();
+  if (sorteio.data_inicio && sorteio.data_inicio > hoje) return false;
+  if (sorteio.data_fim && sorteio.data_fim < hoje) return false;
+  return true;
+}
+
+const ehLinkExterno = (link) => /^https?:\/\//i.test(link || '');
+
 export default function Navbar() {
   const carrinho = useCartStore((state) => state.carrinho);
   const setCarrinhoAberto = useCartStore((state) => state.setCarrinhoAberto);
   const [menuAberto, setMenuAberto] = useState(false);
+  const [sorteios, setSorteios] = useState([]);
+  const [sorteiosAberto, setSorteiosAberto] = useState(false);
+  const [sorteiosAbertoMobile, setSorteiosAbertoMobile] = useState(false);
+  const timeoutSorteios = useRef(null);
   const location = useLocation();
 
   const linkEstaAtivo = (to) => (to === '/' ? location.pathname === '/' : location.pathname.startsWith(to));
   // Pedido específico da página "Sobre Nós": sem sombra abaixo do header, só nela.
   const semSombraHeader = location.pathname === '/sobre';
+
+  // Sorteios que estão acontecendo agora (tabela `sorteios` do Supabase).
+  useEffect(() => {
+    let montado = true;
+    async function carregarSorteios() {
+      const { data, error } = await supabase
+        .from('sorteios')
+        .select('id, nome, descricao, link, data_inicio, data_fim')
+        .eq('ativo', true)
+        .order('ordem', { ascending: true });
+
+      if (error) {
+        console.error('Erro ao carregar os sorteios do menu:', error);
+        return;
+      }
+      if (montado) setSorteios((data || []).filter(estaAcontecendo));
+    }
+    carregarSorteios();
+    return () => {
+      montado = false;
+    };
+  }, []);
+
+  // Pequeno atraso ao sair com o mouse, para dar tempo de descer até o menu
+  const abrirSorteios = () => {
+    clearTimeout(timeoutSorteios.current);
+    setSorteiosAberto(true);
+  };
+  const fecharSorteios = () => {
+    clearTimeout(timeoutSorteios.current);
+    timeoutSorteios.current = setTimeout(() => setSorteiosAberto(false), 150);
+  };
+  useEffect(() => () => clearTimeout(timeoutSorteios.current), []);
 
   return (
     <div className="w-full">
@@ -42,7 +99,7 @@ export default function Navbar() {
       <nav className={`bg-white sticky top-0 z-50 ${semSombraHeader ? '' : 'shadow-md'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20">
-            
+
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
               <Link to="/">
@@ -52,17 +109,99 @@ export default function Navbar() {
 
             {/* Links das Abas */}
             <div className="hidden md:flex space-x-7 items-center">
-              {LINKS.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={`hover:text-[#fed106] font-medium text-sm transition-colors ${
-                    linkEstaAtivo(link.to) ? 'text-[#fed106]' : 'text-gray-700'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {LINKS.map((link) => {
+                const classeLink = `hover:text-[#fed106] font-medium text-sm transition-colors ${
+                  linkEstaAtivo(link.to) ? 'text-[#fed106]' : 'text-gray-700'
+                }`;
+
+                // "Sorteios" abre a lista dos sorteios que estão acontecendo.
+                // Sem nenhum sorteio no ar, continua sendo um link normal.
+                if (link.dropdownSorteios && sorteios.length > 0) {
+                  return (
+                    <div
+                      key={link.to}
+                      className="relative"
+                      onMouseEnter={abrirSorteios}
+                      onMouseLeave={fecharSorteios}
+                      onFocus={abrirSorteios}
+                      onBlur={fecharSorteios}
+                    >
+                      <Link
+                        to={link.to}
+                        onClick={() => setSorteiosAberto(false)}
+                        aria-expanded={sorteiosAberto}
+                        aria-haspopup="true"
+                        className={`${classeLink} flex items-center gap-1`}
+                      >
+                        {link.label}
+                        <svg
+                          className={`w-3.5 h-3.5 transition-transform duration-200 ${sorteiosAberto ? 'rotate-180' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </Link>
+
+                      {sorteiosAberto && (
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full pt-4 z-50">
+                          <div className="w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2">
+                            <p className="px-4 pt-2 pb-2 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              Acontecendo agora
+                            </p>
+                            {sorteios.map((sorteio) => {
+                              const conteudo = (
+                                <>
+                                  <span className="flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#fed106] shrink-0" />
+                                    <span className="font-semibold text-sm text-gray-800 group-hover:text-black">
+                                      {sorteio.nome}
+                                    </span>
+                                  </span>
+                                  {sorteio.descricao && (
+                                    <span className="block pl-3.5 text-xs text-gray-400 mt-0.5">{sorteio.descricao}</span>
+                                  )}
+                                </>
+                              );
+                              const classeItem = 'group block px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors';
+
+                              return ehLinkExterno(sorteio.link) ? (
+                                <a
+                                  key={sorteio.id}
+                                  href={sorteio.link}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={() => setSorteiosAberto(false)}
+                                  className={classeItem}
+                                >
+                                  {conteudo}
+                                </a>
+                              ) : (
+                                <Link
+                                  key={sorteio.id}
+                                  to={sorteio.link || '/sorteios'}
+                                  onClick={() => setSorteiosAberto(false)}
+                                  className={classeItem}
+                                >
+                                  {conteudo}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link key={link.to} to={link.to} className={classeLink}>
+                    {link.label}
+                  </Link>
+                );
+              })}
             </div>
 
             {/* Botão Matricule-se + Botão Fale Conosco + Ícone do Carrinho */}
@@ -147,18 +286,88 @@ export default function Navbar() {
             </div>
 
             <nav className="flex flex-col px-5 py-4 gap-1">
-              {LINKS.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  onClick={() => setMenuAberto(false)}
-                  className={`hover:text-[#fed106] hover:bg-gray-50 font-medium text-sm transition-colors px-3 py-3 rounded-lg ${
-                    linkEstaAtivo(link.to) ? 'text-[#fed106]' : 'text-gray-700'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {LINKS.map((link) => {
+                const classeLink = `hover:text-[#fed106] hover:bg-gray-50 font-medium text-sm transition-colors px-3 py-3 rounded-lg ${
+                  linkEstaAtivo(link.to) ? 'text-[#fed106]' : 'text-gray-700'
+                }`;
+
+                // No mobile, "Sorteios" vira uma sanfona com os sorteios do momento
+                if (link.dropdownSorteios && sorteios.length > 0) {
+                  return (
+                    <div key={link.to}>
+                      <button
+                        type="button"
+                        onClick={() => setSorteiosAbertoMobile((valor) => !valor)}
+                        aria-expanded={sorteiosAbertoMobile}
+                        className={`${classeLink} w-full flex items-center justify-between cursor-pointer`}
+                      >
+                        {link.label}
+                        <svg
+                          className={`w-4 h-4 transition-transform duration-200 ${sorteiosAbertoMobile ? 'rotate-180' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {sorteiosAbertoMobile && (
+                        <div className="pl-3 ml-3 mt-1 mb-1 border-l-2 border-[#fed106]/40 flex flex-col">
+                          <p className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                            Acontecendo agora
+                          </p>
+                          {sorteios.map((sorteio) => {
+                            const conteudo = (
+                              <>
+                                <span className="block font-semibold text-sm text-gray-800">{sorteio.nome}</span>
+                                {sorteio.descricao && (
+                                  <span className="block text-xs text-gray-400 mt-0.5">{sorteio.descricao}</span>
+                                )}
+                              </>
+                            );
+                            const classeItem = 'px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors';
+
+                            return ehLinkExterno(sorteio.link) ? (
+                              <a
+                                key={sorteio.id}
+                                href={sorteio.link}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={() => setMenuAberto(false)}
+                                className={classeItem}
+                              >
+                                {conteudo}
+                              </a>
+                            ) : (
+                              <Link
+                                key={sorteio.id}
+                                to={sorteio.link || '/sorteios'}
+                                onClick={() => setMenuAberto(false)}
+                                className={classeItem}
+                              >
+                                {conteudo}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    onClick={() => setMenuAberto(false)}
+                    className={classeLink}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
             </nav>
 
             <div className="px-5 py-4 mt-auto border-t border-gray-100">
