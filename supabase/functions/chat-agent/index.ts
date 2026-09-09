@@ -22,7 +22,7 @@ import { buscarCursosRelacionados } from '../_shared/buscaCursos.ts';
 // ORIGENS_PERMITIDAS (domínios separados por vírgula).
 const ORIGENS_PERMITIDAS = (
   Deno.env.get('ORIGENS_PERMITIDAS') ||
-  'https://estudeseguro.com.br,https://www.estudeseguro.com.br,http://localhost:5173'
+  'https://estudeseg.pages.dev,http://localhost:5173'
 )
   .split(',')
   .map((origem) => origem.trim())

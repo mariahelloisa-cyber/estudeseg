@@ -120,7 +120,7 @@ decisão ou acesso que não tenho.
 | **H-01** | RLS `to authenticated using(true)` | 🟠 **PENDENTE DE EXECUÇÃO** | Arquivo 02 reescreve as 26 tabelas. |
 | **H-02** | PII acessível a qualquer conta | 🟠 **PENDENTE DE EXECUÇÃO** | Arquivos 02 e 03. |
 | **H-03** | `.env` no histórico + repo público | 🔴 **NÃO RESOLVIDO** | Requer sua decisão. Análise e impacto do force push em `SECURITY-GIT-HISTORICO.md`. Não executei nada. |
-| **H-04** | Sem rate limiting | 🟠 **PARCIAL** | RPCs e chat-agent ganham limite por IP (03/04 + deploy). **Falta a borda:** `/auth/v1/token` e `/auth/v1/recover` só podem ser protegidos na Cloudflare, à qual não tenho acesso. |
+| **H-04** | Sem rate limiting | 🟠 **PARCIAL** | RPCs e chat-agent ganham limite por IP (03/04 + deploy). **Falta a borda:** `/auth/v1/token` e `/auth/v1/recover` são protegidos em Supabase → Authentication → Rate Limits (painel). |
 | **M-01** | Brute force de voucher | 🟠 **PENDENTE DE EXECUÇÃO** | Arquivo 04 (10 chars + CSPRNG + 10 tentativas/IP/h + resposta genérica). Frontend já aplicado. |
 | **M-02** | Oráculo de CPF | 🟠 **PENDENTE DE EXECUÇÃO** | Arquivo 04: identidade validada antes de qualquer revelação. |
 | **M-03** | Rate limit por `sessionId` do cliente | 🟠 **PENDENTE DE DEPLOY** | Código pronto. Precisa de `supabase functions deploy chat-agent` **e** da coluna `ia_mensagens.ip` (arquivo 04). |
