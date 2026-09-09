@@ -52,8 +52,17 @@ Ela lista todas as contas do projeto com o e-mail mascarado.
   Pare aqui e me chame — muda a resposta (vira tratamento de incidente, com
   rotação de chaves e possível notificação à ANPD pela LGPD).
 
-- [ ] Diagnóstico rodado e resultado guardado
-- [ ] Lista de usuários conferida, sem contas desconhecidas
+> ✅ **FEITO EM 2026-09-09 — apareceu só a conta da administradora.**
+> Nenhuma conta desconhecida foi criada. Como ler qualquer dado sensível exigia
+> estar autenticado (a RLS já barrava o acesso anônimo), isso é evidência forte
+> de que a falha crítica **não chegou a ser explorada**.
+>
+> Efeito prático: **não é preciso rotacionar chaves nem reescrever o histórico
+> do Git** (ver passo 9). Segue como correção normal, sem tratamento de
+> incidente.
+
+- [x] Diagnóstico rodado e resultado guardado
+- [x] Lista de usuários conferida, sem contas desconhecidas
 
 ---
 
@@ -305,11 +314,13 @@ reversível.
 
 - [ ] Repositório privado
 
-> Sobre apagar o `.env` do histórico do Git: leia
-> `SECURITY-GIT-HISTORICO.md`. **Resumo honesto: provavelmente não vale a pena.**
-> A chave que está lá (anon key) não é secreta — ela já aparece no JavaScript do
-> site para qualquer visitante. Só faça a limpeza se a consulta 7 do passo 1
-> tiver mostrado contas desconhecidas.
+> Sobre apagar o `.env` do histórico do Git: **decidido — não faça.**
+> A consulta 7 do passo 1 confirmou que não houve conta desconhecida, ou seja,
+> a falha não foi explorada. E a chave que está no histórico (a anon key) não é
+> secreta: ela já aparece no JavaScript do site para qualquer visitante.
+> Reescrever histórico e rotacionar chaves derrubaria o site sem nenhum ganho
+> real. Tornar o repositório privado resolve o que havia para resolver.
+> Detalhes em `SECURITY-GIT-HISTORICO.md`.
 
 ---
 

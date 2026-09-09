@@ -63,6 +63,23 @@ arquivo `supabase-seguranca-00-diagnostico.sql`) mostrar contas desconhecidas �
 ou seja, se houver indício de que o [C-01] foi de fato explorado. Nesse caso
 trate como incidente e gire tudo.
 
+> **VERIFICADO EM 2026-09-09: a consulta 7 mostrou apenas a conta da própria
+> administradora.** Nenhuma conta desconhecida foi criada enquanto o cadastro
+> público esteve aberto.
+>
+> Como a leitura de qualquer dado sensível exigia uma conta autenticada (a RLS
+> já bloqueava o acesso anônimo — testado na auditoria), a ausência de contas
+> estranhas é evidência forte de que o [C-01] **não foi explorado**.
+>
+> **Conclusão: não rotacione as chaves e não reescreva o histórico.** O custo é
+> alto, o site sai do ar durante a troca, e não há incidente a conter. Basta
+> tornar o repositório privado.
+>
+> Ressalva honesta: uma conta criada e apagada antes desta consulta não
+> apareceria. Se quiser certeza documental, o Supabase guarda os eventos de
+> autenticação em Logs & Analytics → Auth Logs — dá para conferir se houve
+> algum `signup` além do seu.
+
 ### 3. Limpar o histórico — o que quebra
 
 `git filter-repo` **não está instalado** nesta máquina e não há `pip` disponível.

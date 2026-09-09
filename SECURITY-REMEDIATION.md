@@ -119,7 +119,7 @@ decisão ou acesso que não tenho.
 | **C-01** | Signup aberto + sessão = admin | 🟠 **PENDENTE DE EXECUÇÃO** | Código já exige `eh_admin()`. Faltam **duas** ações suas: desligar "Enable Sign Ups" no painel **e** rodar 01+02. Verificado agora: `disable_signup` continua `false`. |
 | **H-01** | RLS `to authenticated using(true)` | 🟠 **PENDENTE DE EXECUÇÃO** | Arquivo 02 reescreve as 26 tabelas. |
 | **H-02** | PII acessível a qualquer conta | 🟠 **PENDENTE DE EXECUÇÃO** | Arquivos 02 e 03. |
-| **H-03** | `.env` no histórico + repo público | 🔴 **NÃO RESOLVIDO** | Requer sua decisão. Análise e impacto do force push em `SECURITY-GIT-HISTORICO.md`. Não executei nada. |
+| **H-03** | `.env` no histórico + repo público | 🟡 **RISCO ACEITO** | Verificado em 09/09: nenhuma conta desconhecida em `auth.users`, logo a falha não foi explorada. A anon key não é secreta (já está no bundle). Decisão: tornar o repositório privado; **não** rotacionar chaves nem reescrever histórico. |
 | **H-04** | Sem rate limiting | 🟠 **PARCIAL** | RPCs e chat-agent ganham limite por IP (03/04 + deploy). **Falta a borda:** `/auth/v1/token` e `/auth/v1/recover` são protegidos em Supabase → Authentication → Rate Limits (painel). |
 | **M-01** | Brute force de voucher | 🟠 **PENDENTE DE EXECUÇÃO** | Arquivo 04 (10 chars + CSPRNG + 10 tentativas/IP/h + resposta genérica). Frontend já aplicado. |
 | **M-02** | Oráculo de CPF | 🟠 **PENDENTE DE EXECUÇÃO** | Arquivo 04: identidade validada antes de qualquer revelação. |
@@ -248,7 +248,8 @@ exatamente isso.
 
 ```
 CRITICAL:  1   (C-01 — aberto até o signup ser desligado e o SQL rodar)
-HIGH:      4   (H-01, H-02 pendentes de execução · H-03 pendente de decisão · H-04 parcial)
+HIGH:      3   (H-01, H-02 pendentes de execução · H-04 parcial · H-03 risco aceito:
+               nao explorado, decidido tornar o repositorio privado)
 MEDIUM:    5   (M-01..M-05 pendentes · M-06 resolvido · N-01, N-02 resolvidos)
 LOW:       2   (L-01 aceito, L-02 decisão de negócio · L-03/04/05 resolvidos)
 
@@ -258,11 +259,12 @@ API:                      FAIL  (código pronto; falta rodar 03 e 04)
 SECRETS:                  PASS  (nenhuma service_role, chave privada ou credencial
                                  ativa no código, no bundle ou no histórico)
 DEPENDENCIES:             PASS  (npm audit: 0 vulnerabilidades)
-RATE LIMITING:            FAIL  (RPC pronto; borda Cloudflare não configurada)
+RATE LIMITING:            FAIL  (RPC pronto; Supabase Auth Rate Limits nao conferido)
 STORAGE:                  FAIL  (código pronto; falta rodar 03)
 INPUT VALIDATION:         FAIL  (código pronto; falta rodar 03)
 SECURITY HEADERS:         PASS  (CSP preservada e endurecida)
-GIT:                      FAIL  (.env no histórico; repositório público)
+GIT:                      FAIL  (repositório ainda público — vira PASS no passo 9;
+                                 .env no histórico: risco aceito, nao explorado)
 BACKDOOR / EXTERNAL CODE: PASS  (inventário completo, nada não documentado)
 BUILD:                    PASS  (npm run build ✓, 0 regressões de lint)
 ```
@@ -281,7 +283,8 @@ escrito. Faltam quatro ações, e três são suas:
 2. Rodar `supabase-seguranca-00` a `04` no SQL Editor, nessa ordem, cadastrando
    o admin no passo 5 do arquivo 01.
 3. `supabase functions deploy chat-agent`.
-4. Decidir sobre o repositório público e o histórico (`SECURITY-GIT-HISTORICO.md`).
+4. Tornar o repositório privado. (Histórico e chaves: decidido não mexer —
+   a falha não foi explorada.)
 
 Depois disso, rodar o arquivo `supabase-seguranca-05-conferencia.sql` e o Cenário B. **Não marque nada
 como resolvido antes de ver esses testes passando** — o código ter mudado não é
