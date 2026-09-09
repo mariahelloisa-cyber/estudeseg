@@ -218,6 +218,9 @@ seria sinal de domínio faltando na lista.
 
 No SQL Editor, rode o arquivo `supabase-seguranca-05-conferencia.sql` inteiro.
 
+> Se a verificação 2 der FALHA, rode `supabase-seguranca-06-pendencias.sql` e
+> repita a conferência. Ele fecha as tabelas que o arquivo 02 não alcançou.
+
 **As 7 linhas precisam dizer `OK`.** Se alguma der `FALHA`, o próprio arquivo
 traz, no rodapé, a consulta que mostra exatamente o que ficou para trás —
 descomente a correspondente e rode.

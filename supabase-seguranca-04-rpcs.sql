@@ -393,7 +393,9 @@ begin
   join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public'
     and p.prosecdef
-    and (p.proconfig is null or not (p.proconfig @> array['search_path=']));
+    and (p.proconfig is null or not exists (
+        select 1 from unnest(p.proconfig) cfg where cfg like 'search_path=%'
+      ));
 
   if v_lista is not null then
     raise warning 'Funções SECURITY DEFINER sem search_path travado em vazio:%s  %', E'\n', v_lista;
