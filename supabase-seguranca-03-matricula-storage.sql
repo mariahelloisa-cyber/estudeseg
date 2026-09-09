@@ -386,7 +386,13 @@ end;
 $$;
 
 alter function public.upload_matricula_permitido(text) owner to postgres;
-revoke all on function public.upload_matricula_permitido(text) from public, anon, authenticated;
+-- ATENÇÃO: esta função é chamada de DENTRO da policy do bucket, e policies são
+-- avaliadas com os privilégios de quem faz a consulta. Por isso anon e
+-- authenticated PRECISAM de EXECUTE aqui — sem isso o upload falha com
+-- "permission denied for function upload_matricula_permitido".
+-- (Corrigido em supabase-seguranca-07-correcao-upload.sql.)
+revoke all on function public.upload_matricula_permitido(text) from public;
+grant execute on function public.upload_matricula_permitido(text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- anexar_documentos_matricula — registra os caminhos já enviados
