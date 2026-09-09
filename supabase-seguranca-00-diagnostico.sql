@@ -115,89 +115,35 @@ select
   max(created_at)                                                  as conta_mais_recente
 from auth.users;
 
+
 -- ---------------------------------------------------------------------------
--- 9) [I-03 / FASE 16] DDL das tabelas sem SQL versionado no repositório
+-- 9) [I-03 / FASE 16] Estrutura das tabelas sem SQL versionado no repositório
 -- ---------------------------------------------------------------------------
 -- O admin usa 26 tabelas, mas o repositório só tem arquivo de setup para 14.
--- Esta consulta gera o CREATE TABLE aproximado das que faltam, para você colar
--- num arquivo versionado (sugestão: supabase-tabelas-existentes.sql) e passar a
--- ter o estado real do banco sob controle de versão.
+-- Esta consulta lista as colunas das que faltam, para você guardar num arquivo
+-- versionado e passar a ter o estado real do banco sob controle de versão.
 --
--- É documentação do que JÁ existe — não execute a saída no banco de produção.
+-- É documentação do que JÁ existe — não precisa executar nada da saída.
 select
-  'create table if not exists public.' || c.relname || ' (' || E'\n  ' ||
-  string_agg(
-    a.attname || ' ' || format_type(a.atttypid, a.atttypmod)
-      || case when a.attnotnull then ' not null' else '' end
-      || coalesce(' default ' || pg_get_expr(d.adbin, d.adrelid), ''),
-    ',' || E'\n  ' order by a.attnum
-  ) || E'\n);' as ddl
-from pg_class c
-join pg_namespace n on n.oid = c.relnamespace
-join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
-left join pg_attrdef d on d.adrelid = c.oid and d.adnum = a.attnum
-where n.nspname = 'public'
-  and c.relkind = 'r'
-  and c.relname in (
+  table_name  as tabela,
+  ordinal_position as ordem,
+  column_name as coluna,
+  data_type   as tipo,
+  is_nullable as aceita_nulo,
+  column_default as valor_padrao
+from information_schema.columns
+where table_schema = 'public'
+  and table_name in (
     'banners', 'cursos_cadastrados', 'categorias_cursos', 'depoimentos',
     'faqs', 'noticias', 'selos', 'frases', 'diferenciais', 'vagas',
     'contatos', 'popups'
   )
-group by c.relname
-order by c.relname;
+order by table_name, ordinal_position;
 
--- ---------------------------------------------------------------------------
--- 10) CONFERÊNCIA PÓS-CORREÇÃO
--- ---------------------------------------------------------------------------
--- Rode isto DEPOIS dos arquivos 01 a 04. Todas as linhas devem dizer OK.
-select
-  'RLS em todas as tabelas' as verificacao,
-  case when not exists (
-    select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
-    where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity
-  ) then 'OK' else 'FALHA' end as resultado
-union all
-select
-  'Nenhuma policy de escrita com true',
-  case when not exists (
-    select 1 from pg_policies
-    where schemaname = 'public'
-      and cmd in ('ALL', 'INSERT', 'UPDATE', 'DELETE')
-      and (coalesce(with_check, '') = 'true'
-           or (cmd <> 'INSERT' and coalesce(qual, '') = 'true'))
-  ) then 'OK' else 'FALHA' end
-union all
-select
-  'anon sem acesso a tabelas de PII',
-  case when not exists (
-    select 1 from information_schema.role_table_grants
-    where table_schema = 'public' and grantee = 'anon'
-      and table_name in ('matriculas', 'matriculados', 'contatos',
-                         'sorteio_participantes', 'resgate_vouchers', 'ia_mensagens')
-  ) then 'OK' else 'FALHA' end
-union all
-select
-  'public.admins inacessivel pela API',
-  case when not exists (
-    select 1 from information_schema.role_table_grants
-    where table_schema = 'public' and table_name = 'admins'
-      and grantee in ('anon', 'authenticated')
-  ) then 'OK' else 'FALHA' end
-union all
-select
-  'SECURITY DEFINER com search_path travado',
-  case when not exists (
-    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.prosecdef
-      and (p.proconfig is null or not (p.proconfig @> array['search_path=']))
-  ) then 'OK' else 'FALHA' end
-union all
-select
-  'bucket matriculas-anexos privado',
-  case when exists (
-    select 1 from storage.buckets where id = 'matriculas-anexos' and not public
-  ) then 'OK' else 'FALHA' end
-union all
-select
-  'existe pelo menos um admin',
-  case when exists (select 1 from public.admins) then 'OK' else 'FALHA' end;
+-- ============================================================================
+-- FIM DO DIAGNÓSTICO.
+--
+-- A conferência pós-correção NÃO fica aqui: ela está em
+-- supabase-seguranca-05-conferencia.sql e só funciona DEPOIS que os arquivos
+-- 01 a 04 tiverem rodado (ela consulta public.admins, que ainda não existe).
+-- ============================================================================

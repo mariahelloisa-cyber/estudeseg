@@ -36,7 +36,12 @@ certamente `main`). Isso importa no passo 6.
 1. Abra o Supabase → projeto **estudeseg** → **SQL Editor**.
 2. Abra o arquivo `supabase-seguranca-00-diagnostico.sql` daqui do projeto.
 3. Rode **uma consulta por vez** (selecione o bloco e clique em Run).
+   São **9 consultas**, todas de leitura.
 4. **Guarde o resultado das consultas 7 e 8** — são a lista de usuários.
+
+> A conferência final (aquela que responde "as correções pegaram?") **não** fica
+> neste arquivo. Ela está em `supabase-seguranca-05-conferencia.sql` e só roda
+> no passo 8, depois que os arquivos 01 a 04 tiverem passado.
 
 ### 🚨 Olhe a consulta 7 com atenção
 
@@ -202,11 +207,11 @@ seria sinal de domínio faltando na lista.
 
 ### 8.1 — Conferência automática
 
-No SQL Editor, rode o **bloco 10** do arquivo
-`supabase-seguranca-00-diagnostico.sql` (o último, "CONFERÊNCIA PÓS-CORREÇÃO").
+No SQL Editor, rode o arquivo `supabase-seguranca-05-conferencia.sql` inteiro.
 
-**As 7 linhas precisam dizer `OK`.** Qualquer `FALHA` significa que algum passo
-não pegou — me mande o resultado.
+**As 7 linhas precisam dizer `OK`.** Se alguma der `FALHA`, o próprio arquivo
+traz, no rodapé, a consulta que mostra exatamente o que ficou para trás —
+descomente a correspondente e rode.
 
 - [ ] 7 linhas `OK`
 

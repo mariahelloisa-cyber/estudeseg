@@ -222,7 +222,7 @@ GoTrue, sem passar pelo React, exatamente como um atacante faria.
 
 ## COMO VALIDAR DEPOIS DE RODAR O SQL
 
-Rode o bloco 10 do arquivo `supabase-seguranca-00-diagnostico.sql` — todas as
+Rode o arquivo `supabase-seguranca-05-conferencia.sql` — todas as
 sete linhas devem dizer `OK`. Depois, o teste que realmente importa (Cenário B):
 
 1. Crie uma conta descartável (antes de desligar o signup, ou pelo Dashboard).
@@ -283,7 +283,7 @@ escrito. Faltam quatro ações, e três são suas:
 3. `supabase functions deploy chat-agent`.
 4. Decidir sobre o repositório público e o histórico (`SECURITY-GIT-HISTORICO.md`).
 
-Depois disso, rodar o bloco 10 do arquivo 00 e o Cenário B. **Não marque nada
+Depois disso, rodar o arquivo `supabase-seguranca-05-conferencia.sql` e o Cenário B. **Não marque nada
 como resolvido antes de ver esses testes passando** — o código ter mudado não é
 prova de que a vulnerabilidade fechou.
 
