@@ -131,8 +131,19 @@ export default function Inicio() {
     e.preventDefault();
     setContatoStatus('enviando');
     try {
-      const { error } = await supabase.from('contatos').insert([contatoForm]);
+      // Antes isto era um INSERT direto com o objeto inteiro do formulário, o
+      // que permitia gravar qualquer coluna da tabela chamando a API por fora
+      // do React (mass assignment). Agora são parâmetros nomeados de uma função
+      // que valida e aplica limite por IP no servidor.
+      const { data, error } = await supabase.rpc('enviar_contato', {
+        p_nome: contatoForm.nome,
+        p_email: contatoForm.email,
+        p_telefone: contatoForm.telefone || null,
+        p_curso_desejado: contatoForm.curso_desejado || null,
+        p_mensagem: contatoForm.mensagem || null,
+      });
       if (error) throw error;
+      if (data !== 'sucesso') throw new Error(`Envio recusado: ${data}`);
 
       setContatoStatus('sucesso');
       setContatoForm({ nome: '', email: '', telefone: '', curso_desejado: '', mensagem: '' });

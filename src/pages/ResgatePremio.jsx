@@ -18,12 +18,19 @@ const PASSOS_COMO_FUNCIONA = [
   'Gire a roleta e descubra seu prêmio na hora!',
 ];
 
-// Mensagem mostrada no formulário para cada resposta da função do banco
+// Vouchers novos têm 10 caracteres; os antigos, de 5, continuam válidos.
+const TAMANHO_MINIMO_VOUCHER = 5;
+const TAMANHO_MAXIMO_VOUCHER = 10;
+
+// Mensagem mostrada no formulário para cada resposta da função do banco.
+// `voucher_invalido` cobre de propósito tanto "não existe" quanto "já foi
+// usado": responder coisas diferentes deixava a função servir de oráculo para
+// descobrir quais códigos existem.
 const MENSAGENS_ERRO = {
-  voucher_invalido: 'Voucher não encontrado. Confira o código digitado.',
-  voucher_ja_usado: 'Este voucher já foi utilizado. Cada código vale um único giro.',
+  voucher_invalido: 'Voucher inválido ou já utilizado. Confira o código digitado.',
   funcionario_invalido: 'Selecione quem indicou você na lista.',
   sem_premios: 'Nenhum prêmio disponível no momento. Tente novamente mais tarde.',
+  limite_excedido: 'Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo.',
 };
 
 const NUMERO_WHATSAPP_PADRAO = '5511995987197';
@@ -43,7 +50,7 @@ function IconeWhatsapp({ className }) {
 
 // Só letras e números, em maiúsculas, no máximo 5 — o mesmo formato gerado no admin
 function mascaraVoucher(valor) {
-  return valor.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+  return valor.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, TAMANHO_MAXIMO_VOUCHER);
 }
 
 // Rótulos escritos dentro da fatia da roleta. O admin decide o texto; sem
@@ -126,8 +133,8 @@ export default function ResgatePremio() {
       setErroFormulario('Digite seu nome completo.');
       return;
     }
-    if (form.codigo.length !== 5) {
-      setErroFormulario('O código do voucher tem 5 caracteres.');
+    if (form.codigo.length < TAMANHO_MINIMO_VOUCHER) {
+      setErroFormulario('Código do voucher incompleto. Confira o que você recebeu.');
       return;
     }
 
@@ -337,9 +344,9 @@ export default function ResgatePremio() {
                   name="codigo"
                   value={form.codigo}
                   onChange={handleChangeForm}
-                  placeholder="AB3XZ"
+                  placeholder="AB3XZK9PQR"
                   autoComplete="off"
-                  maxLength={5}
+                  maxLength={TAMANHO_MAXIMO_VOUCHER}
                   className={`${CLASSE_INPUT} tracking-[0.4em] font-black text-center text-lg uppercase`}
                 />
               </div>

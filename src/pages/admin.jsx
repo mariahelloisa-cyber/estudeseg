@@ -466,18 +466,49 @@ export default function Admin() {
   // para diferenciar de uma sessão que expirou sozinha
   const saindoManualmente = useRef(false);
 
-  // Protege o painel: só libera o acesso se houver uma sessão Supabase válida
+  // Protege o painel. Duas perguntas DIFERENTES, nesta ordem:
+  //   1. existe sessão?      -> autenticação  ("quem é você?")
+  //   2. eh_admin() é true?  -> autorização   ("o que você pode fazer?")
+  //
+  // Ter sessão NÃO é ser administrador. Qualquer conta do Supabase tem sessão;
+  // administrador é só quem está em public.admins.
+  //
+  // Isto aqui é camada de UX: serve para não mostrar uma tela quebrada a quem
+  // não pode usá-la. A proteção real está nas policies de RLS, que barram as
+  // operações mesmo para quem ignorar o React e falar direto com a API.
   useEffect(() => {
     let ativo = true;
 
+    async function verificarAcesso(session) {
+      if (!session) {
+        setModoAdmin(false);
+        setVerificandoSessao(false);
+        navigate('/login');
+        return;
+      }
+
+      const { data, error } = await supabase.rpc('meu_status_admin');
+      if (!ativo) return;
+
+      // Na dúvida, nega. Erro de rede, RPC ausente ou resposta inesperada
+      // resultam em acesso negado — nunca em acesso liberado.
+      const linha = Array.isArray(data) ? data[0] : data;
+      const autorizado = !error && linha?.eh_admin === true;
+
+      setModoAdmin(autorizado);
+      setVerificandoSessao(false);
+
+      if (!autorizado) {
+        // Sessão válida, mas sem permissão: encerra a sessão para não deixar
+        // um token de não-admin ativo dentro do painel.
+        await supabase.auth.signOut();
+        navigate('/login', { state: { motivo: 'sem_permissao' } });
+      }
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!ativo) return;
-      if (session) {
-        setModoAdmin(true);
-      } else {
-        navigate('/login');
-      }
-      setVerificandoSessao(false);
+      verificarAcesso(session);
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {

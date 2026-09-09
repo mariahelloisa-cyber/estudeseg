@@ -14,17 +14,58 @@ import { BASE_CONHECIMENTO } from '../_shared/baseConhecimento.ts';
 import { gerarResposta, type MensagemChat } from '../_shared/provedoresIA.ts';
 import { buscarCursosRelacionados } from '../_shared/buscaCursos.ts';
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+// Só os domínios do próprio site podem chamar esta função pelo navegador.
+// Antes era '*', o que permitia qualquer site do mundo embutir o assistente e
+// gastar o orçamento de IA da Estude Seguro.
+//
+// A lista pode ser ajustada sem redeploy pela variável de ambiente
+// ORIGENS_PERMITIDAS (domínios separados por vírgula).
+const ORIGENS_PERMITIDAS = (
+  Deno.env.get('ORIGENS_PERMITIDAS') ||
+  'https://estudeseguro.com.br,https://www.estudeseguro.com.br,http://localhost:5173'
+)
+  .split(',')
+  .map((origem) => origem.trim())
+  .filter(Boolean);
+
+function corsHeaders(req: Request): Record<string, string> {
+  const origem = req.headers.get('origin') || '';
+  const permitida = ORIGENS_PERMITIDAS.includes(origem);
+  return {
+    // Sem origem correspondente, devolvemos a primeira da lista — o navegador
+    // do site atacante bloqueia a leitura da resposta.
+    'Access-Control-Allow-Origin': permitida ? origem : ORIGENS_PERMITIDAS[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  };
+}
+
+// Identidade que o cliente NÃO consegue reescrever à vontade.
+// `cf-connecting-ip` é definido pela borda da Cloudflare e sobrescreve o que o
+// cliente mandar. No fallback por x-forwarded-for pegamos o item mais à direita,
+// que é o acrescentado pelo proxy mais próximo — os da esquerda são forjáveis.
+function identificarChamador(req: Request): string {
+  const cf = req.headers.get('cf-connecting-ip');
+  if (cf) return cf.trim();
+
+  const xff = req.headers.get('x-forwarded-for');
+  if (xff) {
+    const partes = xff.split(',').map((p) => p.trim()).filter(Boolean);
+    if (partes.length > 0) return partes[partes.length - 1];
+  }
+  return 'desconhecido';
+}
 
 // --- Limites para manter a conversa econômica e o uso do agente saudável ---
 const LIMITE_CARACTERES_MENSAGEM = 500;
 const LIMITE_CARACTERES_HISTORICO = 800;
 const MAXIMO_MENSAGENS_HISTORICO = 6; // últimas 3 trocas (usuário + assistente)
-const LIMITE_MENSAGENS_POR_MINUTO = 8; // por sessão de chat
+// Limites de abuso. Contados por IP, NÃO pelo sessionId que o cliente envia:
+// aquele o atacante zerava só gerando outro UUID.
+const LIMITE_MENSAGENS_POR_MINUTO = 8;    // por IP, janela curta
+const LIMITE_MENSAGENS_POR_HORA = 60;     // por IP, teto de custo por pessoa
+const LIMITE_GLOBAL_POR_HORA = 2000;      // teto de custo do projeto inteiro
 const MAX_TOKENS_RESPOSTA = 600;
 
 const MODELOS_PADRAO: Record<string, string> = {
@@ -57,26 +98,26 @@ FORMATAÇÃO DA RESPOSTA:
 - Evite listas com marcadores; prefira frases curtas em parágrafos separados, como alguém explicando por mensagem de WhatsApp.
 - Não use títulos, markdown de lista ("-", "*") ou qualquer formatação além do negrito pontual descrito acima.`;
 
-function resposta(corpo: unknown, status = 200) {
+function resposta(req: Request, corpo: unknown, status = 200) {
   return new Response(JSON.stringify(corpo), {
     status,
-    headers: { ...CORS_HEADERS, 'content-type': 'application/json' },
+    headers: { ...corsHeaders(req), 'content-type': 'application/json' },
   });
 }
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: CORS_HEADERS });
+    return new Response(null, { headers: corsHeaders(req) });
   }
   if (req.method !== 'POST') {
-    return resposta({ error: 'Método não permitido.' }, 405);
+    return resposta(req, { error: 'Método não permitido.' }, 405);
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     console.error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY ausentes nas variáveis de ambiente da função.');
-    return resposta({ error: 'Configuração do servidor incompleta.' }, 500);
+    return resposta(req, { error: 'Configuração do servidor incompleta.' }, 500);
   }
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
@@ -84,12 +125,14 @@ Deno.serve(async (req: Request) => {
   try {
     corpoRequisicao = await req.json();
   } catch {
-    return resposta({ error: 'Corpo da requisição inválido.' }, 400);
+    return resposta(req, { error: 'Corpo da requisição inválido.' }, 400);
   }
+
+  const ipChamador = identificarChamador(req);
 
   const mensagemBruta = corpoRequisicao.message;
   if (typeof mensagemBruta !== 'string' || !mensagemBruta.trim()) {
-    return resposta({ error: 'Mensagem vazia.' }, 400);
+    return resposta(req, { error: 'Mensagem vazia.' }, 400);
   }
   const mensagemUsuario = mensagemBruta.trim().slice(0, LIMITE_CARACTERES_MENSAGEM);
 
@@ -118,21 +161,43 @@ Deno.serve(async (req: Request) => {
       .eq('chave', 'ia_agente_ativo')
       .maybeSingle();
     if (configAtiva && configAtiva.valor === 'false') {
-      return resposta({
+      return resposta(req, {
         reply: 'No momento o assistente virtual está temporariamente indisponível. Fale com a gente pelo WhatsApp: +55 11 99598-7197.',
       });
     }
 
-    // --- Limite simples de mensagens por sessão, para evitar abuso/custos indevidos ---
-    const umMinutoAtras = new Date(Date.now() - 60_000).toISOString();
-    const { count: mensagensNoUltimoMinuto } = await supabase
-      .from('ia_mensagens')
-      .select('id', { count: 'exact', head: true })
-      .eq('sessao_id', sessaoId)
-      .gte('created_at', umMinutoAtras);
-    if ((mensagensNoUltimoMinuto ?? 0) >= LIMITE_MENSAGENS_POR_MINUTO) {
-      return resposta({
+    // --- Limites de abuso, contados por IP e no total do projeto ---
+    // O sessionId continua sendo gravado para agrupar a conversa nas
+    // estatísticas, mas não manda mais em nada relacionado a limite.
+    const agora = Date.now();
+    const umMinutoAtras = new Date(agora - 60_000).toISOString();
+    const umaHoraAtras = new Date(agora - 3_600_000).toISOString();
+
+    const [porMinuto, porHora, globalHora] = await Promise.all([
+      supabase.from('ia_mensagens').select('id', { count: 'exact', head: true })
+        .eq('ip', ipChamador).gte('created_at', umMinutoAtras),
+      supabase.from('ia_mensagens').select('id', { count: 'exact', head: true })
+        .eq('ip', ipChamador).gte('created_at', umaHoraAtras),
+      supabase.from('ia_mensagens').select('id', { count: 'exact', head: true })
+        .gte('created_at', umaHoraAtras),
+    ]);
+
+    const excedeu =
+      (porMinuto.count ?? 0) >= LIMITE_MENSAGENS_POR_MINUTO ||
+      (porHora.count ?? 0) >= LIMITE_MENSAGENS_POR_HORA;
+
+    if (excedeu) {
+      return resposta(req, {
         reply: 'Você enviou várias mensagens muito rápido. Aguarde um instante e tente novamente, ou fale direto pelo WhatsApp: +55 11 99598-7197.',
+      });
+    }
+
+    // Freio de custo do projeto: protege contra abuso distribuído por muitos IPs,
+    // que o limite por IP sozinho não pega.
+    if ((globalHora.count ?? 0) >= LIMITE_GLOBAL_POR_HORA) {
+      console.error(`Limite global do assistente atingido: ${globalHora.count} mensagens na última hora.`);
+      return resposta(req, {
+        reply: 'O assistente está com muita demanda no momento. Fale com a gente pelo WhatsApp: +55 11 99598-7197.',
       });
     }
 
@@ -141,7 +206,7 @@ Deno.serve(async (req: Request) => {
     const apiKey = Deno.env.get(VARIAVEIS_CHAVE_POR_PROVEDOR[provider] || 'ANTHROPIC_API_KEY');
     if (!apiKey) {
       console.error(`Chave de API ausente para o provedor "${provider}".`);
-      return resposta({ error: 'Configuração de IA incompleta no servidor.' }, 500);
+      return resposta(req, { error: 'Configuração de IA incompleta no servidor.' }, 500);
     }
 
     // Busca pontual no catálogo real, só quando a mensagem parece citar um curso específico.
@@ -159,15 +224,16 @@ Deno.serve(async (req: Request) => {
     // Estatística de uso — não guarda nenhum dado pessoal do visitante.
     supabase
       .from('ia_mensagens')
-      .insert({ sessao_id: sessaoId, pergunta: mensagemUsuario })
+      .insert({ sessao_id: sessaoId, pergunta: mensagemUsuario, ip: ipChamador })
       .then(({ error }) => {
         if (error) console.error('Falha ao registrar estatística da IA:', error.message);
       });
 
-    return resposta({ reply: textoResposta, sessionId: sessaoId });
+    return resposta(req, { reply: textoResposta, sessionId: sessaoId });
   } catch (erro) {
     console.error('Erro no chat-agent:', erro);
     return resposta(
+      req,
       { reply: 'Não consegui responder agora. Tente novamente em instantes ou fale pelo WhatsApp: +55 11 99598-7197.' },
       200,
     );

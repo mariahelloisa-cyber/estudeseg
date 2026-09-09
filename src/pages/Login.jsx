@@ -53,9 +53,20 @@ export default function Login() {
 
       if (error) throw error;
 
+      // Autenticou — mas autenticar não é autorizar. Só entra no painel quem
+      // está em public.admins. Uma conta comum do Supabase para aqui.
+      const { data, error: erroAdmin } = await supabase.rpc('meu_status_admin');
+      const linha = Array.isArray(data) ? data[0] : data;
+
+      if (erroAdmin || linha?.eh_admin !== true) {
+        await supabase.auth.signOut();
+        setErro('Esta conta não tem permissão de acesso ao painel.');
+        return;
+      }
+
       alert('✅ Login efetuado com sucesso! Bem-vindo ao Painel.');
       navigate('/admin');
-      
+
     } catch (error) {
       console.error('Erro no login:', error.message);
       setErro('Credenciais inválidas. Verifica o teu e-mail e palavra-passe.');

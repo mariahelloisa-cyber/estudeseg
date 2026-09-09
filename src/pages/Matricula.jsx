@@ -21,6 +21,18 @@ import logo from '../assets/logo-estud.png';
 const CAMPOS_OBRIGATORIOS = CAMPOS_OBRIGATORIOS_ALUNO;
 const FORM_INICIAL = FORM_ALUNO_INICIAL;
 
+// Respostas possíveis da função enviar_matricula (banco). A validação que vale
+// acontece lá; aqui só traduzimos o motivo para o visitante.
+const MENSAGENS_ENVIO = {
+  limite_excedido: 'Você enviou várias matrículas agora há pouco. Aguarde um instante e tente novamente.',
+  campos_obrigatorios: 'Preencha todos os campos obrigatórios antes de enviar.',
+  cpf_invalido: 'CPF inválido. Verifique os números digitados.',
+  email_invalido: 'E-mail inválido. Verifique o endereço digitado.',
+  data_invalida: 'Data de nascimento inválida.',
+  campo_muito_longo: 'Algum campo ficou longo demais. Reduza o texto e tente novamente.',
+  padrao: 'Ocorreu um erro ao enviar sua matrícula. Tente novamente mais tarde.',
+};
+
 // Remove caracteres perigosos do nome original antes de usá-lo como chave no Storage
 function sanitizarNomeArquivo(nomeOriginal) {
   const extensaoMatch = nomeOriginal.match(/\.[a-zA-Z0-9]+$/);
@@ -60,6 +72,7 @@ export default function Matricula() {
   const [cpfErro, setCpfErro] = useState('');
   const [camposComErro, setCamposComErro] = useState([]);
   const [status, setStatus] = useState('');
+  const [mensagemErro, setMensagemErro] = useState('');
 
   function rolarAteCampo(nome) {
     const elemento = formRef.current?.elements?.namedItem(nome);
@@ -101,12 +114,56 @@ export default function Matricula() {
     const arquivos = inputAnexos?.files ? Array.from(inputAnexos.files) : [];
 
     setStatus('enviando');
+    setMensagemErro('');
     try {
       arquivos.forEach(validarAnexo);
 
+      // 1) A matrícula é criada por uma função no banco (enviar_matricula), não
+      //    mais por INSERT direto. É lá que CPF, e-mail, obrigatórios, tamanhos
+      //    e o limite por IP são checados de verdade — as validações daqui de
+      //    cima servem só para dar resposta rápida ao usuário.
+      const { data: retorno, error: erroEnvio } = await supabase.rpc('enviar_matricula', {
+        p_curso: formData.curso,
+        p_nome_completo: formData.nomeCompleto,
+        p_cpf: formData.cpf,
+        p_data_nascimento: formData.dataNascimento,
+        p_rg: formData.rg,
+        p_orgao_emissor: formData.orgaoEmissor,
+        p_data_emissao: formData.dataEmissao || null,
+        p_naturalidade: formData.naturalidade,
+        p_raca_cor: formData.racaCor || null,
+        p_estado_civil: formData.estadoCivil,
+        p_pai: formData.pai || null,
+        p_mae: formData.mae || null,
+        p_cep: formData.cep,
+        p_rua: formData.rua,
+        p_numero: formData.numero,
+        p_complemento: formData.complemento || null,
+        p_bairro: formData.bairro,
+        p_cidade: formData.cidade,
+        p_estado: formData.estado,
+        p_telefone: formData.telefone,
+        p_email: formData.email,
+        p_observacoes: formData.observacoes || null,
+      });
+
+      if (erroEnvio) throw erroEnvio;
+
+      const linha = Array.isArray(retorno) ? retorno[0] : retorno;
+      if (linha?.resultado !== 'sucesso') {
+        setStatus('erro');
+        setMensagemErro(MENSAGENS_ENVIO[linha?.resultado] || MENSAGENS_ENVIO.padrao);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // 2) Os arquivos vão direto para o Storage, dentro da pasta do token que
+      //    a função devolveu. A policy do bucket só aceita o upload sob um token
+      //    existente e recente — é isso que amarra o arquivo à matrícula.
+      const token = linha.upload_token;
       const caminhosAnexos = [];
       for (const arquivo of arquivos) {
-        const nomeArquivo = sanitizarNomeArquivo(arquivo.name);
+        const nomeArquivo = `${token}/${sanitizarNomeArquivo(arquivo.name)}`;
         const { error: uploadError } = await supabase.storage
           .from('matriculas-anexos')
           .upload(nomeArquivo, arquivo);
@@ -114,33 +171,15 @@ export default function Matricula() {
         caminhosAnexos.push(nomeArquivo);
       }
 
-      const { error: insertError } = await supabase.from('matriculas').insert([{
-        curso: formData.curso,
-        nome_completo: formData.nomeCompleto,
-        cpf: formData.cpf,
-        data_nascimento: formData.dataNascimento,
-        rg: formData.rg,
-        orgao_emissor: formData.orgaoEmissor,
-        data_emissao: formData.dataEmissao || null,
-        naturalidade: formData.naturalidade,
-        raca_cor: formData.racaCor || null,
-        estado_civil: formData.estadoCivil,
-        pai: formData.pai || null,
-        mae: formData.mae || null,
-        cep: formData.cep,
-        rua: formData.rua,
-        numero: formData.numero,
-        complemento: formData.complemento || null,
-        bairro: formData.bairro,
-        cidade: formData.cidade,
-        estado: formData.estado,
-        telefone: formData.telefone,
-        email: formData.email,
-        anexos: caminhosAnexos,
-        observacoes: formData.observacoes || null,
-      }]);
-
-      if (insertError) throw insertError;
+      // 3) Registra os caminhos na matrícula (a função confere que cada caminho
+      //    está mesmo dentro da pasta do próprio token).
+      if (caminhosAnexos.length > 0) {
+        const { error: erroAnexos } = await supabase.rpc('anexar_documentos_matricula', {
+          p_token: token,
+          p_anexos: caminhosAnexos,
+        });
+        if (erroAnexos) throw erroAnexos;
+      }
 
       setStatus('sucesso');
       setFormData(FORM_INICIAL);
@@ -187,7 +226,7 @@ export default function Matricula() {
         {status === 'erro' && (
           <div className="w-full bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl mb-6 text-sm font-bold flex items-center gap-3">
             <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            Ocorreu um erro ao enviar sua matrícula. Tente novamente mais tarde.
+            {mensagemErro || MENSAGENS_ENVIO.padrao}
           </div>
         )}
 
