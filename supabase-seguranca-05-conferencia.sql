@@ -102,8 +102,8 @@ order by 1;
 -- from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 -- where n.nspname = 'public' and p.prosecdef
 --   and (p.proconfig is null or not exists (
-        select 1 from unnest(p.proconfig) cfg where cfg like 'search_path=%'
-      ));
+--         select 1 from unnest(p.proconfig) cfg where cfg like 'search_path=%'
+--       ));
 
 -- FALHA na 7 — cadastre o administrador (passo 5 do arquivo 01):
 -- select id, email from auth.users order by created_at;
