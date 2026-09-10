@@ -2926,14 +2926,10 @@ export default function Admin() {
       setMensagemStatus("⚠️ Dê um nome ao prêmio!");
       return;
     }
-    // O nome é o que liga o resultado do sorteio à fatia certa da roleta
-    const nomeRepetido = listaPremiosResgate.some(
-      (p) => p.id !== premioResgateEditando && p.nome.trim().toLowerCase() === formPremioResgate.nome.trim().toLowerCase(),
-    );
-    if (nomeRepetido) {
-      setMensagemStatus("⚠️ Já existe um prêmio com esse nome. Use nomes diferentes.");
-      return;
-    }
+    // Nomes repetidos são permitidos de propósito: um prêmio pode estar
+    // desenhado em duas fatias da roda (ex.: "Não foi dessa vez" dividido em
+    // duas, para distribuir melhor visualmente) — a RPC seleciona e baixa
+    // estoque por `id`, nunca por nome, então isso não quebra o sorteio.
 
     // `peso`, `quantidade_total` e `quantidade_disponivel` ficam de fora: peso
     // só muda na seção avançada e o estoque é território exclusivo do servidor.
@@ -3210,7 +3206,7 @@ export default function Admin() {
                 </div>
                 <div className="text-right">
                   <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Última atualização</p>
-                  <p className="text-xs text-gray-600 font-semibold">{new Date().toLocaleString('pt-BR')}</p>
+                  <p className="text-xs text-gray-600 font-semibold">{new Date().toLocaleDateString('pt-BR')}</p>
                 </div>
               </div>
 
@@ -4444,7 +4440,7 @@ export default function Admin() {
                             <td className="py-2.5 pr-3 font-semibold text-gray-700 whitespace-nowrap">{p.nome}</td>
                             <td className="py-2.5 pr-3 text-gray-500 whitespace-nowrap">{mascaraCPF(p.cpf)}</td>
                             <td className="py-2.5 pr-3 text-gray-500 whitespace-nowrap">{p.numero_matricula}</td>
-                            <td className="py-2.5 pr-3 text-gray-500 whitespace-nowrap">{new Date(p.data_sorteio).toLocaleString('pt-BR')}</td>
+                            <td className="py-2.5 pr-3 text-gray-500 whitespace-nowrap">{new Date(p.data_sorteio).toLocaleDateString('pt-BR')}</td>
                             <td className="py-2.5 pr-3 text-gray-700 font-semibold whitespace-nowrap">{p.premio}</td>
                             <td className="py-2.5 pr-3 whitespace-nowrap">
                               {p.resgatado ? (
@@ -4475,9 +4471,9 @@ export default function Admin() {
                       <p><span className="text-gray-400 font-bold uppercase text-[11px] block">CPF</span>{mascaraCPF(participanteRoletaSelecionado.cpf)}</p>
                       <p><span className="text-gray-400 font-bold uppercase text-[11px] block">Número do certificado</span>{participanteRoletaSelecionado.numero_matricula}</p>
                       <p><span className="text-gray-400 font-bold uppercase text-[11px] block">Prêmio</span>{participanteRoletaSelecionado.premio}</p>
-                      <p><span className="text-gray-400 font-bold uppercase text-[11px] block">Data do sorteio</span>{new Date(participanteRoletaSelecionado.data_sorteio).toLocaleString('pt-BR')}</p>
+                      <p><span className="text-gray-400 font-bold uppercase text-[11px] block">Data do sorteio</span>{new Date(participanteRoletaSelecionado.data_sorteio).toLocaleDateString('pt-BR')}</p>
                       {participanteRoletaSelecionado.data_resgate && (
-                        <p><span className="text-gray-400 font-bold uppercase text-[11px] block">Data do resgate</span>{new Date(participanteRoletaSelecionado.data_resgate).toLocaleString('pt-BR')}</p>
+                        <p><span className="text-gray-400 font-bold uppercase text-[11px] block">Data do resgate</span>{new Date(participanteRoletaSelecionado.data_resgate).toLocaleDateString('pt-BR')}</p>
                       )}
                     </div>
                     {!participanteRoletaSelecionado.resgatado && (
@@ -5000,7 +4996,7 @@ export default function Admin() {
                             </td>
                             <td className="px-2 py-3 text-xs font-black tracking-[0.15em] text-gray-500">{voucher.codigo}</td>
                             <td className="px-2 py-3 text-xs text-gray-400 whitespace-nowrap">
-                              {voucher.usado_em ? new Date(voucher.usado_em).toLocaleString('pt-BR') : '—'}
+                              {voucher.usado_em ? new Date(voucher.usado_em).toLocaleDateString('pt-BR') : '—'}
                             </td>
                             <td className="px-2 py-3 text-right">
                               <button

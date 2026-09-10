@@ -57,10 +57,23 @@ function mascaraVoucher(valor) {
 
 // Rótulos escritos dentro da fatia da roleta. O admin decide o texto; sem
 // rótulo definido, cai no próprio nome do prêmio.
+// Os dois prêmios de nome mais longo ("Pós-graduação / Superior Sequencial" e
+// "Profissionalizantes") têm rótulo em duas linhas que colam na borda externa
+// da roleta com o pivô de texto padrão. Só esses dois puxam o texto mais para
+// o centro; todos os outros continuam exatamente como sempre estiveram.
+const PREMIOS_COM_TEXTO_MAIS_AO_CENTRO = new Set([
+  'Pós-graduação / Superior Sequencial',
+  'Profissionalizantes',
+]);
+
 function conteudoSegmentoResgate(premio) {
   const valor = premio.rotulo?.trim() || premio.nome;
   const sub = premio.rotulo_secundario?.trim() || '';
-  return { valor, sub, deslocamentoY: sub ? 0 : 6 };
+  const conteudo = { valor, sub, deslocamentoY: sub ? 0 : 6 };
+  if (PREMIOS_COM_TEXTO_MAIS_AO_CENTRO.has(premio.nome)) {
+    conteudo.raioTexto = 62.5; // meio-termo entre o padrão (50) e o primeiro ajuste (75)
+  }
+  return conteudo;
 }
 
 export default function ResgatePremio() {
@@ -389,79 +402,81 @@ export default function ResgatePremio() {
       )}
 
       {/* --- MODAL: RESULTADO --- */}
+      {/* Modal de resultado com cara de "canhoto de ingresso premiado":
+          fundo branco, selo no topo, linha picotada com furo dos dois lados
+          (como um ticket que se destaca) separando o resumo do giro. */}
+      {/* Modal de resultado: cartão branco simples, sem metáfora de ticket —
+          preto + amarelo + branco em blocos sólidos, sem gradiente pastel,
+          pra hierarquia (ícone → selo → prêmio → resumo → ação) ficar óbvia
+          de cima a baixo. */}
       {resultadoVisivel && premioGanho && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
           <div
-            className="relative w-full max-w-[400px] rounded-[28px] p-px bg-gradient-to-b from-[#fed106]/60 via-white/10 to-transparent shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]"
+            className="relative w-full max-w-[380px] rounded-3xl bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.55)] overflow-hidden"
             style={{ fontFamily: "'Inter', sans-serif" }}
           >
-            <div className="relative rounded-[27px] bg-gradient-to-b from-[#181818] to-[#0c0c0c] px-8 pt-10 pb-8 overflow-hidden">
-              {/* Halo dourado atrás do selo, no lugar do confete */}
-              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full bg-[radial-gradient(circle,rgba(254,209,6,0.22)_0%,transparent_70%)] pointer-events-none" />
+            <button
+              onClick={() => setResultadoVisivel(false)}
+              aria-label="Fechar"
+              className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <XMarkIcon className="w-4.5 h-4.5" />
+            </button>
+
+            <div className="px-8 pt-10 pb-8 text-center">
+              {/* Selo sólido preto — sem gradiente, contraste forte com o troféu amarelo */}
+              <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-black flex items-center justify-center">
+                <TrophyIcon className="w-8 h-8 text-[#fed106]" strokeWidth={1.8} />
+              </div>
+
+              <span className="inline-block text-[10px] font-black uppercase tracking-[0.2em] text-black bg-[#fed106] px-3 py-1 rounded-full mb-4">
+                Prêmio confirmado
+              </span>
+
+              <h2 className="fonte-titulo-sorteio text-[28px] leading-tight font-black text-gray-900 mb-3 px-2">
+                {premioGanho.nome}
+              </h2>
+
+              <p className="text-xs text-gray-500 font-medium leading-relaxed max-w-[280px] mx-auto mb-7">
+                Registramos seu prêmio. Finalize o resgate falando com a nossa equipe pelo WhatsApp.
+              </p>
+
+              {/* Resumo do giro — divisórias sólidas, sem cor de fundo própria */}
+              <div className="border-t border-b border-gray-100 divide-y divide-gray-100 mb-7 text-left">
+                <div className="flex items-center justify-between gap-4 py-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-gray-400 shrink-0">Nome</span>
+                  <span className="text-xs font-bold text-gray-800 truncate">{form.nomeCompleto.trim()}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4 py-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-gray-400 shrink-0">Voucher</span>
+                  <span className="text-xs font-black tracking-[0.2em] text-gray-800">{form.codigo}</span>
+                </div>
+                {nomeIndicador && (
+                  <div className="flex items-center justify-between gap-4 py-3">
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-gray-400 shrink-0">
+                      Indicado por
+                    </span>
+                    <span className="text-xs font-bold text-gray-800 truncate">{nomeIndicador}</span>
+                  </div>
+                )}
+              </div>
+
+              <a
+                href={linkResgatarPremio()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2.5 bg-[#25D366] hover:bg-[#1ebe57] text-white font-black text-sm py-4 rounded-2xl uppercase tracking-wide transition-all active:scale-[0.98]"
+              >
+                <IconeWhatsapp className="w-5 h-5" />
+                Resgatar meu prêmio
+              </a>
 
               <button
                 onClick={() => setResultadoVisivel(false)}
-                aria-label="Fechar"
-                className="absolute top-5 right-5 text-white/30 hover:text-white transition-colors cursor-pointer z-10"
+                className="w-full mt-4 text-gray-400 hover:text-gray-600 text-xs font-semibold transition-colors cursor-pointer"
               >
-                <XMarkIcon className="w-5 h-5" />
+                Ver depois
               </button>
-
-              <div className="relative text-center">
-                {/* Selo */}
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-b from-[#ffe157] to-[#f5c400] flex items-center justify-center shadow-[0_8px_24px_-6px_rgba(254,209,6,0.7)]">
-                  <TrophyIcon className="w-8 h-8 text-black" strokeWidth={1.8} />
-                </div>
-
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#fed106] mb-3">Prêmio confirmado</p>
-
-                <h2
-                  className="fonte-titulo-sorteio text-[26px] leading-tight font-black text-white mb-3 px-2"
-                >
-                  {premioGanho.nome}
-                </h2>
-
-                <p className="text-xs text-white/45 font-medium leading-relaxed max-w-[280px] mx-auto mb-7">
-                  Registramos seu prêmio. Finalize o resgate falando com a nossa equipe pelo WhatsApp.
-                </p>
-
-                {/* Resumo do giro */}
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] divide-y divide-white/5 mb-7 text-left">
-                  <div className="flex items-center justify-between gap-4 px-4 py-3">
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-white/35 shrink-0">Nome</span>
-                    <span className="text-xs font-semibold text-white/80 truncate">{form.nomeCompleto.trim()}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 px-4 py-3">
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-white/35 shrink-0">Voucher</span>
-                    <span className="text-xs font-black tracking-[0.2em] text-[#fed106]">{form.codigo}</span>
-                  </div>
-                  {nomeIndicador && (
-                    <div className="flex items-center justify-between gap-4 px-4 py-3">
-                      <span className="text-[11px] font-bold uppercase tracking-wide text-white/35 shrink-0">
-                        Indicado por
-                      </span>
-                      <span className="text-xs font-semibold text-white/80 truncate">{nomeIndicador}</span>
-                    </div>
-                  )}
-                </div>
-
-                <a
-                  href={linkResgatarPremio()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2.5 bg-[#25D366] hover:bg-[#1ebe57] text-white font-black text-sm py-4 rounded-2xl uppercase tracking-wide transition-all active:scale-[0.98] shadow-[0_10px_30px_-10px_rgba(37,211,102,0.8)]"
-                >
-                  <IconeWhatsapp className="w-5 h-5" />
-                  Resgatar meu prêmio
-                </a>
-
-                <button
-                  onClick={() => setResultadoVisivel(false)}
-                  className="mt-4 text-white/35 hover:text-white/70 text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  Ver depois
-                </button>
-              </div>
             </div>
           </div>
         </div>
