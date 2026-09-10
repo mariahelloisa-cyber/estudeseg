@@ -12,7 +12,7 @@ function conteudoSegmento(premio) {
   if (premio.tipo === 'cashback') return { valor: `${premio.percentual_cashback}%`, sub: 'DE CASHBACK', deslocamentoY: -6 };
   if (premio.tipo === 'desconto') return { valor: `${premio.percentual_cashback}%`, sub: 'DE DESCONTO', deslocamentoY: 0 };
   return { valor: 'CURSO', sub: 'GRÁTIS', deslocamentoY: 0 };
-}
+}   
 
 // Converte um ângulo "de relógio" (0° = topo, cresce no sentido horário) em ponto (x,y)
 // num círculo de raio `r` centrado em (cx, cy) — mesma convenção usada na rotação CSS.
@@ -94,12 +94,6 @@ export default function RoletaPremiada({
         corTexto: cor.texto,
         meio,
         inverterParaLeitura,
-        // Pivô da rotação de leitura do texto (ver comentário no <text> abaixo).
-        // 50 = comportamento de sempre; um valor maior puxa o texto para mais
-        // perto do centro da roda. Só usado quando `montarConteudoSegmento`
-        // devolve `raioTexto` explicitamente (ex.: rótulos de duas linhas
-        // longas, que colam na borda com o pivô padrão).
-        raioTexto: 50,
         ...montarConteudoSegmento(premio),
       };
     });
@@ -176,20 +170,14 @@ export default function RoletaPremiada({
                 <g key={s.id}>
                   <path d={s.caminho} fill={s.cor} />
                   <g transform={`rotate(${s.meio}, 150, 150)`}>
-                    {/* Essa rotação de 90° gira o texto em torno de (150, raioTexto) para
-                        ele ficar legível na horizontal em vez de "deitado" ao longo do
-                        raio — e por causa dela, mudar o y do tspan quase não muda a
-                        distância até o centro da roda (fica presa perto de ~100, dominada
-                        pelo termo fixo 150−raioTexto). Para aproximar o texto do centro de
-                        verdade, o pivô (raioTexto) é o que precisa subir. */}
                     <text
                       textAnchor="middle"
                       fill={s.corTexto}
-                      transform={`rotate(${90 + (s.inverterParaLeitura ? 180 : 0)}, 150, ${s.raioTexto})`}
+                      transform={`rotate(${90 + (s.inverterParaLeitura ? 180 : 0)}, 150, 50)`}
                       style={{ fontFamily: "'Baloo 2', sans-serif" }}
                     >
-                      <tspan x="150" y={s.raioTexto - 2 + s.deslocamentoY} fontSize="18" fontWeight="800">{s.valor}</tspan>
-                      <tspan x="150" y={s.raioTexto + 14 + s.deslocamentoY} fontSize="9.5" fontWeight="700" letterSpacing="0.3">{s.sub}</tspan>
+                      <tspan x="150" y={48 + s.deslocamentoY} fontSize="18" fontWeight="800">{s.valor}</tspan>
+                      <tspan x="150" y={64 + s.deslocamentoY} fontSize="9.5" fontWeight="700" letterSpacing="0.3">{s.sub}</tspan>
                     </text>
                   </g>
                 </g>

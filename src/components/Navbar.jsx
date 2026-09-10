@@ -126,12 +126,14 @@ export default function Navbar() {
                       onFocus={abrirSorteios}
                       onBlur={fecharSorteios}
                     >
-                      <Link
-                        to={link.to}
-                        onClick={() => setSorteiosAberto(false)}
+                      {/* Não navega para lugar nenhum — só abre/fecha a lista de baixo.
+                          O hover já abre; o clique é para quem usa toque/teclado. */}
+                      <button
+                        type="button"
+                        onClick={() => setSorteiosAberto((aberto) => !aberto)}
                         aria-expanded={sorteiosAberto}
                         aria-haspopup="true"
-                        className={`${classeLink} flex items-center gap-1`}
+                        className={`${classeLink} flex items-center gap-1 cursor-pointer`}
                       >
                         {link.label}
                         <svg
@@ -143,7 +145,7 @@ export default function Navbar() {
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                         </svg>
-                      </Link>
+                      </button>
 
                       {sorteiosAberto && (
                         <div className="absolute left-1/2 -translate-x-1/2 top-full pt-4 z-50">
