@@ -22,7 +22,6 @@ import {
   ArrowTopRightOnSquareIcon,
   ChatBubbleBottomCenterTextIcon,
   UserGroupIcon,
-  ClockIcon,
   ShareIcon,
   CpuChipIcon,
   PresentationChartLineIcon,
@@ -33,6 +32,13 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   TicketIcon,
+  PencilIcon,
+  TrashIcon,
+  CheckIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
@@ -68,13 +74,12 @@ const ITENS_MENU = [
   { id: 'frases', label: 'Frases (Esteira)', Icon: ChatBubbleBottomCenterTextIcon },
   { id: 'diferenciais', label: 'Diferenciais', Icon: SparklesIcon },
   { id: 'carrossel-3d', label: 'Carrossel 3D (Home)', Icon: Square3Stack3DIcon },
-  { id: 'trajetoria', label: 'Trajetória (Sobre Nós)', Icon: ClockIcon },
+  { id: 'trajetoria', label: 'Nossa História (Sobre Nós)', Icon: PhotoIcon },
   { id: 'redes-sociais', label: 'Redes Sociais (Sobre Nós)', Icon: ShareIcon },
   { id: 'assistente-ia', label: 'Assistente Virtual (IA)', Icon: CpuChipIcon },
   { id: 'meta-pixel', label: 'Meta Pixel', Icon: PresentationChartLineIcon },
   { id: 'roleta-premiada', label: 'Roleta Premiada', Icon: GiftIcon },
   { id: 'resgate-premio', label: 'Resgate seu Prêmio', Icon: TrophyIcon },
-  { id: 'sorteios-menu', label: 'Sorteios (Menu)', Icon: TicketIcon },
   { id: 'blog', label: 'Blog', Icon: NewspaperIcon },
   { id: 'vagas', label: 'Vagas', Icon: BriefcaseIcon },
   { id: 'faq', label: 'FAQ', Icon: QuestionMarkCircleIcon },
@@ -85,50 +90,26 @@ const ITENS_MENU = [
   { id: 'matriculados', label: 'Matriculados', Icon: UserGroupIcon },
 ];
 
-// Data de hoje como 'AAAA-MM-DD', no mesmo formato das colunas date do Supabase
-function hojeISO() {
-  const agora = new Date();
-  const mes = String(agora.getMonth() + 1).padStart(2, '0');
-  const dia = String(agora.getDate()).padStart(2, '0');
-  return `${agora.getFullYear()}-${mes}-${dia}`;
-}
 
-// Mesma regra usada pela Navbar: ativo e dentro do período informado
-function sorteioAparecendoNoMenu(sorteio) {
-  if (!sorteio.ativo) return false;
-  const hoje = hojeISO();
-  if (sorteio.data_inicio && sorteio.data_inicio > hoje) return false;
-  if (sorteio.data_fim && sorteio.data_fim < hoje) return false;
-  return true;
-}
-
-const dataBR = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
-
-function formatarPeriodoSorteio({ data_inicio: inicio, data_fim: fim }) {
-  if (inicio && fim) return `de ${dataBR(inicio)} a ${dataBR(fim)}`;
-  if (inicio) return `a partir de ${dataBR(inicio)}`;
-  if (fim) return `até ${dataBR(fim)}`;
-  return 'sem prazo';
-}
-
-// Formulário de um prêmio da roleta "Resgate seu Prêmio" (tabela `resgate_premios`)
+// Formulário de um prêmio da roleta "Resgate seu Prêmio" (tabela `resgate_premios`).
+// Sem `peso` de propósito: ele só é editável na seção avançada, no fim da página,
+// para não ser alterado sem querer durante o cadastro do dia a dia.
 const PREMIO_RESGATE_FORM_INICIAL = {
   nome: '',
   rotulo: '',
   rotulo_secundario: '',
-  peso: '1',
   ativo: true,
 };
 
-// Formulário de um sorteio do menu (tabela `sorteios`)
-const SORTEIO_MENU_FORM_INICIAL = {
-  nome: '',
-  descricao: '',
-  link: '/sorteios',
-  ativo: true,
-  data_inicio: '',
-  data_fim: '',
-};
+// peso_efetivo = peso × quantidade_disponivel. Estoque zerado ou peso zero
+// tiram o prêmio do sorteio, mas ele continua desenhado na roleta.
+function pesoEfetivoResgate(premio) {
+  if (!premio.ativo) return 0;
+  const peso = Number(premio.peso) || 0;
+  const disponivel = Number(premio.quantidade_disponivel) || 0;
+  if (peso <= 0 || disponivel <= 0) return 0;
+  return peso * disponivel;
+}
 
 const CURSO_FORM_INICIAL = {
   titulo: "",
@@ -203,6 +184,23 @@ function sanitizarNomeArquivo(nomeOriginal) {
   const extensao = extensaoMatch ? extensaoMatch[0].toLowerCase() : '';
   return `${crypto.randomUUID()}${extensao}`;
 }
+
+// Todo `setMensagemStatus(...)` do arquivo é escrito com um emoji de
+// prefixo (✅ ❌ ⚠️ nunca aparecem soltos em outro lugar) — usamos isso só
+// para colorir o banner corretamente; o texto exibido já sai sem o emoji.
+function classificarMensagemStatus(mensagem) {
+  if (mensagem.startsWith('✅')) return { tipo: 'sucesso', Icon: CheckCircleIcon };
+  if (mensagem.startsWith('❌')) return { tipo: 'erro', Icon: XCircleIcon };
+  if (mensagem.startsWith('⚠️') || mensagem.startsWith('⚠')) return { tipo: 'aviso', Icon: ExclamationTriangleIcon };
+  return { tipo: 'info', Icon: InformationCircleIcon };
+}
+
+const ESTILO_MENSAGEM_STATUS = {
+  sucesso: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+  erro: 'bg-red-50 border-red-200 text-red-700',
+  aviso: 'bg-amber-50 border-amber-200 text-amber-700',
+  info: 'bg-white border-gray-200 text-gray-700',
+};
 
 // --- Componentes visuais reutilizados nas páginas do painel ---
 function CabecalhoPagina({ titulo, subtitulo, Icon }) {
@@ -300,18 +298,6 @@ export default function Admin() {
   const [novoNomeSelo, setNovoNomeSelo] = useState("");
   const [novoTituloDiferencial, setNovoTituloDiferencial] = useState("");
 
-  // --- Estados para a Trajetória (linha do tempo da página Sobre Nós) ---
-  const [listaTrajetoria, setListaTrajetoria] = useState([]);
-  const [novoAnoTrajetoria, setNovoAnoTrajetoria] = useState("");
-  const [novaCategoriaTrajetoria, setNovaCategoriaTrajetoria] = useState("");
-  const [novoTituloTrajetoria, setNovoTituloTrajetoria] = useState("");
-  const [novaDescricaoTrajetoria, setNovaDescricaoTrajetoria] = useState("");
-  const [trajetoriaEditando, setTrajetoriaEditando] = useState(null);
-  const [editAnoTrajetoria, setEditAnoTrajetoria] = useState("");
-  const [editCategoriaTrajetoria, setEditCategoriaTrajetoria] = useState("");
-  const [editTituloTrajetoria, setEditTituloTrajetoria] = useState("");
-  const [editDescricaoTrajetoria, setEditDescricaoTrajetoria] = useState("");
-
   // --- Estados para as Redes Sociais (cards da página Sobre Nós) ---
   const [listaRedesSociais, setListaRedesSociais] = useState([]);
   const [novoNomeRedeSocial, setNovoNomeRedeSocial] = useState("");
@@ -338,7 +324,6 @@ export default function Admin() {
   const [roletaTitulo, setRoletaTitulo] = useState("");
   const [roletaSubtitulo, setRoletaSubtitulo] = useState("");
   const [roletaWhatsappNumero, setRoletaWhatsappNumero] = useState("");
-  const [roletaWhatsappMensagem, setRoletaWhatsappMensagem] = useState("");
 
   const [listaPremiosRoleta, setListaPremiosRoleta] = useState([]);
   const [novoNomePremioRoleta, setNovoNomePremioRoleta] = useState("");
@@ -398,13 +383,10 @@ export default function Admin() {
   const [vouchersGerados, setVouchersGerados] = useState([]);
   const [gerandoVouchers, setGerandoVouchers] = useState(false);
   const [resgateWhatsappNumero, setResgateWhatsappNumero] = useState('');
-  const [resgateWhatsappMensagem, setResgateWhatsappMensagem] = useState('');
+  // Pesos em edição na seção avançada: { [id]: 'texto do input' }
+  const [pesosResgateEditados, setPesosResgateEditados] = useState({});
+  const [salvandoPesosResgate, setSalvandoPesosResgate] = useState(false);
   const [codigoCopiado, setCodigoCopiado] = useState('');
-
-  // --- Sorteios do menu (dropdown "Sorteios" da Navbar) ---
-  const [listaSorteiosMenu, setListaSorteiosMenu] = useState([]);
-  const [formSorteioMenu, setFormSorteioMenu] = useState(SORTEIO_MENU_FORM_INICIAL);
-  const [sorteioMenuEditando, setSorteioMenuEditando] = useState(null);
 
   // --- Estados para as restantes seções ---
   const [listaSelos, setListaSelos] = useState([]);
@@ -412,9 +394,6 @@ export default function Admin() {
   const [novoTextoFrase, setNovoTextoFrase] = useState("");
   const [novoTituloEsteira, setNovoTituloEsteira] = useState("");
   const [fotoHistoriaSobreUrl, setFotoHistoriaSobreUrl] = useState("");
-  const [credibilidadeTitulo, setCredibilidadeTitulo] = useState("");
-  const [credibilidadeTexto, setCredibilidadeTexto] = useState("");
-  const [credibilidadeFotoUrl, setCredibilidadeFotoUrl] = useState("");
   const [listaDiferenciais, setListaDiferenciais] = useState([]);
   const [listaCarrossel3d, setListaCarrossel3d] = useState([]);
   const [depoimentos, setDepoimentos] = useState([]);
@@ -951,25 +930,6 @@ export default function Admin() {
     }
   }
 
-  
-  // --- TRAJETÓRIA (linha do tempo da página Sobre Nós) ---
-  async function buscarTrajetoriaDoSupabase() {
-    try {
-      const { data, error } = await supabase
-        .from('trajetoria')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setListaTrajetoria(data || []);
-    } catch (err) {
-      console.error("Erro na conexão com a trajetória do Supabase:", err);
-    }
-  }
-
-  useEffect(() => {
-    buscarTrajetoriaDoSupabase();
-  }, []);
 
   // Foto da seção "Nossa História" (página Sobre Nós) — guardada como uma
   // chave simples em `configuracoes`, igual ao título da esteira.
@@ -1022,195 +982,6 @@ export default function Admin() {
     } catch (err) {
       console.error(err);
       setMensagemStatus(err.message?.includes("Formato") || err.message?.includes("grande") ? `⚠️ ${err.message}` : "❌ Não foi possível salvar a foto. Tente novamente.");
-    }
-  }
-
-  // Seção "Compromisso com a Transparência e a Credibilidade" (página Sobre
-  // Nós) — título, texto (um parágrafo por linha) e foto, também em
-  // `configuracoes`, buscados/salvos em lote (mesmo padrão do Assistente IA).
-  async function buscarCredibilidade() {
-    try {
-      const { data, error } = await supabase
-        .from('configuracoes')
-        .select('chave, valor')
-        .in('chave', ['credibilidade_titulo', 'credibilidade_texto', 'credibilidade_foto']);
-      if (error) throw error;
-
-      const mapa = Object.fromEntries((data || []).map((item) => [item.chave, item.valor]));
-      setCredibilidadeTitulo(mapa.credibilidade_titulo || "");
-      setCredibilidadeTexto(mapa.credibilidade_texto || "");
-      setCredibilidadeFotoUrl(mapa.credibilidade_foto || "");
-    } catch (err) {
-      console.error("Erro na conexão com a seção de credibilidade:", err);
-    }
-  }
-
-  useEffect(() => {
-    buscarCredibilidade();
-  }, []);
-
-  async function handleSalvarCredibilidade(e) {
-    e.preventDefault();
-    if (!credibilidadeTitulo.trim() || !credibilidadeTexto.trim()) {
-      setMensagemStatus("⚠️ Preencha o título e o texto!");
-      return;
-    }
-
-    try {
-      setMensagemStatus("⏳ Salvando seção de credibilidade...");
-      const arquivoInput = document.getElementById('foto-credibilidade');
-      const arquivo = arquivoInput?.files[0];
-
-      const registros = [
-        { chave: 'credibilidade_titulo', valor: credibilidadeTitulo.trim() },
-        { chave: 'credibilidade_texto', valor: credibilidadeTexto.trim() },
-      ];
-
-      if (arquivo) {
-        validarImagem(arquivo);
-        const nomeArquivo = `credibilidade-${sanitizarNomeArquivo(arquivo.name)}`;
-        const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
-        registros.push({ chave: 'credibilidade_foto', valor: urlData.publicUrl });
-      }
-
-      const { error } = await supabase.from('configuracoes').upsert(registros, { onConflict: 'chave' });
-      if (error) throw error;
-
-      setMensagemStatus("✅ Seção de credibilidade atualizada com sucesso!");
-      if (arquivoInput) arquivoInput.value = "";
-      buscarCredibilidade();
-    } catch (err) {
-      console.error(err);
-      setMensagemStatus(err.message?.includes("Formato") || err.message?.includes("grande") ? `⚠️ ${err.message}` : "❌ Não foi possível salvar a seção de credibilidade. Tente novamente.");
-    }
-  }
-
-  // Função para Adicionar um Novo Marco da Trajetória
-  async function handleAdicionarTrajetoria(e) {
-    e.preventDefault();
-    const arquivoInput = document.getElementById('imagem-trajetoria');
-    const arquivo = arquivoInput?.files[0];
-
-    if (!novoAnoTrajetoria.trim() || !novaCategoriaTrajetoria.trim() || !novoTituloTrajetoria.trim() || !novaDescricaoTrajetoria.trim()) {
-      setMensagemStatus("⚠️ Preencha o ano, a categoria, o título e a descrição!");
-      return;
-    }
-
-    try {
-      let urlImagem = null;
-      if (arquivo) {
-        validarImagem(arquivo);
-        const nomeArquivo = `trajetoria-${sanitizarNomeArquivo(arquivo.name)}`;
-        const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
-        urlImagem = urlData.publicUrl;
-      }
-
-      setMensagemStatus("⏳ Guardando marco da trajetória...");
-
-      const { error: insertError } = await supabase.from('trajetoria').insert([
-        {
-          ano: novoAnoTrajetoria.trim(),
-          categoria: novaCategoriaTrajetoria.trim(),
-          titulo: novoTituloTrajetoria.trim(),
-          descricao: novaDescricaoTrajetoria.trim(),
-          imagem_url: urlImagem
-        }
-      ]);
-
-      if (insertError) throw insertError;
-
-      setMensagemStatus("✅ Marco da trajetória publicado com sucesso!");
-      setNovoAnoTrajetoria("");
-      setNovaCategoriaTrajetoria("");
-      setNovoTituloTrajetoria("");
-      setNovaDescricaoTrajetoria("");
-      if (arquivoInput) arquivoInput.value = "";
-      buscarTrajetoriaDoSupabase();
-    } catch (err) {
-      console.error(err);
-      setMensagemStatus("❌ Não foi possível salvar o marco da trajetória. Tente novamente.");
-    }
-  }
-
-  // Função para Eliminar um Marco da Trajetória
-  async function handleEliminarTrajetoria(id) {
-    if (!window.confirm("Tem a certeza que quer eliminar este marco da trajetória?")) return;
-    try {
-      const { error } = await supabase.from('trajetoria').delete().eq('id', id);
-      if (error) throw error;
-      buscarTrajetoriaDoSupabase();
-    } catch (err) {
-      console.error(err);
-      alert("❌ Não foi possível eliminar o marco da trajetória. Tente novamente.");
-    }
-  }
-
-  // Função para iniciar a Edição de um Marco da Trajetória
-  function iniciarEdicaoTrajetoria(item) {
-    setTrajetoriaEditando(item.id);
-    setEditAnoTrajetoria(item.ano);
-    setEditCategoriaTrajetoria(item.categoria);
-    setEditTituloTrajetoria(item.titulo);
-    setEditDescricaoTrajetoria(item.descricao);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function cancelarEdicaoTrajetoria() {
-    setTrajetoriaEditando(null);
-    setEditAnoTrajetoria("");
-    setEditCategoriaTrajetoria("");
-    setEditTituloTrajetoria("");
-    setEditDescricaoTrajetoria("");
-  }
-
-  // Função para Salvar a Edição de um Marco da Trajetória
-  async function handleSalvarEdicaoTrajetoria(e) {
-    e.preventDefault();
-
-    if (!editAnoTrajetoria.trim() || !editCategoriaTrajetoria.trim() || !editTituloTrajetoria.trim() || !editDescricaoTrajetoria.trim()) {
-      setMensagemStatus("⚠️ Preencha o ano, a categoria, o título e a descrição!");
-      return;
-    }
-
-    try {
-      setMensagemStatus("⏳ Atualizando marco da trajetória...");
-      const arquivoInput = document.getElementById('imagem-trajetoria-edit');
-      const arquivo = arquivoInput?.files[0];
-
-      const dadosAtualizados = {
-        ano: editAnoTrajetoria.trim(),
-        categoria: editCategoriaTrajetoria.trim(),
-        titulo: editTituloTrajetoria.trim(),
-        descricao: editDescricaoTrajetoria.trim(),
-      };
-
-      if (arquivo) {
-        validarImagem(arquivo);
-        const nomeArquivo = `trajetoria-${sanitizarNomeArquivo(arquivo.name)}`;
-        const { error: uploadError } = await supabase.storage.from('banners').upload(nomeArquivo, arquivo);
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('banners').getPublicUrl(nomeArquivo);
-        dadosAtualizados.imagem_url = urlData.publicUrl;
-      }
-
-      const { error: updateError } = await supabase
-        .from('trajetoria')
-        .update(dadosAtualizados)
-        .eq('id', trajetoriaEditando);
-
-      if (updateError) throw updateError;
-
-      setMensagemStatus("✅ Marco da trajetória atualizado com sucesso!");
-      cancelarEdicaoTrajetoria();
-      if (arquivoInput) arquivoInput.value = "";
-      buscarTrajetoriaDoSupabase();
-    } catch (err) {
-      console.error(err);
-      setMensagemStatus("❌ Não foi possível atualizar o marco da trajetória. Tente novamente.");
     }
   }
 
@@ -1499,7 +1270,7 @@ export default function Admin() {
       const { data, error } = await supabase
         .from('configuracoes')
         .select('chave, valor')
-        .in('chave', ['sorteio_ativo', 'sorteio_titulo', 'sorteio_subtitulo', 'sorteio_whatsapp_numero', 'sorteio_whatsapp_mensagem']);
+        .in('chave', ['sorteio_ativo', 'sorteio_titulo', 'sorteio_subtitulo', 'sorteio_whatsapp_numero']);
       if (error) throw error;
 
       const mapa = Object.fromEntries((data || []).map((item) => [item.chave, item.valor]));
@@ -1507,7 +1278,6 @@ export default function Admin() {
       setRoletaTitulo(mapa.sorteio_titulo || "");
       setRoletaSubtitulo(mapa.sorteio_subtitulo || "");
       setRoletaWhatsappNumero(mapa.sorteio_whatsapp_numero || "");
-      setRoletaWhatsappMensagem(mapa.sorteio_whatsapp_mensagem || "");
     } catch (err) {
       console.error("Erro ao buscar configuração da Roleta Premiada:", err);
     }
@@ -1567,7 +1337,6 @@ export default function Admin() {
           { chave: 'sorteio_titulo', valor: roletaTitulo.trim() },
           { chave: 'sorteio_subtitulo', valor: roletaSubtitulo.trim() },
           { chave: 'sorteio_whatsapp_numero', valor: roletaWhatsappNumero.replace(/\D/g, '') },
-          { chave: 'sorteio_whatsapp_mensagem', valor: roletaWhatsappMensagem.trim() },
         ],
         { onConflict: 'chave' }
       );
@@ -2112,7 +1881,7 @@ export default function Admin() {
     setCamposComErroMatriculado([]);
 
     if (!validarCPF(formMatriculado.cpf)) {
-      setCpfErroMatriculado("⚠️ CPF inválido. Verifique os números digitados.");
+      setCpfErroMatriculado("CPF inválido. Verifique os números digitados.");
       rolarAteCampoMatriculado('cpf');
       return;
     }
@@ -2970,12 +2739,11 @@ export default function Admin() {
         supabase
           .from('configuracoes')
           .select('chave, valor')
-          .in('chave', ['resgate_whatsapp_numero', 'resgate_whatsapp_mensagem']),
+          .in('chave', ['resgate_whatsapp_numero']),
       ]);
 
       const mapaConfig = Object.fromEntries((configRes.data || []).map((item) => [item.chave, item.valor]));
       setResgateWhatsappNumero(mapaConfig.resgate_whatsapp_numero || '');
-      setResgateWhatsappMensagem(mapaConfig.resgate_whatsapp_mensagem || '');
 
       if (funcionariosRes.error) throw funcionariosRes.error;
       if (premiosRes.error) throw premiosRes.error;
@@ -2984,6 +2752,11 @@ export default function Admin() {
 
       setListaFuncionariosResgate(funcionariosRes.data || []);
       setListaPremiosResgate(premiosRes.data || []);
+      // Recarrega os inputs de peso com o que está no banco — o painel nunca
+      // usa valor fixo em código como fonte da verdade.
+      setPesosResgateEditados(
+        Object.fromEntries((premiosRes.data || []).map((p) => [p.id, String(p.peso ?? 0)])),
+      );
       setListaVouchersResgate(vouchersRes.data || []);
       setListaBannersResgate(bannersRes.data || []);
     } catch (err) {
@@ -3007,7 +2780,6 @@ export default function Admin() {
       const { error } = await supabase.from('configuracoes').upsert(
         [
           { chave: 'resgate_whatsapp_numero', valor: resgateWhatsappNumero.replace(/\D/g, '') },
-          { chave: 'resgate_whatsapp_mensagem', valor: resgateWhatsappMensagem.trim() },
         ],
         { onConflict: 'chave' },
       );
@@ -3144,7 +2916,6 @@ export default function Admin() {
       nome: item.nome || '',
       rotulo: item.rotulo || '',
       rotulo_secundario: item.rotulo_secundario || '',
-      peso: String(item.peso ?? 1),
       ativo: item.ativo !== false,
     });
   }
@@ -3153,11 +2924,6 @@ export default function Admin() {
     e.preventDefault();
     if (!formPremioResgate.nome.trim()) {
       setMensagemStatus("⚠️ Dê um nome ao prêmio!");
-      return;
-    }
-    const peso = parseInt(formPremioResgate.peso, 10);
-    if (Number.isNaN(peso) || peso < 0) {
-      setMensagemStatus("⚠️ A chance precisa ser um número igual ou maior que zero!");
       return;
     }
     // O nome é o que liga o resultado do sorteio à fatia certa da roleta
@@ -3169,11 +2935,12 @@ export default function Admin() {
       return;
     }
 
+    // `peso`, `quantidade_total` e `quantidade_disponivel` ficam de fora: peso
+    // só muda na seção avançada e o estoque é território exclusivo do servidor.
     const dados = {
       nome: formPremioResgate.nome.trim(),
       rotulo: formPremioResgate.rotulo.trim() || null,
       rotulo_secundario: formPremioResgate.rotulo_secundario.trim() || null,
-      peso,
       ativo: formPremioResgate.ativo,
     };
 
@@ -3207,6 +2974,40 @@ export default function Admin() {
     } catch (err) {
       console.error(err);
       alert("❌ Não foi possível eliminar o prêmio. Tente novamente.");
+    }
+  }
+
+  // --- Pesos (seção avançada) ---
+  // Vai pela RPC `salvar_pesos_resgate` em vez de um update direto na tabela:
+  // assim a recusa de peso negativo mora no banco e o estoque continua fora do
+  // alcance do painel.
+  async function handleSalvarPesosResgate(e) {
+    e.preventDefault();
+
+    const pesos = [];
+    for (const premio of listaPremiosResgate) {
+      const bruto = pesosResgateEditados[premio.id];
+      const peso = Number(String(bruto ?? '').replace(',', '.'));
+      if (!Number.isFinite(peso) || peso < 0) {
+        setMensagemStatus(`⚠️ Peso inválido em "${premio.nome}". Use um número igual ou maior que zero.`);
+        return;
+      }
+      pesos.push({ id: premio.id, peso });
+    }
+
+    if (pesos.length === 0) return;
+
+    setSalvandoPesosResgate(true);
+    try {
+      const { error } = await supabase.rpc('salvar_pesos_resgate', { p_pesos: pesos });
+      if (error) throw error;
+      setMensagemStatus("✅ Pesos atualizados! As chances já foram recalculadas.");
+      buscarDadosResgate();
+    } catch (err) {
+      console.error(err);
+      setMensagemStatus(`❌ Não foi possível salvar os pesos: ${err.message || err}`);
+    } finally {
+      setSalvandoPesosResgate(false);
     }
   }
 
@@ -3261,134 +3062,6 @@ export default function Admin() {
     }
   }
 
-  // ===================== SORTEIOS DO MENU (Navbar) =====================
-  async function buscarSorteiosMenu() {
-    try {
-      const { data, error } = await supabase
-        .from('sorteios')
-        .select('*')
-        .order('ordem', { ascending: true })
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setListaSorteiosMenu(data || []);
-    } catch (err) {
-      console.error("Erro ao buscar os sorteios do menu:", err);
-    }
-  }
-
-  useEffect(() => {
-    buscarSorteiosMenu();
-  }, []);
-
-  function cancelarEdicaoSorteioMenu() {
-    setSorteioMenuEditando(null);
-    setFormSorteioMenu(SORTEIO_MENU_FORM_INICIAL);
-  }
-
-  function iniciarEdicaoSorteioMenu(item) {
-    setSorteioMenuEditando(item.id);
-    setFormSorteioMenu({
-      nome: item.nome || '',
-      descricao: item.descricao || '',
-      link: item.link || '/sorteios',
-      ativo: item.ativo !== false,
-      data_inicio: item.data_inicio || '',
-      data_fim: item.data_fim || '',
-    });
-  }
-
-  async function handleSalvarSorteioMenu(e) {
-    e.preventDefault();
-    if (!formSorteioMenu.nome.trim()) {
-      setMensagemStatus("⚠️ Dê um nome ao sorteio!");
-      return;
-    }
-    if (!formSorteioMenu.link.trim()) {
-      setMensagemStatus("⚠️ Informe para onde o item do menu deve levar!");
-      return;
-    }
-    if (formSorteioMenu.data_inicio && formSorteioMenu.data_fim && formSorteioMenu.data_inicio > formSorteioMenu.data_fim) {
-      setMensagemStatus("⚠️ A data de início não pode ser depois da data de fim!");
-      return;
-    }
-
-    const dados = {
-      nome: formSorteioMenu.nome.trim(),
-      descricao: formSorteioMenu.descricao.trim() || null,
-      link: formSorteioMenu.link.trim(),
-      ativo: formSorteioMenu.ativo,
-      data_inicio: formSorteioMenu.data_inicio || null,
-      data_fim: formSorteioMenu.data_fim || null,
-    };
-
-    try {
-      if (sorteioMenuEditando) {
-        const { error } = await supabase.from('sorteios').update(dados).eq('id', sorteioMenuEditando);
-        if (error) throw error;
-        setMensagemStatus("✅ Sorteio atualizado com sucesso!");
-      } else {
-        const { error } = await supabase
-          .from('sorteios')
-          .insert([{ ...dados, ordem: listaSorteiosMenu.length }]);
-        if (error) throw error;
-        setMensagemStatus("✅ Sorteio adicionado ao menu com sucesso!");
-      }
-      cancelarEdicaoSorteioMenu();
-      buscarSorteiosMenu();
-    } catch (err) {
-      console.error(err);
-      setMensagemStatus("❌ Não foi possível salvar o sorteio. Tente novamente.");
-    }
-  }
-
-  async function handleAlternarAtivoSorteioMenu(item) {
-    try {
-      const { error } = await supabase.from('sorteios').update({ ativo: !item.ativo }).eq('id', item.id);
-      if (error) throw error;
-      buscarSorteiosMenu();
-    } catch (err) {
-      console.error(err);
-      alert("❌ Não foi possível alterar o status do sorteio. Tente novamente.");
-    }
-  }
-
-  // Troca a posição do sorteio com o vizinho de cima/baixo e regrava a ordem
-  async function handleMoverSorteioMenu(item, direcao) {
-    const indice = listaSorteiosMenu.findIndex((s) => s.id === item.id);
-    const destino = indice + direcao;
-    if (indice === -1 || destino < 0 || destino >= listaSorteiosMenu.length) return;
-
-    const reordenada = [...listaSorteiosMenu];
-    [reordenada[indice], reordenada[destino]] = [reordenada[destino], reordenada[indice]];
-    setListaSorteiosMenu(reordenada);
-
-    try {
-      await Promise.all(
-        reordenada.map((sorteio, posicao) =>
-          supabase.from('sorteios').update({ ordem: posicao }).eq('id', sorteio.id),
-        ),
-      );
-      buscarSorteiosMenu();
-    } catch (err) {
-      console.error(err);
-      alert("❌ Não foi possível reordenar os sorteios. Tente novamente.");
-      buscarSorteiosMenu();
-    }
-  }
-
-  async function handleEliminarSorteioMenu(id) {
-    if (!window.confirm("Tem a certeza que quer remover este sorteio do menu?")) return;
-    try {
-      const { error } = await supabase.from('sorteios').delete().eq('id', id);
-      if (error) throw error;
-      if (sorteioMenuEditando === id) cancelarEdicaoSorteioMenu();
-      buscarSorteiosMenu();
-    } catch (err) {
-      console.error(err);
-      alert("❌ Não foi possível remover o sorteio. Tente novamente.");
-    }
-  }
 
   // Enquanto verifica se existe sessão Supabase válida, mostra um loading
   if (verificandoSessao) {
@@ -3410,9 +3083,18 @@ export default function Admin() {
   // --- Números derivados da campanha "Resgate seu Prêmio" ---
   const vouchersDisponiveis = listaVouchersResgate.filter((v) => !v.usado);
   const girosResgate = listaVouchersResgate.filter((v) => v.usado);
-  const pesoTotalResgate = listaPremiosResgate
-    .filter((p) => p.ativo && p.peso > 0)
-    .reduce((soma, p) => soma + Number(p.peso || 0), 0);
+  // Soma dos pesos efetivos — a mesma conta que a RPC faz para sortear.
+  const pesoTotalResgate = listaPremiosResgate.reduce((soma, p) => soma + pesoEfetivoResgate(p), 0);
+
+  const premiosResgateCampanha = listaPremiosResgate.filter((p) => p.ativo);
+  const estoqueTotalResgate = premiosResgateCampanha.reduce(
+    (soma, p) => soma + (Number(p.quantidade_total) || 0),
+    0,
+  );
+  const estoqueDisponivelResgate = premiosResgateCampanha.reduce(
+    (soma, p) => soma + (Number(p.quantidade_disponivel) || 0),
+    0,
+  );
 
   // Ranking: quem indicou mais gente que efetivamente girou a roleta
   const rankingResgate = listaFuncionariosResgate
@@ -3548,12 +3230,12 @@ export default function Admin() {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <CartaoAcaoRapida titulo="Gerenciar Cursos e Categorias" descricao="Adicionar, editar e organizar cursos por categoria" Icon={AcademicCapIcon} cor="bg-indigo-500" onClick={() => irParaAba('cursos')} />
-                <CartaoAcaoRapida titulo="Gerenciar Banners" descricao="Atualizar banners e imagens da Home" Icon={PhotoIcon} cor="bg-[#fed106]" onClick={() => irParaAba('banners')} />
+                <CartaoAcaoRapida titulo="Gerenciar Banners Home" descricao="Atualizar banners e imagens da Home" Icon={PhotoIcon} cor="bg-[#fed106]" onClick={() => irParaAba('banners')} />
                 <CartaoAcaoRapida titulo="Gerenciar Blog" descricao="Criar e editar notícias e artigos" Icon={NewspaperIcon} cor="bg-emerald-500" onClick={() => irParaAba('blog')} />
                 <CartaoAcaoRapida titulo="Gerenciar Selos" descricao="Selos de confiança e reconhecimento" Icon={ShieldCheckIcon} cor="bg-blue-500" onClick={() => irParaAba('selos')} />
                 <CartaoAcaoRapida titulo="Gerenciar Frases" descricao="Frases da esteira animada da Home" Icon={ChatBubbleBottomCenterTextIcon} cor="bg-cyan-500" onClick={() => irParaAba('frases')} />
                 <CartaoAcaoRapida titulo="Gerenciar Diferenciais" descricao="Cards de diferenciais da Home" Icon={SparklesIcon} cor="bg-purple-500" onClick={() => irParaAba('diferenciais')} />
-                <CartaoAcaoRapida titulo="Gerenciar Trajetória" descricao="Linha do tempo da página Sobre Nós" Icon={ClockIcon} cor="bg-amber-500" onClick={() => irParaAba('trajetoria')} />
+                <CartaoAcaoRapida titulo="Foto Nossa História" descricao="Imagem da seção Nossa História (Sobre Nós)" Icon={PhotoIcon} cor="bg-amber-500" onClick={() => irParaAba('trajetoria')} />
                 <CartaoAcaoRapida titulo="Gerenciar Redes Sociais" descricao="Cards 'Siga a Estude Seguro' da página Sobre Nós" Icon={ShareIcon} cor="bg-sky-500" onClick={() => irParaAba('redes-sociais')} />
                 <CartaoAcaoRapida titulo="Assistente Virtual (IA)" descricao="Mensagens, sugestões e estatísticas do chat do site" Icon={CpuChipIcon} cor="bg-fuchsia-600" onClick={() => irParaAba('assistente-ia')} />
                 <CartaoAcaoRapida titulo="Meta Pixel" descricao="Pixel de rastreamento do Facebook/Instagram Ads" Icon={PresentationChartLineIcon} cor="bg-blue-600" onClick={() => irParaAba('meta-pixel')} />
@@ -3660,14 +3342,14 @@ export default function Admin() {
                               aria-label="Editar curso"
                               className="bg-blue-600 hover:bg-blue-700 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
                             >
-                              ✏️
+                              <PencilIcon className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleEliminarCurso(curso.id)}
                               aria-label="Eliminar curso"
                               className="bg-red-600 hover:bg-red-700 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
                             >
-                              🗑️
+                              <TrashIcon className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
@@ -3689,11 +3371,11 @@ export default function Admin() {
                       aria-label="Fechar"
                       className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors cursor-pointer z-10"
                     >
-                      ✕
+                      <XMarkIcon className="w-3.5 h-3.5" />
                     </button>
 
                     <h2 className="text-lg font-black text-gray-900 mb-6">
-                      {cursoEditando ? "✏️ Editar Curso" : "🎓 Novo Curso"}
+                      {cursoEditando ? "Editar Curso" : "Novo Curso"}
                     </h2>
 
                     <form onSubmit={handleSubmitCurso} className="flex flex-col gap-4">
@@ -3866,7 +3548,7 @@ export default function Admin() {
                                     onClick={() => removerSemestre(sIdx)}
                                     className="text-red-500 hover:text-red-600 text-xs font-bold px-2 cursor-pointer shrink-0"
                                   >
-                                    ✕
+                                    <XMarkIcon className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
 
@@ -3892,7 +3574,7 @@ export default function Admin() {
                                         onClick={() => removerDisciplina(sIdx, dIdx)}
                                         className="text-red-500 hover:text-red-600 text-xs font-bold px-1 cursor-pointer shrink-0"
                                       >
-                                        ✕
+                                        <XMarkIcon className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
                                   ))}
@@ -3943,7 +3625,7 @@ export default function Admin() {
                                     onClick={() => removerBlocoConteudo(bIdx)}
                                     className="text-red-500 hover:text-red-600 text-xs font-bold px-2 cursor-pointer shrink-0"
                                   >
-                                    ✕
+                                    <XMarkIcon className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                                 <textarea
@@ -4002,7 +3684,7 @@ export default function Admin() {
                         )}
                       </div>
                       <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                        {cursoEditando ? "💾 Salvar Alterações" : "➕ Publicar Curso"}
+                        {cursoEditando ? "Salvar Alterações" : "Publicar Curso"}
                       </button>
                     </form>
                   </div>
@@ -4059,13 +3741,13 @@ export default function Admin() {
                           <div className="flex gap-2 shrink-0">
                             {estaEditando ? (
                               <>
-                                <button onClick={() => handleSalvarEdicaoCategoriaCurso(cat.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✓</button>
-                                <button onClick={cancelarEdicaoCategoriaCurso} className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+                                <button onClick={() => handleSalvarEdicaoCategoriaCurso(cat.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"><CheckIcon className="w-3.5 h-3.5" /></button>
+                                <button onClick={cancelarEdicaoCategoriaCurso} className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"><XMarkIcon className="w-3.5 h-3.5" /></button>
                               </>
                             ) : (
                               <>
-                                <button onClick={() => iniciarEdicaoCategoriaCurso(cat)} className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✏️</button>
-                                <button onClick={() => handleEliminarCategoriaCurso(cat.id)} className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">🗑️</button>
+                                <button onClick={() => iniciarEdicaoCategoriaCurso(cat)} className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"><PencilIcon className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => handleEliminarCategoriaCurso(cat.id)} className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"><TrashIcon className="w-3.5 h-3.5" /></button>
                               </>
                             )}
                           </div>
@@ -4081,7 +3763,7 @@ export default function Admin() {
           {/* ================= BANNERS ================= */}
           {abaAtiva === 'banners' && (
             <>
-              <CabecalhoPagina titulo="Gerenciar Banners" subtitulo="Banners rotativos exibidos no topo da Home" Icon={PhotoIcon} />
+              <CabecalhoPagina titulo="Gerenciar Banners Home" subtitulo="Banners rotativos exibidos no topo da Home" Icon={PhotoIcon} />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
                   <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Novo Banner</h3>
@@ -4094,7 +3776,7 @@ export default function Admin() {
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Arquivo de Imagem</label>
                       <input type="file" id="arquivo-banner" accept="image/*" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
                     </div>
-                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Banner</button>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">Publicar Banner</button>
                   </form>
                 </div>
                 <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
@@ -4103,7 +3785,7 @@ export default function Admin() {
                     {banners.map((b) => (
                       <div key={b.id} className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden relative shadow-sm">
                         <img src={b.imagem_url} alt="" className="w-full h-32 object-cover" />
-                        <button onClick={() => handleEliminarBanner(b.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm cursor-pointer">✕</button>
+                        <button onClick={() => handleEliminarBanner(b.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm cursor-pointer"><XMarkIcon className="w-3.5 h-3.5" /></button>
                         <div className="p-3 text-left truncate text-xs font-bold text-gray-700">{b.titulo || "Sem Título"}</div>
                       </div>
                     ))}
@@ -4129,7 +3811,7 @@ export default function Admin() {
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Logo (Do PC)</label>
                       <input type="file" id="imagem-selo" accept="image/*" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
                     </div>
-                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Selo</button>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">Publicar Selo</button>
                   </form>
                 </div>
                 <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
@@ -4137,7 +3819,7 @@ export default function Admin() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {listaSelos.map((s) => (
                       <div key={s.id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col items-center justify-between relative shadow-sm h-36">
-                        <button onClick={() => handleEliminarSelo(s.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+                        <button onClick={() => handleEliminarSelo(s.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"><XMarkIcon className="w-3.5 h-3.5" /></button>
                         <div className="flex-1 flex items-center justify-center w-full">
                           <img src={s.imagem_url} alt="" className="h-12 w-auto object-contain" />
                         </div>
@@ -4161,7 +3843,7 @@ export default function Admin() {
                     <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Texto exibido acima das frases</label>
                     <input type="text" value={novoTituloEsteira} onChange={(e) => setNovoTituloEsteira(e.target.value)} placeholder="Ex: FIQUE POR DENTRO" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
                   </div>
-                  <button type="submit" className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0">💾 Salvar Título</button>
+                  <button type="submit" className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0">Salvar Título</button>
                 </form>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -4172,7 +3854,7 @@ export default function Admin() {
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Texto da Frase</label>
                       <input type="text" value={novoTextoFrase} onChange={(e) => setNovoTextoFrase(e.target.value)} placeholder="Ex: Certificado reconhecido pelo MEC" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
                     </div>
-                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Frase</button>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">Publicar Frase</button>
                   </form>
                 </div>
                 <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
@@ -4184,7 +3866,7 @@ export default function Admin() {
                       listaFrases.map((f) => (
                         <div key={f.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 shadow-xs">
                           <p className="text-sm font-bold text-gray-700 truncate pr-4">{f.texto}</p>
-                          <button onClick={() => handleEliminarFrase(f.id)} className="shrink-0 bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+                          <button onClick={() => handleEliminarFrase(f.id)} className="shrink-0 bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"><XMarkIcon className="w-3.5 h-3.5" /></button>
                         </div>
                       ))
                     )}
@@ -4221,7 +3903,7 @@ export default function Admin() {
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
                       />
                     </div>
-                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Diferencial</button>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">Publicar Diferencial</button>
                   </form>
                 </div>
 
@@ -4238,7 +3920,7 @@ export default function Admin() {
                           onClick={() => handleEliminarDiferencial(d.id)}
                           className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer shrink-0"
                         >
-                          ✕
+                          <XMarkIcon className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
@@ -4261,7 +3943,7 @@ export default function Admin() {
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Imagem (Do PC)</label>
                       <input type="file" id="imagem-carrossel-3d" accept="image/*" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
                     </div>
-                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">➕ Publicar Foto</button>
+                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">Publicar Foto</button>
                   </form>
                 </div>
                 <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
@@ -4270,7 +3952,7 @@ export default function Admin() {
                     {listaCarrossel3d.map((f) => (
                       <div key={f.id} className="bg-gray-50 border border-gray-100 rounded-xl overflow-hidden relative shadow-sm">
                         <img src={f.imagem_url} alt="" className="w-full h-28 object-cover" />
-                        <button onClick={() => handleEliminarFotoCarrossel3d(f.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+                        <button onClick={() => handleEliminarFotoCarrossel3d(f.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"><XMarkIcon className="w-3.5 h-3.5" /></button>
                       </div>
                     ))}
                   </div>
@@ -4283,7 +3965,7 @@ export default function Admin() {
           {/* ================= TRAJETÓRIA (SOBRE NÓS) ================= */}
           {abaAtiva === 'trajetoria' && (
             <>
-              <CabecalhoPagina titulo="Gerenciar Trajetória" subtitulo="Linha do tempo exibida na página Sobre Nós" Icon={ClockIcon} />
+              <CabecalhoPagina titulo="Nossa História" subtitulo='Foto exibida na seção "Nossa História" da página Sobre Nós' Icon={PhotoIcon} />
 
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
                 <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Foto da Seção "Nossa História"</h3>
@@ -4300,170 +3982,8 @@ export default function Admin() {
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
                     />
                   </div>
-                  <button type="submit" className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0">💾 Salvar Foto</button>
+                  <button type="submit" className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0">Salvar Foto</button>
                 </form>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
-                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Seção "Compromisso com a Transparência e a Credibilidade"</h3>
-                <form onSubmit={handleSalvarCredibilidade} className="flex flex-col gap-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Título</label>
-                      <input
-                        type="text"
-                        value={credibilidadeTitulo}
-                        onChange={(e) => setCredibilidadeTitulo(e.target.value)}
-                        placeholder="Ex: Compromisso com a Transparência e a Credibilidade"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nova foto (substitui o selo ABED — PNG, JPEG ou WebP, até 5MB)</label>
-                      <div className="flex items-center gap-3">
-                        {credibilidadeFotoUrl && (
-                          <img src={credibilidadeFotoUrl} alt="Foto atual da seção de credibilidade" className="w-14 h-14 rounded-xl object-cover border border-gray-100 shrink-0" />
-                        )}
-                        <input
-                          id="foto-credibilidade"
-                          type="file"
-                          accept="image/png, image/jpeg, image/webp"
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Texto (um parágrafo por linha)</label>
-                    <textarea
-                      rows="4"
-                      value={credibilidadeTexto}
-                      onChange={(e) => setCredibilidadeTexto(e.target.value)}
-                      placeholder={'A Estude Seguro é associada à ABED...\nAlém disso, somos uma empresa verificada pelo Reclame Aqui...'}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none"
-                    />
-                  </div>
-                  <button type="submit" className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0 self-start">💾 Salvar Seção</button>
-                </form>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
-                      {trajetoriaEditando ? "✏️ Editar Marco" : "📝 Novo Marco"}
-                    </h3>
-                    {trajetoriaEditando && (
-                      <button
-                        type="button"
-                        onClick={cancelarEdicaoTrajetoria}
-                        className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                  </div>
-
-                  <form onSubmit={trajetoriaEditando ? handleSalvarEdicaoTrajetoria : handleAdicionarTrajetoria} className="flex flex-col gap-4">
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Ano / Período</label>
-                      <input
-                        type="text"
-                        value={trajetoriaEditando ? editAnoTrajetoria : novoAnoTrajetoria}
-                        onChange={(e) => trajetoriaEditando ? setEditAnoTrajetoria(e.target.value) : setNovoAnoTrajetoria(e.target.value)}
-                        placeholder="Ex: 2025 - 2026"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Categoria</label>
-                      <input
-                        type="text"
-                        value={trajetoriaEditando ? editCategoriaTrajetoria : novaCategoriaTrajetoria}
-                        onChange={(e) => trajetoriaEditando ? setEditCategoriaTrajetoria(e.target.value) : setNovaCategoriaTrajetoria(e.target.value)}
-                        placeholder="Ex: EXPANSÃO"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Título</label>
-                      <input
-                        type="text"
-                        value={trajetoriaEditando ? editTituloTrajetoria : novoTituloTrajetoria}
-                        onChange={(e) => trajetoriaEditando ? setEditTituloTrajetoria(e.target.value) : setNovoTituloTrajetoria(e.target.value)}
-                        placeholder="Ex: Crescimento Exponencial"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Descrição</label>
-                      <textarea
-                        rows="4"
-                        value={trajetoriaEditando ? editDescricaoTrajetoria : novaDescricaoTrajetoria}
-                        onChange={(e) => trajetoriaEditando ? setEditDescricaoTrajetoria(e.target.value) : setNovaDescricaoTrajetoria(e.target.value)}
-                        placeholder="Descreva esse marco da trajetória..."
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">
-                        {trajetoriaEditando ? "Nova Imagem (Opcional)" : "Imagem (Opcional)"}
-                      </label>
-                      <input
-                        type="file"
-                        id={trajetoriaEditando ? "imagem-trajetoria-edit" : "imagem-trajetoria"}
-                        accept="image/*"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
-                      />
-                    </div>
-                    <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                      {trajetoriaEditando ? "💾 Salvar Alterações" : "➕ Publicar Marco"}
-                    </button>
-                  </form>
-                </div>
-
-                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Linha do Tempo ({listaTrajetoria.length})</h3>
-                  <div className="space-y-3 max-h-[36rem] overflow-y-auto">
-                    {listaTrajetoria.length === 0 ? (
-                      <p className="text-xs text-gray-400 italic">Nenhum marco cadastrado ainda.</p>
-                    ) : (
-                      listaTrajetoria.map((item) => (
-                        <div key={item.id} className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex items-start gap-4 relative shadow-sm">
-                          {item.imagem_url ? (
-                            <img src={item.imagem_url} alt="" className="w-20 h-20 object-cover rounded-lg bg-gray-200 shrink-0" />
-                          ) : (
-                            <div className="w-20 h-20 rounded-lg bg-gray-200 shrink-0 flex items-center justify-center text-gray-400">
-                              <ClockIcon className="w-8 h-8" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0 text-left">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="bg-[#fed106] text-white font-extrabold py-0.5 px-2.5 rounded-full text-[10px] tracking-wide">{item.ano}</span>
-                              <span className="text-[#8a6d00] font-black text-[10px] tracking-wider uppercase">{item.categoria}</span>
-                            </div>
-                            <p className="text-sm font-bold text-gray-800 truncate">{item.titulo}</p>
-                            <p className="text-xs text-gray-500 line-clamp-2">{item.descricao}</p>
-                          </div>
-                          <div className="flex gap-2 shrink-0">
-                            <button
-                              onClick={() => iniciarEdicaoTrajetoria(item)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              onClick={() => handleEliminarTrajetoria(item.id)}
-                              className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
               </div>
             </>
           )}
@@ -4476,7 +3996,7 @@ export default function Admin() {
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
-                      {redeSocialEditando ? "✏️ Editar Rede Social" : "📝 Nova Rede Social"}
+                      {redeSocialEditando ? "Editar Rede Social" : "Nova Rede Social"}
                     </h3>
                     {redeSocialEditando && (
                       <button
@@ -4522,7 +4042,7 @@ export default function Admin() {
                       />
                     </div>
                     <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                      {redeSocialEditando ? "💾 Salvar Alterações" : "➕ Publicar Rede Social"}
+                      {redeSocialEditando ? "Salvar Alterações" : "Publicar Rede Social"}
                     </button>
                   </form>
                 </div>
@@ -4551,13 +4071,13 @@ export default function Admin() {
                               onClick={() => iniciarEdicaoRedeSocial(item)}
                               className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
                             >
-                              ✏️
+                              <PencilIcon className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleEliminarRedeSocial(item.id)}
                               className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
                             >
-                              ✕
+                              <XMarkIcon className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
@@ -4582,7 +4102,7 @@ export default function Admin() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">⚙️ Configurações</h3>
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Configurações</h3>
 
                   <form onSubmit={handleSalvarConfiguracaoIA} className="flex flex-col gap-4">
                     <label className="flex items-center gap-3 cursor-pointer select-none">
@@ -4629,7 +4149,7 @@ export default function Admin() {
                     </div>
 
                     <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                      💾 Salvar Configurações
+                      Salvar Configurações
                     </button>
                   </form>
                 </div>
@@ -4641,7 +4161,7 @@ export default function Admin() {
                       onClick={buscarEstatisticasIA}
                       className="text-[10px] uppercase bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md font-bold transition-colors cursor-pointer"
                     >
-                      🔄 Atualizar
+                      Atualizar
                     </button>
                   </div>
                   {iaPerguntasFrequentes.length === 0 ? (
@@ -4694,7 +4214,7 @@ export default function Admin() {
 
                     <div className="flex gap-3">
                       <button type="submit" className="flex-1 bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                        💾 Salvar Pixel
+                        Salvar Pixel
                       </button>
                       {novoMetaPixelId && (
                         <button
@@ -4757,7 +4277,7 @@ export default function Admin() {
 
               {/* --- CONFIGURAÇÕES --- */}
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
-                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">⚙️ Configurações Gerais</h3>
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Configurações Gerais</h3>
                 <form onSubmit={handleSalvarConfigRoleta} className="flex flex-col gap-4">
                   <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
                     <input type="checkbox" checked={roletaAtivo} onChange={(e) => setRoletaAtivo(e.target.checked)} className="w-4 h-4 accent-[#fed106] cursor-pointer" />
@@ -4780,14 +4300,8 @@ export default function Admin() {
                     <textarea value={roletaSubtitulo} onChange={(e) => setRoletaSubtitulo(e.target.value)} rows={2} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none" />
                   </div>
 
-                  <div>
-                    <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Mensagem de resgate no WhatsApp</label>
-                    <textarea value={roletaWhatsappMensagem} onChange={(e) => setRoletaWhatsappMensagem(e.target.value)} rows={5} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106] resize-none" />
-                    <p className="text-[11px] text-gray-400 mt-1">Use os placeholders: {'{{nome}}'}, {'{{cpf}}'}, {'{{numeroMatricula}}'} e {'{{premio}}'} — são substituídos automaticamente.</p>
-                  </div>
-
                   <button type="submit" className="w-fit bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-8 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                    💾 Salvar Configurações
+                    Salvar Configurações
                   </button>
                 </form>
               </div>
@@ -4795,7 +4309,7 @@ export default function Admin() {
               {/* --- PRÊMIOS --- */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">📝 Novo Prêmio</h3>
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Novo Prêmio</h3>
                   <form onSubmit={handleAdicionarPremioRoleta} className="flex flex-col gap-3">
                     <input type="text" value={novoNomePremioRoleta} onChange={(e) => setNovoNomePremioRoleta(e.target.value)} placeholder="Nome do prêmio" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]" />
                     <select value={novoTipoPremioRoleta} onChange={(e) => setNovoTipoPremioRoleta(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]">
@@ -4809,7 +4323,7 @@ export default function Admin() {
                       <p className="text-[11px] text-gray-400 mt-1">Quanto maior o peso em relação aos outros, maior a chance de sair.</p>
                     </div>
                     <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                      ➕ Adicionar Prêmio
+                      Adicionar Prêmio
                     </button>
                   </form>
                 </div>
@@ -4868,11 +4382,11 @@ export default function Admin() {
               {/* --- BANNERS DO HERO --- */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">📝 Novo Banner</h3>
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Novo Banner</h3>
                   <form onSubmit={handleAdicionarBannerRoleta} className="flex flex-col gap-3">
                     <input type="file" id="arquivo-banner-roleta" accept="image/*" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer" />
                     <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                      ➕ Publicar Banner
+                      Publicar Banner
                     </button>
                   </form>
                 </div>
@@ -4971,7 +4485,7 @@ export default function Admin() {
                         onClick={() => handleMarcarPremioResgatado(participanteRoletaSelecionado.id)}
                         className="w-full mt-5 bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
                       >
-                        ✅ Marcar Prêmio Resgatado
+                        Marcar Prêmio Resgatado
                       </button>
                     )}
                   </div>
@@ -5005,7 +4519,7 @@ export default function Admin() {
               {/* --- WHATSAPP DO RESGATE --- */}
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
                 <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
-                  💬 WhatsApp do Resgate
+                  WhatsApp do Resgate
                 </h3>
                 <p className="text-[11px] text-gray-400 mb-4">
                   Para onde vai o botão "Resgatar meu prêmio" que aparece quando a pessoa ganha.
@@ -5027,29 +4541,11 @@ export default function Admin() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Mensagem automática</label>
-                    <textarea
-                      rows={5}
-                      value={resgateWhatsappMensagem}
-                      onChange={(e) => setResgateWhatsappMensagem(e.target.value)}
-                      placeholder={'Olá! Acabei de girar a roleta...\n\nNome: {{nome}}\nVoucher: {{voucher}}\nIndicado por: {{indicadoPor}}\n\nPrêmio ganho: {{premio}}'}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                    />
-                    <p className="text-[11px] text-gray-400 mt-1">
-                      Use <code className="bg-gray-100 px-1 rounded">{'{{nome}}'}</code>,{' '}
-                      <code className="bg-gray-100 px-1 rounded">{'{{voucher}}'}</code>,{' '}
-                      <code className="bg-gray-100 px-1 rounded">{'{{indicadoPor}}'}</code> e{' '}
-                      <code className="bg-gray-100 px-1 rounded">{'{{premio}}'}</code> — são trocados pelos dados do
-                      giro. Em branco, usa a mensagem padrão.
-                    </p>
-                  </div>
-
                   <button
                     type="submit"
                     className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer w-fit"
                   >
-                    💾 Salvar Configurações
+                    Salvar Configurações
                   </button>
                 </form>
               </div>
@@ -5057,7 +4553,7 @@ export default function Admin() {
               {/* --- BANNERS DO HERO --- */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">🖼️ Novo Banner</h3>
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">Novo Banner</h3>
                   <p className="text-[11px] text-gray-400 mb-4">Carrossel no topo da página /resgate-premio.</p>
                   <form onSubmit={handleAdicionarBannerResgate} className="flex flex-col gap-3">
                     <input
@@ -5070,7 +4566,7 @@ export default function Admin() {
                       type="submit"
                       className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
                     >
-                      ➕ Publicar Banner
+                      Publicar Banner
                     </button>
                   </form>
                 </div>
@@ -5122,7 +4618,7 @@ export default function Admin() {
 
               {/* --- GERAR VOUCHERS --- */}
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
-                <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">🎟️ Gerar Vouchers</h3>
+                <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">Gerar Vouchers</h3>
                 <p className="text-[11px] text-gray-400 mb-4">
                   Cada código tem 5 caracteres e vale um único giro. Envie o código para a pessoa indicada.
                 </p>
@@ -5144,7 +4640,7 @@ export default function Admin() {
                     disabled={gerandoVouchers}
                     className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    {gerandoVouchers ? 'Gerando...' : '➕ Gerar Códigos'}
+                    {gerandoVouchers ? 'Gerando...' : 'Gerar Códigos'}
                   </button>
                 </form>
 
@@ -5173,7 +4669,7 @@ export default function Admin() {
                 {/* --- FUNCIONÁRIOS --- */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                   <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
-                    👥 Funcionários na Campanha ({listaFuncionariosResgate.length})
+                    Funcionários na Campanha ({listaFuncionariosResgate.length})
                   </h3>
                   <p className="text-[11px] text-gray-400 mb-4">
                     Só os ativos aparecem na lista de "quem indicou você" na página pública.
@@ -5191,7 +4687,7 @@ export default function Admin() {
                       type="submit"
                       className="bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-2.5 px-5 rounded-xl uppercase tracking-wider transition-colors cursor-pointer shrink-0"
                     >
-                      ➕ Add
+                      Add
                     </button>
                   </form>
 
@@ -5221,7 +4717,7 @@ export default function Admin() {
                               onClick={() => handleEliminarFuncionarioResgate(funcionario.id)}
                               className="bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
                             >
-                              ✕
+                              <XMarkIcon className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
@@ -5232,7 +4728,7 @@ export default function Admin() {
 
                 {/* --- RANKING --- */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">🏆 Ranking de Indicações</h3>
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">Ranking de Indicações</h3>
                   <p className="text-[11px] text-gray-400 mb-4">
                     Conta quantas pessoas indicadas por cada funcionário realmente giraram a roleta.
                   </p>
@@ -5242,7 +4738,6 @@ export default function Admin() {
                       <p className="text-xs text-gray-400 italic">Cadastre os funcionários para ver o ranking.</p>
                     ) : (
                       rankingResgate.map((funcionario, indice) => {
-                        const medalhas = ['🥇', '🥈', '🥉'];
                         return (
                           <div
                             key={funcionario.id}
@@ -5253,7 +4748,7 @@ export default function Admin() {
                             }`}
                           >
                             <span className="w-8 text-center font-black text-sm shrink-0">
-                              {funcionario.giros > 0 && medalhas[indice] ? medalhas[indice] : `${indice + 1}º`}
+                              {indice + 1}º
                             </span>
                             <p className="flex-1 text-sm font-bold text-gray-700 truncate">{funcionario.nome}</p>
                             <span className="shrink-0 text-sm font-black text-gray-900">
@@ -5272,7 +4767,7 @@ export default function Admin() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
                   <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">
-                    {premioResgateEditando ? '✏️ Editar Prêmio' : '🎁 Novo Prêmio'}
+                    {premioResgateEditando ? 'Editar Prêmio' : 'Novo Prêmio'}
                   </h3>
                   <form onSubmit={handleSalvarPremioResgate} className="flex flex-col gap-4">
                     <div>
@@ -5312,19 +4807,10 @@ export default function Admin() {
                       Texto escrito dentro da fatia. Em branco, usa o nome do prêmio.
                     </p>
 
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Chance (peso)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formPremioResgate.peso}
-                        onChange={(e) => setFormPremioResgate({ ...formPremioResgate, peso: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                      />
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        Peso 3 sai 3× mais que peso 1. Peso 0 nunca é sorteado, mas continua desenhado na roleta.
-                      </p>
-                    </div>
+                    <p className="text-[11px] text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                        O estoque é controlado pelo sistema e a chance de cada prêmio se ajusta sozinha. Para mexer nos
+                        pesos, use a <strong className="text-gray-500">Configuração avançada</strong> no fim desta página.
+                    </p>
 
                     <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
                       <input
@@ -5340,7 +4826,7 @@ export default function Admin() {
                       type="submit"
                       className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
                     >
-                      {premioResgateEditando ? '💾 Salvar Alterações' : '➕ Adicionar Prêmio'}
+                      {premioResgateEditando ? 'Salvar Alterações' : 'Adicionar Prêmio'}
                     </button>
 
                     {premioResgateEditando && (
@@ -5360,7 +4846,9 @@ export default function Admin() {
                     Prêmios da Roleta ({listaPremiosResgate.length})
                   </h3>
                   <p className="text-[11px] text-gray-400 mb-4">
-                    A % ao lado é a chance real de cada prêmio, calculada sobre a soma dos pesos ativos.
+                    Estoque total da campanha: <strong className="text-gray-600">{estoqueDisponivelResgate}</strong>{' '}
+                    disponíveis de {estoqueTotalResgate}. A chance considera peso × unidades restantes, então ela muda
+                    sozinha conforme os prêmios vão saindo.
                   </p>
 
                   <div className="space-y-2">
@@ -5368,24 +4856,43 @@ export default function Admin() {
                       <p className="text-xs text-gray-400 italic">Nenhum prêmio cadastrado ainda.</p>
                     ) : (
                       listaPremiosResgate.map((premio) => {
+                        const efetivo = pesoEfetivoResgate(premio);
                         const chance =
-                          premio.ativo && premio.peso > 0 && pesoTotalResgate > 0
-                            ? ((Number(premio.peso) / pesoTotalResgate) * 100).toFixed(1)
+                          efetivo > 0 && pesoTotalResgate > 0
+                            ? ((efetivo / pesoTotalResgate) * 100).toFixed(1)
                             : null;
+                        const total = Number(premio.quantidade_total) || 0;
+                        const disponivel = Number(premio.quantidade_disponivel) || 0;
+                        const esgotado = premio.ativo && total > 0 && disponivel === 0;
                         return (
                           <div
                             key={premio.id}
-                            className="flex items-center gap-3 bg-gray-50 p-3.5 rounded-xl border border-gray-100"
+                            className={`flex items-center gap-3 p-3.5 rounded-xl border ${
+                              esgotado ? 'bg-red-50/60 border-red-100' : 'bg-gray-50 border-gray-100'
+                            }`}
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-black text-gray-800 truncate">{premio.nome}</p>
+                                {premio.eh_consolacao && (
+                                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600">
+                                    Consolação
+                                  </span>
+                                )}
+                                {esgotado && (
+                                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-600 text-white">
+                                    Esgotado
+                                  </span>
+                                )}
                                 {!premio.ativo && (
                                   <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-gray-200 text-gray-500">
-                                    Oculto
+                                    Fora da roleta
                                   </span>
                                 )}
                               </div>
+                              <p className="text-[11px] font-bold text-gray-500">
+                                {disponivel} disponíveis de {total}
+                              </p>
                               <p className="text-[11px] text-gray-400 truncate">
                                 Na roleta: {premio.rotulo || premio.nome}
                                 {premio.rotulo_secundario ? ` · ${premio.rotulo_secundario}` : ''}
@@ -5408,7 +4915,7 @@ export default function Admin() {
                                 onClick={() => handleEliminarPremioResgate(premio.id)}
                                 className="bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
                               >
-                                ✕
+                                <XMarkIcon className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </div>
@@ -5422,7 +4929,7 @@ export default function Admin() {
               {/* --- VOUCHERS VÁLIDOS --- */}
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
                 <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
-                  🎟️ Vouchers Válidos ({vouchersDisponiveis.length})
+                  Vouchers Válidos ({vouchersDisponiveis.length})
                 </h3>
                 <p className="text-[11px] text-gray-400 mb-4">
                   Códigos ainda não usados. Clique em um código para copiar e enviar para a pessoa indicada.
@@ -5449,7 +4956,7 @@ export default function Admin() {
                           className="text-gray-300 hover:text-red-600 w-5 h-5 flex items-center justify-center font-bold text-xs cursor-pointer"
                           title="Apagar voucher"
                         >
-                          ✕
+                          <XMarkIcon className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
@@ -5458,9 +4965,9 @@ export default function Admin() {
               </div>
 
               {/* --- GIROS REALIZADOS --- */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
                 <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
-                  📋 Giros Realizados ({girosResgate.length})
+                  Giros Realizados ({girosResgate.length})
                 </h3>
                 <p className="text-[11px] text-gray-400 mb-4">
                   Histórico completo: quem girou, quem indicou, o que ganhou e o voucher queimado.
@@ -5501,7 +5008,7 @@ export default function Admin() {
                                 className="text-gray-300 hover:text-red-600 w-6 h-6 font-bold text-xs cursor-pointer"
                                 title="Apagar do histórico"
                               >
-                                ✕
+                                <XMarkIcon className="w-3.5 h-3.5" />
                               </button>
                             </td>
                           </tr>
@@ -5511,222 +5018,110 @@ export default function Admin() {
                   </div>
                 )}
               </div>
-            </>
-          )}
 
-          {/* ================= SORTEIOS (MENU DA NAVBAR) ================= */}
-          {abaAtiva === 'sorteios-menu' && (
-            <>
-              <CabecalhoPagina
-                titulo="Sorteios do Menu"
-                subtitulo='Itens que aparecem no dropdown "Sorteios" da barra de navegação do site'
-                Icon={TicketIcon}
-              />
-
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                <CardEstatistica label="Cadastrados" valor={listaSorteiosMenu.length} Icon={TicketIcon} cor="bg-indigo-500" />
-                <CardEstatistica
-                  label="Acontecendo Agora"
-                  valor={listaSorteiosMenu.filter(sorteioAparecendoNoMenu).length}
-                  subtitulo="Aparecem no menu neste momento"
-                  Icon={EyeIcon}
-                  cor="bg-emerald-500"
-                />
-                <CardEstatistica
-                  label="Programados"
-                  valor={listaSorteiosMenu.filter((s) => s.ativo && s.data_inicio && s.data_inicio > hojeISO()).length}
-                  subtitulo="Começam em data futura"
-                  Icon={ClockIcon}
-                  cor="bg-[#fed106]"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">
-                    {sorteioMenuEditando ? '✏️ Editar Sorteio' : '➕ Novo Sorteio'}
+              {/* --- CONFIGURAÇÃO AVANÇADA (última seção da página) --- */}
+              <div className="bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-sm overflow-hidden">
+                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-sm font-black uppercase text-gray-700 tracking-wide">
+                    Configuração avançada do sorteio
                   </h3>
-                  <form onSubmit={handleSalvarSorteioMenu} className="flex flex-col gap-4">
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Nome no menu</label>
-                      <input
-                        type="text"
-                        value={formSorteioMenu.nome}
-                        onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, nome: e.target.value })}
-                        placeholder="Ex: Roleta da Sorte"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                      />
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Ajuste fino da probabilidade. Fora do fluxo do dia a dia de propósito.
+                  </p>
+                </div>
+
+                <div className="p-6">
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6">
+                    <p className="text-xs text-amber-800 font-semibold leading-relaxed">
+                      Os pesos influenciam diretamente a probabilidade de cada prêmio ser sorteado. Altere esses
+                      valores somente quando necessário. O estoque disponível também influencia automaticamente a
+                      probabilidade.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleSalvarPesosResgate}>
+                    <div className="overflow-x-auto -mx-2 mb-5">
+                      <table className="w-full text-left min-w-[560px]">
+                        <thead>
+                          <tr className="text-[10px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                            <th className="px-2 py-2">Prêmio</th>
+                            <th className="px-2 py-2 w-32">Peso</th>
+                            <th className="px-2 py-2 w-40">Estoque</th>
+                            <th className="px-2 py-2 w-32 text-right">Chance atual</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {listaPremiosResgate.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="px-2 py-4 text-xs text-gray-400 italic">
+                                Nenhum prêmio cadastrado ainda.
+                              </td>
+                            </tr>
+                          ) : (
+                            listaPremiosResgate.map((premio) => {
+                              const efetivo = pesoEfetivoResgate(premio);
+                              const chance =
+                                efetivo > 0 && pesoTotalResgate > 0
+                                  ? ((efetivo / pesoTotalResgate) * 100).toFixed(1)
+                                  : null;
+                              const disponivel = Number(premio.quantidade_disponivel) || 0;
+                              return (
+                                <tr key={premio.id} className="border-b border-gray-50">
+                                  <td className="px-2 py-3">
+                                    <span className="text-sm font-bold text-gray-800">{premio.nome}</span>
+                                    {!premio.ativo && (
+                                      <span className="ml-2 text-[10px] font-black uppercase text-gray-400">
+                                        fora da roleta
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-2 py-3">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.1"
+                                      value={pesosResgateEditados[premio.id] ?? ''}
+                                      onChange={(e) =>
+                                        setPesosResgateEditados((atual) => ({
+                                          ...atual,
+                                          [premio.id]: e.target.value,
+                                        }))
+                                      }
+                                      className="w-24 bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-bold text-gray-800 focus:outline-none focus:border-gray-600"
+                                    />
+                                  </td>
+                                  <td className="px-2 py-3 text-xs text-gray-400 font-bold">
+                                    {disponivel} de {Number(premio.quantidade_total) || 0}
+                                  </td>
+                                  <td className="px-2 py-3 text-right text-sm font-black text-gray-700">
+                                    {chance ? `${chance}%` : '—'}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
                     </div>
 
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Descrição curta (opcional)</label>
-                      <input
-                        type="text"
-                        value={formSorteioMenu.descricao}
-                        onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, descricao: e.target.value })}
-                        placeholder="Ex: Gire e concorra a descontos"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Para onde leva</label>
-                      <input
-                        type="text"
-                        value={formSorteioMenu.link}
-                        onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, link: e.target.value })}
-                        placeholder="/sorteios ou https://..."
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                      />
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        Página do site (começa com /) ou link externo completo (https://).
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <button
+                        type="submit"
+                        disabled={salvandoPesosResgate || listaPremiosResgate.length === 0}
+                        className="bg-gray-800 hover:bg-black text-white font-black text-xs py-3 px-6 rounded-xl uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {salvandoPesosResgate ? 'Salvando...' : 'Salvar pesos'}
+                      </button>
+                      <p className="text-[11px] text-gray-400">
+                        Peso 0 tira o prêmio do sorteio sem tirá-lo da roleta. Peso negativo é recusado pelo banco.
                       </p>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Começa em</label>
-                        <input
-                          type="date"
-                          value={formSorteioMenu.data_inicio}
-                          onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, data_inicio: e.target.value })}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Termina em</label>
-                        <input
-                          type="date"
-                          value={formSorteioMenu.data_fim}
-                          onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, data_fim: e.target.value })}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-[11px] text-gray-400 -mt-2">
-                      Deixe em branco para o sorteio ficar no menu sem prazo.
-                    </p>
-
-                    <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
-                      <input
-                        type="checkbox"
-                        checked={formSorteioMenu.ativo}
-                        onChange={(e) => setFormSorteioMenu({ ...formSorteioMenu, ativo: e.target.checked })}
-                        className="w-4 h-4 accent-[#fed106] cursor-pointer"
-                      />
-                      <span className="text-xs font-bold text-gray-700 uppercase">Mostrar no menu</span>
-                    </label>
-
-                    <button
-                      type="submit"
-                      className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
-                    >
-                      {sorteioMenuEditando ? '💾 Salvar Alterações' : '➕ Adicionar ao Menu'}
-                    </button>
-
-                    {sorteioMenuEditando && (
-                      <button
-                        type="button"
-                        onClick={cancelarEdicaoSorteioMenu}
-                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
-                    )}
                   </form>
                 </div>
-
-                <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-1 tracking-wide">
-                    Sorteios no Menu ({listaSorteiosMenu.length})
-                  </h3>
-                  <p className="text-[11px] text-gray-400 mb-4">
-                    A ordem abaixo é a mesma que o visitante vê ao abrir "Sorteios" no site.
-                  </p>
-
-                  <div className="space-y-3">
-                    {listaSorteiosMenu.length === 0 ? (
-                      <p className="text-xs text-gray-400 italic">
-                        Nenhum sorteio cadastrado ainda. Sem nenhum sorteio no ar, "Sorteios" continua sendo um link simples no menu.
-                      </p>
-                    ) : (
-                      listaSorteiosMenu.map((item, indice) => {
-                        const noAr = sorteioAparecendoNoMenu(item);
-                        return (
-                          <div
-                            key={item.id}
-                            className="flex flex-col sm:flex-row sm:items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-xs"
-                          >
-                            <div className="flex flex-col gap-1 shrink-0">
-                              <button
-                                onClick={() => handleMoverSorteioMenu(item, -1)}
-                                disabled={indice === 0}
-                                className="w-6 h-6 rounded-md bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                                title="Subir"
-                              >
-                                <ArrowUpIcon className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleMoverSorteioMenu(item, 1)}
-                                disabled={indice === listaSorteiosMenu.length - 1}
-                                className="w-6 h-6 rounded-md bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                                title="Descer"
-                              >
-                                <ArrowDownIcon className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm font-black text-gray-800 truncate">{item.nome}</p>
-                                <span
-                                  className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                    noAr ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'
-                                  }`}
-                                >
-                                  {noAr ? 'No ar' : 'Fora do menu'}
-                                </span>
-                              </div>
-                              {item.descricao && <p className="text-xs text-gray-500 truncate">{item.descricao}</p>}
-                              <p className="text-[11px] text-gray-400 truncate">
-                                {item.link}
-                                {(item.data_inicio || item.data_fim) && (
-                                  <> · {formatarPeriodoSorteio(item)}</>
-                                )}
-                              </p>
-                            </div>
-
-                            <div className="flex items-center gap-2 shrink-0">
-                              <button
-                                onClick={() => handleAlternarAtivoSorteioMenu(item)}
-                                className="bg-white border border-gray-200 hover:border-gray-400 text-gray-600 text-[11px] font-black px-3 py-1.5 rounded-lg uppercase cursor-pointer"
-                                title={item.ativo ? 'Tirar do menu' : 'Colocar no menu'}
-                              >
-                                {item.ativo ? 'Desativar' : 'Ativar'}
-                              </button>
-                              <button
-                                onClick={() => iniciarEdicaoSorteioMenu(item)}
-                                className="bg-black hover:bg-gray-800 text-white text-[11px] font-black px-3 py-1.5 rounded-lg uppercase cursor-pointer"
-                              >
-                                Editar
-                              </button>
-                              <button
-                                onClick={() => handleEliminarSorteioMenu(item.id)}
-                                className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
-                                title="Remover do menu"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
               </div>
             </>
           )}
+
 
           {/* ================= BLOG (NOTÍCIAS) ================= */}
           {abaAtiva === 'blog' && (
@@ -5743,7 +5138,7 @@ export default function Admin() {
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
-                      {noticiaEditando ? "✏️ Editar Notícia" : "📝 Nova Notícia"}
+                      {noticiaEditando ? "Editar Notícia" : "Nova Notícia"}
                     </h3>
                     {noticiaEditando && (
                       <button
@@ -5821,7 +5216,7 @@ export default function Admin() {
                       <label htmlFor="destaque-noticia" className="text-xs text-gray-500 font-bold uppercase">Marcar como Destaque</label>
                     </div>
                     <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                      {noticiaEditando ? "💾 Salvar Alterações" : "➕ Publicar Notícia"}
+                      {noticiaEditando ? "Salvar Alterações" : "Publicar Notícia"}
                     </button>
                   </form>
                 </div>
@@ -5839,7 +5234,7 @@ export default function Admin() {
                             <span>{n.tempoLeitura} min</span>
                             <span>•</span>
                             <span>{n.dataCriacao}</span>
-                            {n.destaque && <span className="text-[#8a6d00] font-bold">⭐ Destaque</span>}
+                            {n.destaque && <span className="text-[#8a6d00] font-bold">Destaque</span>}
                           </div>
                         </div>
                         <div className="flex gap-2 shrink-0">
@@ -5847,13 +5242,13 @@ export default function Admin() {
                             onClick={() => iniciarEdicaoNoticia(n)}
                             className="bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
                           >
-                            ✏️
+                            <PencilIcon className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleEliminarNoticia(n.id)}
                             className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
                           >
-                            ✕
+                            <XMarkIcon className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -6057,7 +5452,7 @@ export default function Admin() {
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-black uppercase text-gray-800 tracking-wide">
-                      {depoimentoEditando ? "✏️ Editar Depoimento" : "Novo Depoimento"}
+                      {depoimentoEditando ? "Editar Depoimento" : "Novo Depoimento"}
                     </h3>
                     {depoimentoEditando && (
                       <button
@@ -6122,7 +5517,7 @@ export default function Admin() {
                       />
                     </div>
                     <button type="submit" className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                      {depoimentoEditando ? "💾 Salvar Alterações" : "➕ Publicar Depoimento"}
+                      {depoimentoEditando ? "Salvar Alterações" : "Publicar Depoimento"}
                     </button>
                   </form>
                 </div>
@@ -6139,8 +5534,8 @@ export default function Admin() {
                       {depoimentos.map((d) => (
                         <div key={d.id} className={`bg-gray-50 border rounded-xl overflow-hidden relative shadow-sm ${d.destaque ? 'border-[#fed106] ring-2 ring-[#fed106]/40' : 'border-gray-100'}`}>
                           <img src={d.foto_url} alt="" className="w-full h-40 object-cover" />
-                          <button onClick={() => iniciarEdicaoDepoimento(d)} title="Editar depoimento" className="absolute top-2 right-11 bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✎</button>
-                          <button onClick={() => handleEliminarDepoimento(d.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+                          <button onClick={() => iniciarEdicaoDepoimento(d)} title="Editar depoimento" className="absolute top-2 right-11 bg-blue-600 hover:bg-blue-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"><PencilIcon className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => handleEliminarDepoimento(d.id)} className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"><XMarkIcon className="w-3.5 h-3.5" /></button>
                           <button
                             onClick={() => handleAlternarDestaqueDepoimento(d)}
                             title={d.destaque ? 'Remover destaque' : `Destacar na Home (máx. ${MAX_DEPOIMENTOS_DESTAQUE})`}
@@ -6154,7 +5549,7 @@ export default function Admin() {
                             <p className="text-xs font-black text-gray-800 truncate">{d.nome}</p>
                             <p className="text-[10px] text-gray-400 truncate">{d.instagram || 'Sem Instagram'}</p>
                             {d.destaque && (
-                              <p className="text-[9px] font-black text-[#8a6d00] uppercase tracking-wide mt-1">★ Em destaque na Home</p>
+                              <p className="text-[9px] font-black text-[#8a6d00] uppercase tracking-wide mt-1">Em destaque na Home</p>
                             )}
                           </div>
                         </div>
@@ -6183,7 +5578,7 @@ export default function Admin() {
                   onClick={() => setMostrarSeletorModeloPopup(true)}
                   className="mb-6 inline-flex items-center gap-2 bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs px-5 py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
                 >
-                  ➕ Novo Pop-up
+                  Novo Pop-up
                 </button>
               )}
 
@@ -6298,10 +5693,10 @@ export default function Admin() {
                         onClick={() => setMostrarPreviewPopup(true)}
                         className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
                       >
-                        👁️ Pré-visualizar
+                        Pré-visualizar
                       </button>
                       <button type="submit" className="flex-1 bg-[#fed106] hover:bg-black hover:text-white text-black font-black text-xs py-3 rounded-xl uppercase tracking-wider transition-colors cursor-pointer">
-                        {popupEditando ? '💾 Salvar Alterações' : '➕ Criar Pop-up'}
+                        {popupEditando ? 'Salvar Alterações' : 'Criar Pop-up'}
                       </button>
                     </div>
                   </form>
@@ -6366,13 +5761,13 @@ export default function Admin() {
                             title="Editar pop-up"
                             className="bg-gray-200 hover:bg-gray-300 text-gray-700 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer shrink-0"
                           >
-                            ✏️
+                            <PencilIcon className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleEliminarPopup(p.id)}
                             className="bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer shrink-0"
                           >
-                            ✕
+                            <XMarkIcon className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       );
@@ -6516,7 +5911,7 @@ export default function Admin() {
                                         onClick={() => handleAbrirAnexoMatricula(caminho)}
                                         className="bg-white border border-gray-200 hover:border-[#fed106] text-gray-700 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                                       >
-                                        📎 Anexo {idx + 1}
+                                        Anexo {idx + 1}
                                       </button>
                                     ))}
                                   </div>
@@ -6662,7 +6057,7 @@ export default function Admin() {
                     aria-label="Fechar"
                     className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors cursor-pointer z-10"
                   >
-                    ✕
+                    <XMarkIcon className="w-3.5 h-3.5" />
                   </button>
 
                   <h2 className="text-lg font-black text-gray-900 mb-1">
@@ -6814,9 +6209,9 @@ export default function Admin() {
                             {formMatriculado.anexos.map((caminho) => (
                               <span key={caminho} className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-[11px] font-bold text-gray-700">
                                 <button type="button" onClick={() => handleAbrirAnexoMatricula(caminho)} className="hover:text-[#8a6d00] cursor-pointer">
-                                  📎 Ver anexo
+                                  Ver anexo
                                 </button>
-                                <button type="button" onClick={() => removerAnexoExistenteMatriculado(caminho)} aria-label="Remover anexo" className="text-gray-400 hover:text-red-500 cursor-pointer">✕</button>
+                                <button type="button" onClick={() => removerAnexoExistenteMatriculado(caminho)} aria-label="Remover anexo" className="text-gray-400 hover:text-red-500 cursor-pointer"><XMarkIcon className="w-3.5 h-3.5" /></button>
                               </span>
                             ))}
                           </div>
@@ -6849,9 +6244,20 @@ export default function Admin() {
             );
           })()}
 
-          {mensagemStatus && (
-            <p className="text-sm font-bold text-center p-3 mt-6 bg-white border border-gray-200 rounded-xl shadow-sm animate-pulse text-gray-700">{mensagemStatus}</p>
-          )}
+          {mensagemStatus && (() => {
+            const { tipo, Icon } = classificarMensagemStatus(mensagemStatus);
+            // Emoji de prefixo (✅❌⚠️) já cumpriu seu papel na classificação
+            // acima — some do texto exibido, a cor do banner é quem avisa agora.
+            const texto = mensagemStatus.replace(/^[✅❌⚠]️?\s*/u, '');
+            return (
+              <p
+                className={`flex items-center justify-center gap-2 text-sm font-bold text-center p-3 mt-6 border rounded-xl shadow-sm animate-pulse ${ESTILO_MENSAGEM_STATUS[tipo]}`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                {texto}
+              </p>
+            );
+          })()}
         </main>
       </div>
     </div>

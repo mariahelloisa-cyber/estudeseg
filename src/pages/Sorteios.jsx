@@ -10,6 +10,13 @@ import caixaPresente from '../assets/presente.png';
 
 const FORM_INICIAL = { nomeCompleto: '', cpf: '', numeroMatricula: '' };
 
+// Texto que abre no WhatsApp ao resgatar. Fica no código de propósito: no painel
+// só se troca o número, para ninguém quebrar os marcadores sem querer.
+const MENSAGEM_WHATSAPP =
+  'Olá! Acabei de ganhar um prêmio na Roleta da Estude Seguro.\n\n' +
+  'Nome: {{nome}}\nCPF: {{cpf}}\nNúmero do certificado: {{numeroMatricula}}\n\n' +
+  'Prêmio ganho: {{premio}}\n\nGostaria de resgatar meu prêmio.';
+
 const CLASSE_INPUT =
   'w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:outline-none focus:border-[#fed106] focus:ring-2 focus:ring-[#fed106]/15 bg-gray-50/40 text-sm text-gray-800 transition-all';
 
@@ -87,7 +94,6 @@ export default function Sorteios() {
   const [titulo, setTitulo] = useState(' Gire a Roleta Premiada da Estude Seguro!');
   const [subtitulo, setSubtitulo] = useState('');
   const [whatsappNumero, setWhatsappNumero] = useState('5511995987197');
-  const [whatsappMensagem, setWhatsappMensagem] = useState('');
 
   const [banners, setBanners] = useState([]);
   const [premios, setPremios] = useState([]);
@@ -110,7 +116,7 @@ export default function Sorteios() {
           supabase
             .from('configuracoes')
             .select('chave, valor')
-            .in('chave', ['sorteio_ativo', 'sorteio_titulo', 'sorteio_subtitulo', 'sorteio_whatsapp_numero', 'sorteio_whatsapp_mensagem']),
+            .in('chave', ['sorteio_ativo', 'sorteio_titulo', 'sorteio_subtitulo', 'sorteio_whatsapp_numero']),
           supabase.from('sorteio_banners').select('*').order('ordem', { ascending: true }),
           supabase.from('sorteio_premios').select('*').eq('ativo', true).order('ordem', { ascending: true }),
         ]);
@@ -123,7 +129,6 @@ export default function Sorteios() {
             'Todos os alunos que concluíram sua formação na Estude Seguro podem participar da nossa Roleta Premiada e concorrer a diversos benefícios exclusivos.',
         );
         setWhatsappNumero(mapaConfig.sorteio_whatsapp_numero || '5511995987197');
-        setWhatsappMensagem(mapaConfig.sorteio_whatsapp_mensagem || '');
 
         setBanners(bannersRes.data || []);
         setPremios(premiosRes.data || []);
@@ -216,10 +221,7 @@ export default function Sorteios() {
   }
 
   function linkResgatarPremio() {
-    const template =
-      whatsappMensagem ||
-      'Olá! Acabei de ganhar um prêmio na Roleta da Estude Seguro.\n\nNome: {{nome}}\nCPF: {{cpf}}\nNúmero do certificado: {{numeroMatricula}}\n\nPrêmio ganho: {{premio}}\n\nGostaria de resgatar meu prêmio.';
-    const texto = template
+    const texto = MENSAGEM_WHATSAPP
       .replaceAll('{{nome}}', form.nomeCompleto || '')
       .replaceAll('{{cpf}}', form.cpf || '')
       .replaceAll('{{numeroMatricula}}', form.numeroMatricula || '')
@@ -252,7 +254,7 @@ export default function Sorteios() {
             </div>
 
             <h1
-              className="fonte-titulo-sorteio relative z-10 text-3xl md:text-5xl font-extrabold text-[#000000] leading-[1.2] mb-4 px-2"
+              className="fonte-titulo-sorteio relative z-10 text-3xl md:text-5xl font-black text-[#000000] leading-[1.2] mb-4 px-2"
             >
               {renderizarTituloComDestaque(titulo)}
             </h1>

@@ -68,6 +68,14 @@ const LIMITE_MENSAGENS_POR_HORA = 60;     // por IP, teto de custo por pessoa
 const LIMITE_GLOBAL_POR_HORA = 2000;      // teto de custo do projeto inteiro
 const MAX_TOKENS_RESPOSTA = 600;
 
+// Mensagens de recusa. Extraídas para constante porque a de "muita demanda"
+// passou a ser usada em dois caminhos: teto global atingido e limitador
+// indisponível. O texto é o mesmo de antes, palavra por palavra.
+const MENSAGEM_RAPIDO_DEMAIS =
+  'Você enviou várias mensagens muito rápido. Aguarde um instante e tente novamente, ou fale direto pelo WhatsApp: +55 11 99598-7197.';
+const MENSAGEM_MUITA_DEMANDA =
+  'O assistente está com muita demanda no momento. Fale com a gente pelo WhatsApp: +55 11 99598-7197.';
+
 const MODELOS_PADRAO: Record<string, string> = {
   anthropic: 'claude-haiku-4-5',
   openai: 'gpt-4o-mini',
@@ -169,36 +177,45 @@ Deno.serve(async (req: Request) => {
     // --- Limites de abuso, contados por IP e no total do projeto ---
     // O sessionId continua sendo gravado para agrupar a conversa nas
     // estatísticas, mas não manda mais em nada relacionado a limite.
-    const agora = Date.now();
-    const umMinutoAtras = new Date(agora - 60_000).toISOString();
-    const umaHoraAtras = new Date(agora - 3_600_000).toISOString();
+    //
+    // [A-02] Antes daqui havia três SELECT de contagem e, lá embaixo, depois da
+    // resposta da IA, um INSERT sem await. Entre a contagem e o INSERT existia
+    // uma janela em que N requisições simultâneas liam o mesmo contador e se
+    // aprovavam todas juntas — N chamadas de IA pagas onde cabia uma.
+    //
+    // Agora "conferir o limite" e "reservar a vaga" são uma operação só, feita
+    // dentro do Postgres e serializada por advisory lock. Duas requisições
+    // simultâneas não conseguem mais observar o mesmo estado.
+    // Ver supabase-seguranca-09-rate-limit-chat.sql.
+    const { data: cotaBruta, error: erroCota } = await supabase.rpc('consumir_cota_chat', {
+      p_ip: ipChamador,
+      p_sessao_id: sessaoId,
+      p_pergunta: mensagemUsuario,
+      p_limite_minuto: LIMITE_MENSAGENS_POR_MINUTO,
+      p_limite_hora: LIMITE_MENSAGENS_POR_HORA,
+      p_limite_global: LIMITE_GLOBAL_POR_HORA,
+    });
 
-    const [porMinuto, porHora, globalHora] = await Promise.all([
-      supabase.from('ia_mensagens').select('id', { count: 'exact', head: true })
-        .eq('ip', ipChamador).gte('created_at', umMinutoAtras),
-      supabase.from('ia_mensagens').select('id', { count: 'exact', head: true })
-        .eq('ip', ipChamador).gte('created_at', umaHoraAtras),
-      supabase.from('ia_mensagens').select('id', { count: 'exact', head: true })
-        .gte('created_at', umaHoraAtras),
-    ]);
+    const cota = Array.isArray(cotaBruta) ? cotaBruta[0] : cotaBruta;
 
-    const excedeu =
-      (porMinuto.count ?? 0) >= LIMITE_MENSAGENS_POR_MINUTO ||
-      (porHora.count ?? 0) >= LIMITE_MENSAGENS_POR_HORA;
+    // Na dúvida, bloqueia. Se o limitador não respondeu, não há como saber se
+    // ainda existe orçamento — e liberar seria exatamente o modo de falha que
+    // deixa o custo escapar. O texto devolvido é um dos que o visitante já
+    // podia receber antes, então nada muda do lado de fora.
+    if (erroCota || !cota) {
+      console.error('Falha ao consumir a cota do assistente:', erroCota?.message ?? 'resposta vazia');
+      return resposta(req, { reply: MENSAGEM_MUITA_DEMANDA });
+    }
 
-    if (excedeu) {
-      return resposta(req, {
-        reply: 'Você enviou várias mensagens muito rápido. Aguarde um instante e tente novamente, ou fale direto pelo WhatsApp: +55 11 99598-7197.',
-      });
+    if (cota.resultado === 'limite_ip') {
+      return resposta(req, { reply: MENSAGEM_RAPIDO_DEMAIS });
     }
 
     // Freio de custo do projeto: protege contra abuso distribuído por muitos IPs,
     // que o limite por IP sozinho não pega.
-    if ((globalHora.count ?? 0) >= LIMITE_GLOBAL_POR_HORA) {
-      console.error(`Limite global do assistente atingido: ${globalHora.count} mensagens na última hora.`);
-      return resposta(req, {
-        reply: 'O assistente está com muita demanda no momento. Fale com a gente pelo WhatsApp: +55 11 99598-7197.',
-      });
+    if (cota.resultado === 'limite_global') {
+      console.error(`Limite global do assistente atingido: ${cota.global_hora} mensagens na última hora.`);
+      return resposta(req, { reply: MENSAGEM_MUITA_DEMANDA });
     }
 
     const provider = (Deno.env.get('AI_PROVIDER') || 'anthropic').toLowerCase();
@@ -221,14 +238,12 @@ Deno.serve(async (req: Request) => {
       maxTokens: MAX_TOKENS_RESPOSTA,
     });
 
-    // Estatística de uso — não guarda nenhum dado pessoal do visitante.
-    supabase
-      .from('ia_mensagens')
-      .insert({ sessao_id: sessaoId, pergunta: mensagemUsuario, ip: ipChamador })
-      .then(({ error }) => {
-        if (error) console.error('Falha ao registrar estatística da IA:', error.message);
-      });
-
+    // A estatística de uso já foi gravada por consumir_cota_chat, junto com a
+    // reserva da vaga — é a mesma linha de sempre (sessao_id, pergunta, ip), só
+    // que registrada ANTES da chamada de IA em vez de depois. Não há mais nada
+    // a inserir aqui, e é justamente por isso que a race condition acabou: não
+    // existe mais um segundo momento de escrita para as requisições
+    // simultâneas se atropelarem.
     return resposta(req, { reply: textoResposta, sessionId: sessaoId });
   } catch (erro) {
     console.error('Erro no chat-agent:', erro);

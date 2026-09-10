@@ -16,8 +16,8 @@ html {
    Prêmio). Fica num lugar só: para trocar a fonte das duas páginas, mude aqui
    e ajuste o link do Google Fonts no index.html. */
 .fonte-titulo-sorteio {
-  font-family: 'Sora', 'Inter', sans-serif;
-  letter-spacing: -0.02em;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.035em;
 }
 
 .sem-scrollbar {

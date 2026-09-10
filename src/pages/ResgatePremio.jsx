@@ -35,7 +35,9 @@ const MENSAGENS_ERRO = {
 
 const NUMERO_WHATSAPP_PADRAO = '5511995987197';
 
-const MENSAGEM_WHATSAPP_PADRAO =
+// Texto que abre no WhatsApp ao resgatar. Fica no código de propósito: no painel
+// só se troca o número, para ninguém quebrar os marcadores sem querer.
+const MENSAGEM_WHATSAPP =
   'Olá! Acabei de girar a roleta do Resgate seu Prêmio da Estude Seguro.\n\n' +
   'Nome: {{nome}}\nVoucher: {{voucher}}\nIndicado por: {{indicadoPor}}\n\n' +
   'Prêmio ganho: {{premio}}\n\nGostaria de resgatar meu prêmio.';
@@ -67,7 +69,6 @@ export default function ResgatePremio() {
   const [funcionarios, setFuncionarios] = useState([]);
   const [banners, setBanners] = useState([]);
   const [whatsappNumero, setWhatsappNumero] = useState(NUMERO_WHATSAPP_PADRAO);
-  const [whatsappMensagem, setWhatsappMensagem] = useState('');
 
   const [modalAberto, setModalAberto] = useState(null); // 'formulario' | null
   const [form, setForm] = useState(FORM_INICIAL);
@@ -82,13 +83,20 @@ export default function ResgatePremio() {
     async function carregarPagina() {
       try {
         const [premiosRes, funcionariosRes, bannersRes, configRes] = await Promise.all([
-          supabase.from('resgate_premios').select('*').eq('ativo', true).order('ordem', { ascending: true }),
+          // Só o necessário para desenhar as fatias. Peso e estoque não descem
+          // para o navegador: quem decide o prêmio é a RPC, no servidor.
+          // O filtro é apenas `ativo` — prêmio esgotado continua na roleta.
+          supabase
+            .from('resgate_premios')
+            .select('id, nome, rotulo, rotulo_secundario, ordem')
+            .eq('ativo', true)
+            .order('ordem', { ascending: true }),
           supabase.from('resgate_funcionarios').select('id, nome').eq('ativo', true).order('nome', { ascending: true }),
           supabase.from('resgate_banners').select('*').order('ordem', { ascending: true }),
           supabase
             .from('configuracoes')
             .select('chave, valor')
-            .in('chave', ['resgate_whatsapp_numero', 'resgate_whatsapp_mensagem']),
+            .in('chave', ['resgate_whatsapp_numero']),
         ]);
 
         setPremios(premiosRes.data || []);
@@ -97,7 +105,6 @@ export default function ResgatePremio() {
 
         const mapaConfig = Object.fromEntries((configRes.data || []).map((item) => [item.chave, item.valor]));
         setWhatsappNumero(mapaConfig.resgate_whatsapp_numero || NUMERO_WHATSAPP_PADRAO);
-        setWhatsappMensagem(mapaConfig.resgate_whatsapp_mensagem || '');
       } catch (erro) {
         console.error('Erro ao carregar a página Resgate seu Prêmio:', erro);
       } finally {
@@ -173,11 +180,10 @@ export default function ResgatePremio() {
   const nomeIndicador =
     funcionarios.find((funcionario) => String(funcionario.id) === String(form.funcionarioId))?.nome || '';
 
-  // Monta a conversa já preenchida com os dados do giro. O texto vem do admin;
-  // sem nada configurado, cai no modelo padrão acima.
+  // Monta a conversa já preenchida com os dados do giro.
   function linkResgatarPremio() {
     const numero = (whatsappNumero || NUMERO_WHATSAPP_PADRAO).replace(/\D/g, '');
-    const texto = (whatsappMensagem || MENSAGEM_WHATSAPP_PADRAO)
+    const texto = MENSAGEM_WHATSAPP
       .replaceAll('{{nome}}', form.nomeCompleto.trim())
       .replaceAll('{{voucher}}', form.codigo)
       .replaceAll('{{indicadoPor}}', nomeIndicador)
@@ -193,32 +199,22 @@ export default function ResgatePremio() {
 
       {/* --- SEÇÃO PRINCIPAL: fundo claro, roleta em destaque --- */}
       {/* Sem banner cadastrado o hero não renderiza, então o topo respira sozinho */}
-      <div className={`relative w-full overflow-hidden bg-white pb-8 ${banners.length > 0 ? 'pt-4' : 'pt-10'}`}>
+      <div className={`relative w-full overflow-hidden bg-white pb-8 ${banners.length > 0 ? 'pt-12 md:pt-16' : 'pt-14 md:pt-20'}`}>
         {/* Brilho suave e claro, só para dar um respiro atrás do conjunto */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(254,209,6,0.10)_0%,transparent_60%)] pointer-events-none" />
 
         <div className="relative max-w-6xl mx-auto px-6" style={{ fontFamily: "'Inter', sans-serif" }}>
           {/* Título centralizado */}
-          <div className="flex flex-col items-center text-center mb-12">
-            <div className="relative z-10 inline-flex items-center gap-1.5 bg-[#fffbe6] border border-[#fed106]/50 rounded-full px-4 py-1.5 mb-4">
-              <TicketIcon className="w-3.5 h-3.5 text-[#8a6d00]" />
-              <span className="text-[11px] font-black uppercase tracking-wide text-[#8a6d00]">Somente com voucher</span>
-            </div>
-
-            <h1
-              className="fonte-titulo-sorteio relative z-10 text-3xl md:text-5xl font-extrabold text-[#000000] leading-[1.2] mb-4 px-2"
-            >
-              <span className="block">Resgate seu prêmio na</span>
-              <span className="block">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#fed106] to-[#000000]">
-                  Estude Seguro
-                </span>
-              </span>
+          <div className="flex flex-col items-center text-center mb-16 md:mb-24">
+            <h1 className="fonte-titulo-sorteio relative z-10 text-3xl md:text-5xl font-black text-[#000000] leading-[1.2] mb-4 px-2">
+              Roleta de Prêmios
             </h1>
 
-            <p className="relative z-10 text-xs md:text-sm text-gray-500 font-medium leading-relaxed max-w-xl">
-              Foi indicado por alguém da Estude Seguro? Use o código que você recebeu para girar a roleta e garantir seu
-              benefício exclusivo.
+            {/* max-w-lg segura a quebra em duas linhas, com "sua recompensa!"
+                sozinho na segunda — como no layout de referência. */}
+            <p className="relative z-10 text-base text-gray-600 font-medium leading-relaxed max-w-lg">
+              Você votou na <span className="font-bold text-gray-800">Estude Seguro</span>. Agora é hora de girar e
+              descobrir sua recompensa!
             </p>
           </div>
 
