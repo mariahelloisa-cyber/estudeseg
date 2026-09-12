@@ -207,10 +207,10 @@ export default function Sobre() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
           
-          {/* LADO ESQUERDO: TEXTOS */}
+          
           <div className="flex flex-col lg:col-span-5 text-[##ffeea0]">
             
-            {/* Título com Barra Lateral e Letra em Degradê */}
+           
             <div className="flex items-center gap-4 mb-8">
               <div className="w-[5px] h-14 bg-gradient-to-b from-[#fed106] to-[#6366f1] rounded-full"></div>
               <h2 className="text-4xl md:text-5xl font-black tracking-tight flex flex-wrap gap-x-3">
@@ -301,8 +301,8 @@ A Estude Seguro é mais do que uma plataforma: <strong className="text-gray-900 
               </div>
             ))}
           </div>
-        </div>
-      </div>
+        </div> 
+      </div> 
 
       {/* 2.5 SEÇÃO HISTÓRIA CINEMATOGRÁFICA — capelo flutuante acompanhando o scroll */}
       <HistoriaCinematica />
