@@ -29,6 +29,7 @@ import {
   Square3Stack3DIcon,
   TrophyIcon,
   EyeIcon,
+  EyeSlashIcon,
   ArrowUpIcon,
   ArrowDownIcon,
   TicketIcon,
@@ -2716,7 +2717,7 @@ export default function Admin() {
   }
 
   async function handleEliminarCurso(id) {
-    if (!window.confirm("Tem a certeza que quer eliminar este curso?")) return;
+    if (!window.confirm("Tem a certeza que quer eliminar este curso? Essa ação é permanente — para tirá-lo do site sem apagar, use \"Desativar\".")) return;
     try {
       const { error } = await supabase.from('cursos_cadastrados').delete().eq('id', id);
       if (error) throw error;
@@ -2725,6 +2726,17 @@ export default function Admin() {
     } catch (err) {
       console.error(err);
       alert("❌ Não foi possível eliminar o curso. Tente novamente.");
+    }
+  }
+
+  async function handleAlternarAtivoCurso(curso) {
+    try {
+      const { error } = await supabase.from('cursos_cadastrados').update({ ativo: !curso.ativo }).eq('id', curso.id);
+      if (error) throw error;
+      buscarCursosAdmin();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível atualizar o status do curso. Tente novamente.");
     }
   }
 
@@ -3311,13 +3323,18 @@ export default function Admin() {
                   return (
                     <div className="max-h-[42rem] overflow-y-auto divide-y divide-gray-100">
                       {cursosFiltradosAdmin.map((curso) => (
-                        <div key={curso.id} className="flex items-center gap-4 py-4 first:pt-0">
+                        <div key={curso.id} className={`flex items-center gap-4 py-4 first:pt-0 ${curso.ativo === false ? 'opacity-50' : ''}`}>
                           <img src={curso.imagem_url} alt="" className="w-14 h-14 object-cover rounded-lg bg-gray-100 shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-gray-800 truncate flex items-center gap-1.5">
                               {curso.titulo}
                             </p>
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                              {curso.ativo === false && (
+                                <span className="text-[10px] font-extrabold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
+                                  Inativo
+                                </span>
+                              )}
                               <span className="text-[10px] font-extrabold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
                                 {curso.categorias_cursos?.nome || 'Sem categoria'}
                               </span>
@@ -3339,6 +3356,14 @@ export default function Admin() {
                               className="bg-blue-600 hover:bg-blue-700 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer"
                             >
                               <PencilIcon className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleAlternarAtivoCurso(curso)}
+                              aria-label={curso.ativo === false ? 'Ativar curso' : 'Desativar curso'}
+                              title={curso.ativo === false ? 'Ativar curso' : 'Desativar curso'}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs cursor-pointer ${curso.ativo === false ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-600'}`}
+                            >
+                              {curso.ativo === false ? <EyeIcon className="w-3.5 h-3.5" /> : <EyeSlashIcon className="w-3.5 h-3.5" />}
                             </button>
                             <button
                               onClick={() => handleEliminarCurso(curso.id)}

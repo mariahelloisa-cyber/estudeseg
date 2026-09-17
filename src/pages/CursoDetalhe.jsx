@@ -341,6 +341,7 @@ export default function CursoDetalhe() {
           .from('cursos_cadastrados')
           .select('*, categorias_cursos(nome)')
           .eq('id', id)
+          .eq('ativo', true)
           .single();
 
         if (error || !data) throw new Error('Curso não encontrado');
@@ -362,6 +363,7 @@ export default function CursoDetalhe() {
         .from('cursos_cadastrados')
         .select('*')
         .neq('id', curso.id)
+        .eq('ativo', true)
         .order('created_at', { ascending: false })
         .limit(4);
       if (!error) setCursosRelacionados(data || []);

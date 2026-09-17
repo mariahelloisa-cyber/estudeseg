@@ -43,6 +43,7 @@ export async function buscarCursosRelacionados(supabase: SupabaseClient, mensage
     const { data, error } = await supabase
       .from('cursos_cadastrados')
       .select('titulo, preco, preco_original, duracao, modalidade, categorias_cursos(nome)')
+      .eq('ativo', true)
       .or(filtro)
       .limit(MAXIMO_CURSOS_RETORNADOS);
 

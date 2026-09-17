@@ -43,7 +43,7 @@ export default function ListaCursos() {
     async function buscarCursosCadastrados() {
       try {
         const [{ data: cursos, error: erroCursos }, { data: categorias, error: erroCategorias }] = await Promise.all([
-          supabase.from('cursos_cadastrados').select('*, categorias_cursos(nome)'),
+          supabase.from('cursos_cadastrados').select('*, categorias_cursos(nome)').eq('ativo', true),
           supabase.from('categorias_cursos').select('*').order('nome', { ascending: true }),
         ]);
 

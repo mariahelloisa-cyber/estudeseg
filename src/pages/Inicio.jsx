@@ -373,6 +373,7 @@ export default function Inicio() {
           .from('cursos_cadastrados')
           .select('*, categorias_cursos(nome)')
           .eq('destaque', true)
+          .eq('ativo', true)
           .order('created_at', { ascending: false })
           .limit(MAX_CURSOS_DESTAQUE);
 
@@ -444,6 +445,7 @@ export default function Inicio() {
           .from('cursos_cadastrados')
           .select('*, categorias_cursos(nome)')
           .eq('mais_vendido', true)
+          .eq('ativo', true)
           .order('created_at', { ascending: false })
           .limit(MAX_CURSOS_MAIS_VENDIDOS);
 
@@ -495,6 +497,7 @@ export default function Inicio() {
           .from('cursos_cadastrados')
           .select('*, categorias_cursos(nome)')
           .not('grupo_home', 'is', null)
+          .eq('ativo', true)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
