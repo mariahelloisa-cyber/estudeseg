@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import logo from '../assets/logo-estud.png';
-import { useCartStore } from '../store/cartStore';
 import { supabase } from '../supabaseClient';
 
 const LINKS = [
@@ -38,8 +37,6 @@ function estaAcontecendo(sorteio) {
 const ehLinkExterno = (link) => /^https?:\/\//i.test(link || '');
 
 export default function Navbar() {
-  const carrinho = useCartStore((state) => state.carrinho);
-  const setCarrinhoAberto = useCartStore((state) => state.setCarrinhoAberto);
   const [menuAberto, setMenuAberto] = useState(false);
   const [sorteios, setSorteios] = useState([]);
   const [sorteiosAberto, setSorteiosAberto] = useState(false);
@@ -206,7 +203,7 @@ export default function Navbar() {
               })}
             </div>
 
-            {/* Botão Matricule-se + Botão Fale Conosco + Ícone do Carrinho */}
+            {/* Botão Matricule-se + Botão Fale Conosco */}
             <div className="flex items-center gap-2 sm:gap-4">
               <div className="hidden sm:flex flex-col items-center gap-1 -translate-y-1">
                 <span className="text-[11px] text-gray-400 font-medium">Já é aluno?</span>
@@ -221,23 +218,6 @@ export default function Navbar() {
                   Fale Conosco
                 </a>
               </div>
-
-              {/* ÍCONE DO CARRINHO */}
-              <button
-                onClick={() => setCarrinhoAberto(true)}
-                className="relative p-2 text-gray-800 hover:text-black transition-colors cursor-pointer flex items-center justify-center rounded-full hover:bg-gray-100 shrink-0"
-                title="Ver meu carrinho"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-
-                {carrinho.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-[#fed106] text-white text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white shadow-xs animate-in zoom-in-50 duration-200">
-                    {carrinho.length}
-                  </span>
-                )}
-              </button>
 
               {/* ÍCONE DO FAQ */}
               <Link

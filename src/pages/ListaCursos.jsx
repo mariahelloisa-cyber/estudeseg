@@ -4,9 +4,7 @@ import CursoCardNovo from '../components/CursoCardNovo';
 import { listaCursosGiga } from './cursosData';
 import { GRUPOS_HOME_CURSO } from '../utils/gruposHomeCurso';
 import imagemFundo from '../assets/imghero.png';
-import { useCartStore } from '../store/cartStore';
 import { supabase } from '../supabaseClient';
-import CarrinhoSidebar from '../components/CarrinhoSidebar';// <-- ADICIONE ESTA LINHA AQUI
 
 // Nome da categoria (cadastrada no admin) que corresponde visualmente a cada grupo da Home,
 // só para destacar a aba certa quando se chega em /cursos?grupo=... — a filtragem em si usa
@@ -34,9 +32,6 @@ export default function ListaCursos() {
     : null;
   // Rótulo usado só para destacar visualmente a aba de categoria correspondente ao grupo ativo
   const rotuloPillAtivo = grupoHomeInfo ? CATEGORIA_PILL_POR_GRUPO[grupoHomeInfo.chave] || null : categoriaSelecionada;
-  const adicionarAoCarrinho = useCartStore((state) => state.adicionarAoCarrinho);
-  const carrinho = useCartStore((state) => state.carrinho);
-  const setCarrinhoAberto = useCartStore((state) => state.setCarrinhoAberto);
 
   // --- Cursos cadastrados pelo admin (Supabase), exibidos em cards, acima da lista antiga ---
   const [cursosCadastrados, setCursosCadastrados] = useState([]);
@@ -446,23 +441,20 @@ export default function ListaCursos() {
                         R$ {precoItem.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
 
-                      {/* Botão de Compra Retangular Amerelo */}
-                       <button
-                        onClick={() => adicionarAoCarrinho({
-                        id: curso.id,
-                        titulo: nomeItem,
-                        preco: precoItem,
-                        horas: horasItem
-                      })}
-                      className="bg-[#fed106] hover:bg-[#000000] text-white px-4 py-2 rounded font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm active:scale-95"
+                      {/* Botão Matricule-se: encaminha direto para o WhatsApp */}
+                       <a
+                        href={`https://wa.me/5511995987197?text=${encodeURIComponent(`Olá! Tenho interesse em me matricular no curso "${nomeItem}".`)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="bg-[#fed106] hover:bg-[#000000] text-white px-4 py-2 rounded font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm active:scale-95"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                       <span className="text-[11px] font-extrabold uppercase tracking-wider">
-                        COMPRAR
+                        MATRICULE-SE
                       </span>
-                    </button>
+                    </a>
                   </div>
                 </div>
               );

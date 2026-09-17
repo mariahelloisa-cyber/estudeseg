@@ -17,7 +17,6 @@ import {
 } from '@heroicons/react/24/outline';
 import Navbar from '../components/Navbar';
 import { supabase } from '../supabaseClient';
-import { useCartStore } from '../store/cartStore';
 import { parseGradeCurricular } from '../utils/gradeCurricular';
 import { parseBlocosConteudo } from '../utils/blocosConteudo';
 import imagemFundoHero from '../assets/imghero.png';
@@ -26,17 +25,17 @@ const BENEFICIOS = [
   {
     Icon: VideoCameraIcon,
     titulo: 'Videoaulas',
-    descricao: 'E apostilas para você estudar onde e quando quiser.',
+    descricao: 'E apostilas digitais para você estudar onde e quando quiser.',
   },
   {
     Icon: LifebuoyIcon,
     titulo: 'Tutoria',
-    descricao: 'Para sanar todas as dúvidas durante o curso.',
+    descricao: 'Suporte com especialistas para tirar todas as suas dúvidas.',
   },
   {
     Icon: ShieldCheckIcon,
     titulo: 'Diploma',
-    descricao: 'Certificado digital ao concluir o curso.',
+    descricao: 'Documento oficial que habilita os concluintes a exercer uma profissão.',
   },
 ];
 
@@ -201,7 +200,7 @@ function CursoRelacionadoCard({ curso }) {
 }
 
 // --- Card de compra/inscrição: fica sticky ao lado do conteúdo no desktop ---
-function CardCompra({ curso, precoAtual, precoOriginal, valorParcela, percentualDesconto, onComprar }) {
+function CardCompra({ curso, precoAtual, precoOriginal, valorParcela, percentualDesconto }) {
   const [modalEmendaAberto, setModalEmendaAberto] = useState(false);
   const [aceiteWhatsapp, setAceiteWhatsapp] = useState(false);
 
@@ -258,12 +257,14 @@ function CardCompra({ curso, precoAtual, precoOriginal, valorParcela, percentual
           </p>
         )}
 
-        <button
-          onClick={onComprar}
-          className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black py-4 rounded-full font-black uppercase tracking-wider text-sm transition-all active:scale-[0.98] cursor-pointer shadow-lg"
+        <a
+          href={`https://wa.me/5511995987197?text=${encodeURIComponent(`Olá! Tenho interesse em me matricular no curso "${curso.titulo}".`)}`}
+          target="_blank"
+          rel="noreferrer"
+          className="w-full bg-[#fed106] hover:bg-black hover:text-white text-black py-4 rounded-full font-black uppercase tracking-wider text-sm transition-all active:scale-[0.98] cursor-pointer shadow-lg flex items-center justify-center"
         >
-          Comprar
-        </button>
+          Matricule-se
+        </a>
 
         {curso.ementa_pdf_url && (
           <button
@@ -325,7 +326,6 @@ function CardCompra({ curso, precoAtual, precoOriginal, valorParcela, percentual
 
 export default function CursoDetalhe() {
   const { id } = useParams();
-  const adicionarAoCarrinho = useCartStore((state) => state.adicionarAoCarrinho);
 
   const [curso, setCurso] = useState(null);
   const [carregando, setCarregando] = useState(true);
@@ -387,16 +387,6 @@ export default function CursoDetalhe() {
   function alternarSemestre(indice) {
     setSemestresAbertos((prev) => ({ ...prev, [indice]: !prev[indice] }));
   }
-
-  const handleComprar = () => {
-    if (!curso) return;
-    adicionarAoCarrinho({
-      id: `curso-admin-${curso.id}`,
-      titulo: curso.titulo,
-      preco: curso.preco || 0,
-      horas: curso.carga_horaria || '',
-    });
-  };
 
   if (carregando) {
     return (
@@ -480,7 +470,6 @@ export default function CursoDetalhe() {
               precoOriginal={precoOriginal}
               valorParcela={valorParcela}
               percentualDesconto={percentualDesconto}
-              onComprar={handleComprar}
             />
           </div>
         </div>

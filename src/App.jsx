@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 
 // Importação dos componentes globais
 import Footer from './components/Footer';
-import CarrinhoSidebar from './components/CarrinhoSidebar';
 import PopupAvisos from './components/PopupAvisos';
 import ChatWidget from './components/ChatWidget';
 import MetaPixel from './components/MetaPixel';
@@ -17,7 +16,6 @@ import Sobre from './pages/sobre';
 import ListaCursos from './pages/ListaCursos';
 import CursoDetalhe from './pages/CursoDetalhe';
 import Depoimentos from './pages/Depoimentos';
-import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Admin from './pages/admin';
 import Aproveitamento from './pages/Aproveitamento';
@@ -32,8 +30,6 @@ function LayoutGlobal() {
 
   return (
     <>
-      {!paginaSemLayoutPublico && <CarrinhoSidebar />}
-
       <Routes>
         <Route path="/" element={<Inicio />} />
         <Route path="/blog" element={<Blog />} />
@@ -46,7 +42,6 @@ function LayoutGlobal() {
         <Route path="/cursos" element={<ListaCursos />} />
         <Route path="/cursos/:id" element={<CursoDetalhe />} />
         <Route path="/depoimentos" element={<Depoimentos />} />
-        <Route path="/checkout" element={<Checkout />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/aproveitamento" element={<Aproveitamento />} />
@@ -55,7 +50,7 @@ function LayoutGlobal() {
         <Route path="/resgate-premio" element={<ResgatePremio />} />
       </Routes>
 
-      {/* O Footer, o carrinho e o WhatsApp só aparecem nas páginas públicas, não no login/admin */}
+      {/* O Footer e o WhatsApp só aparecem nas páginas públicas, não no login/admin */}
       {!paginaSemLayoutPublico && <Footer />}
       {!paginaSemLayoutPublico && <PopupAvisos />}
       {!paginaSemLayoutPublico && <ChatWidget />}
