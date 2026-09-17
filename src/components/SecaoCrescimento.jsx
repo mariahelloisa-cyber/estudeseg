@@ -56,7 +56,7 @@ export default function SecaoCrescimento() {
             className="md:order-1"
             revelado={mesRevelado}
             rotulo="PRIMEIRO MÊS"
-            numeroAlvo={1000}
+            numeroAlvo={500}
             categoria="Primeiro grande marco"
             texto="Nos primeiros 30 dias, já tínhamos alunos confiando na Estude Seguro para começar sua jornada com segurança."
           />
@@ -65,7 +65,7 @@ export default function SecaoCrescimento() {
             className="md:order-3"
             revelado={semestreRevelado}
             rotulo="PRIMEIRO SEMESTRE"
-            numeroAlvo={6000}
+            numeroAlvo={3000}
             categoria="Consolidação da marca"
             texto="Em seis meses, a base de alunos multiplicou por seis, consolidando a marca como referência em matrículas seguras."
           />
@@ -75,7 +75,7 @@ export default function SecaoCrescimento() {
             revelado={hojeRevelado}
             destaque
             rotulo="HOJE"
-            numeroAlvo={72000}
+            numeroAlvo={40000}
             prefixoNumero="+"
             categoria="Crescimento"
             texto="Mais de 72 mil estudantes já confiaram na Estude Seguro para transformar suas carreiras com segurança e credibilidade."

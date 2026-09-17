@@ -17,7 +17,7 @@ import fotoYoutube from '../assets/youtube.png';
 import fotoReclameAqui from '../assets/reclameaqui.png';
 import fotoGoogleMeuNegocio from '../assets/google-meu-negocio.png';
 
-const VIDEO_YOUTUBE_ID = 'TC22MoAlzwM';
+const VIDEO_YOUTUBE_ID = 'nnmx4CTwK1s';
 
 const SELOS = [
   { nome: 'Selo 1', imagem: selo1 },
@@ -228,12 +228,12 @@ export default function Sobre() {
 
               </p>
               <p>
-                Somos <strong className="text-gray-900 font-bold">intermediadores oficiais</strong> entre alunos e instituições de ensino credenciadas, garantindo que todo o processo — da matrícula até a certificação — aconteça com total segurança e respaldo jurídico.
+                Somos <strong className="text-gray-900 font-bold">intermediadores oficiais</strong> entre alunos e instituições de ensino credenciadas, garantindo que todo o processo da matrícula até a certificação aconteça com total segurança e respaldo jurídico.
 Aqui, <strong className="text-gray-900 font-bold">não trabalhamos com vendedores</strong>, mas sim com <strong className="text-gray-900 font-bold">consultores educacionais especializados</strong>, capacitados para esclarecer todas as suas dúvidas e orientá-lo de acordo com a  <strong className="text-gray-900 font-bold">legislação educacional vigente.</strong>
               </p>
               <p>
                 Você pode <strong className="text-gray-900 font-bold">nos visitar</strong> ou <strong className="text-gray-900 font-bold">entrar em contato</strong> pelos nossos canais oficiais.
-A Estude Seguro é mais do que uma plataforma — <strong className="text-gray-900 font-bold">é a sua garantia de estudar com confiança.</strong>
+A Estude Seguro é mais do que uma plataforma: <strong className="text-gray-900 font-bold">é a sua garantia de estudar com confiança.</strong>
 
               </p>
             </div>

@@ -409,8 +409,7 @@ export default function ListaCursos() {
               cursosFiltrados.map((curso, index) => {
                 const nomeItem = curso.nome || curso.titulo || "Curso sem nome";
                 const precoItem = curso.preco || 0;
-                const horasItem = curso.horas || curso.duracao || "N/A";
-                
+
                 // Exibe o ID do curso vindo do banco ou gera uma numeração sequencial
                 const numeroFormatado = curso.id || String(index + 1).padStart(2, '0');
 
@@ -430,12 +429,6 @@ export default function ListaCursos() {
                     </div>
                     {/* Lado Direito: Horas, Preço e Ação */}
                     <div className="flex items-center justify-between w-full md:w-auto md:gap-8 ml-0 md:ml-6 shrink-0">
-                      
-                      {/* Badge das Horas (Roxo claro) */}
-                      <span className="text-[#000000] font-bold text-[10px] bg-[#fed106] px-2.5 py-1 rounded whitespace-nowrap">
-                        {typeof horasItem === 'number' ? `${horasItem}H` : String(horasItem).toUpperCase()}
-                      </span>
-
                       {/* Preço em Azul Escuro */}
                       <span className="text-[#000000] font-extrabold text-sm md:text-base whitespace-nowrap min-w-[90px] text-right">
                         R$ {precoItem.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

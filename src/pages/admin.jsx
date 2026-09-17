@@ -3309,12 +3309,14 @@ export default function Admin() {
                   </div>
                 ) : (() => {
                   const termoBusca = buscaCursoAdmin.trim().toLowerCase();
-                  const cursosFiltradosAdmin = cursosAdmin.filter((curso) => {
-                    const combinaBusca = !termoBusca || (curso.titulo || '').toLowerCase().includes(termoBusca);
-                    const combinaCategoria = !filtroCategoriaCursoAdmin
-                      || (filtroCategoriaCursoAdmin === 'sem-categoria' ? !curso.categoria_id : String(curso.categoria_id) === filtroCategoriaCursoAdmin);
-                    return combinaBusca && combinaCategoria;
-                  });
+                  const cursosFiltradosAdmin = cursosAdmin
+                    .filter((curso) => {
+                      const combinaBusca = !termoBusca || (curso.titulo || '').toLowerCase().includes(termoBusca);
+                      const combinaCategoria = !filtroCategoriaCursoAdmin
+                        || (filtroCategoriaCursoAdmin === 'sem-categoria' ? !curso.categoria_id : String(curso.categoria_id) === filtroCategoriaCursoAdmin);
+                      return combinaBusca && combinaCategoria;
+                    })
+                    .sort((a, b) => (a.ativo === false ? 1 : 0) - (b.ativo === false ? 1 : 0));
 
                   if (cursosFiltradosAdmin.length === 0) {
                     return <p className="text-sm text-gray-400 text-center py-12">Nenhum curso corresponde à busca.</p>;

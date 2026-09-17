@@ -14,7 +14,8 @@ const LINKS = [
   // Desativado temporariamente — reativar quando as páginas entrarem no ar
   // { to: '/vagas', label: 'Vagas' },
   // { to: '/ouvidoria', label: 'Ouvidoria' },
-  { to: '/validacaoRastreio', label: 'Consulte sua tragetória' },
+  // Oculto do site por enquanto — página e rota continuam existindo, só o link do menu foi retirado.
+  // { to: '/validacaoRastreio', label: 'Consulte sua tragetória' },
 ];
 
 // Data de hoje como 'AAAA-MM-DD' (fuso do visitante), para comparar com as

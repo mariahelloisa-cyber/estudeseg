@@ -47,7 +47,7 @@ const MARCOS = [
     titulo: 'Um projeto que ganhou força',
     texto: (
       <>
-        A proposta chamou a atenção de pessoas que acreditam na educação como ferramenta de transformação. Foi nesse momento que <Destaque>Geraldo Luís</Destaque> tornou-se <Destaque>embaixador da Estude Seguro</Destaque>, fortalecendo a missão de levar segurança e credibilidade para milhares de estudantes em todo o Brasil.
+        A proposta chamou a atenção de pessoas que acreditam na educação como ferramenta de transformação, fortalecendo a missão da <Destaque>Estude Seguro</Destaque> de levar segurança e credibilidade para milhares de estudantes em todo o Brasil.
       </>
     ),
   },
