@@ -2211,9 +2211,15 @@ export default function Admin() {
     e.preventDefault();
     const arquivoInput = document.getElementById('capa-depoimento');
     const arquivo = arquivoInput?.files[0];
+    const arquivoVideoInput = document.getElementById('video-depoimento');
+    const arquivoVideo = arquivoVideoInput?.files[0];
 
-    if (!novoNomeAluno.trim() || !novoVideoUrl.trim()) {
-      setMensagemStatus("⚠️ Nome do aluno e URL do vídeo são obrigatórios!");
+    if (!novoNomeAluno.trim()) {
+      setMensagemStatus("⚠️ Nome do aluno é obrigatório!");
+      return;
+    }
+    if (!novoVideoUrl.trim() && !arquivoVideo) {
+      setMensagemStatus("⚠️ Informe o link do YouTube ou envie um arquivo de vídeo!");
       return;
     }
     if (!arquivo) {
@@ -2223,7 +2229,8 @@ export default function Admin() {
 
     try {
       validarImagem(arquivo);
-      setMensagemStatus("⏳ Guardando depoimento e fazendo upload da capa...");
+      if (arquivoVideo) validarVideo(arquivoVideo);
+      setMensagemStatus("⏳ Guardando depoimento e fazendo upload dos arquivos...");
       const nomeArquivo = `depoimento-${sanitizarNomeArquivo(arquivo.name)}`;
 
       const { error: uploadError } = await supabase.storage
@@ -2236,11 +2243,22 @@ export default function Admin() {
         .from('banners')
         .getPublicUrl(nomeArquivo);
 
+      // Um arquivo de vídeo enviado aqui sempre vence o link digitado — evita o card
+      // ficar com os dois preenchidos e o link do YouTube ser usado por engano.
+      let videoUrlFinal = novoVideoUrl;
+      if (arquivoVideo) {
+        const nomeArquivoVideo = `depoimento-video-${sanitizarNomeArquivo(arquivoVideo.name)}`;
+        const { error: uploadVideoError } = await supabase.storage.from('banners').upload(nomeArquivoVideo, arquivoVideo);
+        if (uploadVideoError) throw uploadVideoError;
+        const { data: urlVideoData } = supabase.storage.from('banners').getPublicUrl(nomeArquivoVideo);
+        videoUrlFinal = urlVideoData.publicUrl;
+      }
+
       const { error: insertError } = await supabase.from('depoimentos').insert([
         {
           nome: novoNomeAluno,
           instagram: novoInstagram,
-          video_url: novoVideoUrl,
+          video_url: videoUrlFinal,
           whatsapp: novoWhatsapp,
           foto_url: urlData.publicUrl
         }
@@ -2254,10 +2272,11 @@ export default function Admin() {
       setNovoVideoUrl("");
       setNovoWhatsapp("");
       if (arquivoInput) arquivoInput.value = "";
+      if (arquivoVideoInput) arquivoVideoInput.value = "";
       buscarDepoimentosDoSupabase();
     } catch (err) {
       console.error(err);
-      setMensagemStatus("❌ Não foi possível salvar o depoimento. Tente novamente.");
+      setMensagemStatus(`❌ ${err.message || 'Não foi possível salvar o depoimento. Tente novamente.'}`);
     }
   }
 
@@ -2282,9 +2301,15 @@ export default function Admin() {
   // Função para Salvar Edição de Depoimento
   async function handleSalvarEdicaoDepoimento(e) {
     e.preventDefault();
+    const arquivoVideoInput = document.getElementById('video-depoimento-edit');
+    const arquivoVideo = arquivoVideoInput?.files[0];
 
-    if (!editNomeAluno.trim() || !editVideoUrl.trim()) {
-      setMensagemStatus("⚠️ Nome do aluno e URL do vídeo são obrigatórios!");
+    if (!editNomeAluno.trim()) {
+      setMensagemStatus("⚠️ Nome do aluno é obrigatório!");
+      return;
+    }
+    if (!editVideoUrl.trim() && !arquivoVideo) {
+      setMensagemStatus("⚠️ Informe o link do YouTube ou envie um arquivo de vídeo!");
       return;
     }
 
@@ -2309,6 +2334,16 @@ export default function Admin() {
         dadosAtualizados.foto_url = urlData.publicUrl;
       }
 
+      // Mesma regra do cadastro: um arquivo novo aqui sempre vence o link digitado.
+      if (arquivoVideo) {
+        validarVideo(arquivoVideo);
+        const nomeArquivoVideo = `depoimento-video-${sanitizarNomeArquivo(arquivoVideo.name)}`;
+        const { error: uploadVideoError } = await supabase.storage.from('banners').upload(nomeArquivoVideo, arquivoVideo);
+        if (uploadVideoError) throw uploadVideoError;
+        const { data: urlVideoData } = supabase.storage.from('banners').getPublicUrl(nomeArquivoVideo);
+        dadosAtualizados.video_url = urlVideoData.publicUrl;
+      }
+
       const { error: updateError } = await supabase
         .from('depoimentos')
         .update(dadosAtualizados)
@@ -2319,10 +2354,11 @@ export default function Admin() {
       setMensagemStatus("✅ Depoimento atualizado com sucesso!");
       cancelarEdicaoDepoimento();
       if (arquivoInput) arquivoInput.value = "";
+      if (arquivoVideoInput) arquivoVideoInput.value = "";
       buscarDepoimentosDoSupabase();
     } catch (err) {
       console.error(err);
-      setMensagemStatus("❌ Não foi possível atualizar o depoimento. Tente novamente.");
+      setMensagemStatus(`❌ ${err.message || 'Não foi possível atualizar o depoimento. Tente novamente.'}`);
     }
   }
 
@@ -5509,7 +5545,7 @@ export default function Admin() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Link do Vídeo (YouTube/Drive)</label>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">Link do Vídeo (YouTube)</label>
                       <input
                         type="text"
                         value={depoimentoEditando ? editVideoUrl : novoVideoUrl}
@@ -5517,6 +5553,23 @@ export default function Admin() {
                         placeholder="https://youtube.com/..."
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-[#fed106]"
                       />
+                      <p className="text-[11px] text-gray-400 font-medium mt-1">
+                        Preencha só se o vídeo estiver no YouTube. Se for enviar o arquivo abaixo, deixe em branco.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">
+                        {depoimentoEditando ? "Novo Arquivo de Vídeo (Opcional)" : "Ou Envie o Arquivo de Vídeo (Do PC)"}
+                      </label>
+                      <input
+                        type="file"
+                        id={depoimentoEditando ? "video-depoimento-edit" : "video-depoimento"}
+                        accept="video/mp4,video/webm,video/quicktime"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-700 file:bg-[#fed106] file:text-black file:border-0 file:rounded-full file:px-3 file:py-1 file:text-xs file:font-bold cursor-pointer"
+                      />
+                      <p className="text-[11px] text-gray-400 font-medium mt-1">
+                        Recomendado: toca sozinho já no primeiro clique no site. Se enviar um arquivo aqui, ele substitui o link do YouTube acima. Máx. 50MB (MP4, WebM ou MOV).
+                      </p>
                     </div>
                     <div>
                       <label className="text-xs text-gray-500 font-bold block mb-1 uppercase">WhatsApp (Opcional)</label>

@@ -98,10 +98,9 @@ function CardDepoimento({ item, compacto, tocando, onClicar, alturaClasse }) {
         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#fed106]"></div>
         </div>
-        {infoVideo.tipo === 'drive' ? (
-          // <video> nativo: o próprio clique que abriu o card já conta como gesto do
-          // usuário, então o navegador permite tocar com som de primeira — diferente do
-          // iframe /preview do Drive, que sempre pede um segundo clique no play dele.
+        {infoVideo.tipo === 'direto' ? (
+          // Arquivo de vídeo hospedado direto (upload feito no admin): <video> nativo
+          // toca de primeira, sem nenhuma das limitações do Drive/YouTube via iframe.
           <video
             key={infoVideo.src}
             src={infoVideo.src}
@@ -111,6 +110,9 @@ function CardDepoimento({ item, compacto, tocando, onClicar, alturaClasse }) {
             playsInline
           />
         ) : (
+          // YouTube (autoplay real via parâmetro de URL) e Drive (o /preview oficial
+          // dele não tem um jeito confiável de tocar sem um segundo clique — ver
+          // comentário em utils/video.js) continuam indo por <iframe>.
           <iframe
             src={infoVideo.src}
             className="relative z-10 w-full h-full"
@@ -278,7 +280,11 @@ function EsteiraDepoimentosDestaque({ itens, depoimentoReproduzindoId, setDepoim
 export default function Depoimentos() {
   const [depoimentos, setDepoimentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [depoimentoReproduzindoId, setDepoimentoReproduzindoId] = useState(null);
+  // Estados separados de propósito: os mesmos depoimentos em destaque também aparecem
+  // na lista "Todos os Depoimentos" logo abaixo, então um único estado compartilhado
+  // fazia o vídeo tocar nos dois lugares ao mesmo tempo quando o item tinha o mesmo id.
+  const [depoimentoReproduzindoIdEsteira, setDepoimentoReproduzindoIdEsteira] = useState(null);
+  const [depoimentoReproduzindoIdTodos, setDepoimentoReproduzindoIdTodos] = useState(null);
 
   useEffect(() => {
     async function buscarDepoimentos() {
@@ -383,8 +389,8 @@ export default function Depoimentos() {
             {depoimentosDestaque.length > 0 && (
               <EsteiraDepoimentosDestaque
                 itens={depoimentosDestaque}
-                depoimentoReproduzindoId={depoimentoReproduzindoId}
-                setDepoimentoReproduzindoId={setDepoimentoReproduzindoId}
+                depoimentoReproduzindoId={depoimentoReproduzindoIdEsteira}
+                setDepoimentoReproduzindoId={setDepoimentoReproduzindoIdEsteira}
               />
             )}
 
@@ -404,8 +410,8 @@ export default function Depoimentos() {
                       item={item}
                       compacto={false}
                       alturaClasse="h-[360px] md:h-[380px]"
-                      tocando={depoimentoReproduzindoId === item.id}
-                      onClicar={() => setDepoimentoReproduzindoId(item.id)}
+                      tocando={depoimentoReproduzindoIdTodos === item.id}
+                      onClicar={() => setDepoimentoReproduzindoIdTodos(item.id)}
                     />
                   </AoRolar>
                 ))}
