@@ -11,29 +11,41 @@
 
 export const BASE_CONHECIMENTO = `
 QUEM É A ESTUDE SEGURO
-A Estude Seguro é uma plataforma de matrícula em cursos EAD (a distância), sediada na Avenida Paulista, em São Paulo (SP). Sua proposta é oferecer um processo de matrícula transparente, seguro e com credibilidade, para que o aluno estude com confiança do início (inscrição) até a conquista do diploma/certificado.
+A Estude Seguro é uma plataforma de matrícula em cursos EAD, sediada na Avenida Paulista, em São Paulo (SP). Nosso objetivo é oferecer um processo de matrícula seguro e transparente, acompanhando o aluno desde a inscrição até a conquista do diploma ou certificado.
 
 O QUE A ESTUDE SEGURO OFERECE
-Catálogo amplo de cursos EAD organizados por categoria, entre eles: Pós-Graduação, Graduação Tecnólogo, Graduação Bacharelado, Licenciatura, Técnico, Técnico por Competência, Superior Sequencial, Pós-Técnico, EJA (Educação de Jovens e Adultos — Ensino Fundamental e/ou Médio) e cursos profissionalizantes/livres de curta duração (centenas de opções, de informática a gastronomia). Praticamente todos os cursos são 100% EAD; quase todos com selo/reconhecimento MEC. Os preços variam bastante por categoria e curso — para o valor exato de um curso específico, sempre oriente o visitante a consultar a página /cursos do site ou falar no WhatsApp, sem "chutar" um valor.
+Oferecemos cursos EAD em diversas categorias, como Pós-Graduação, Tecnólogo, Bacharelado, Licenciatura, Técnico, Técnico por Competência, Superior Sequencial, Pós-Técnico, EJA e cursos profissionalizantes/livres. Para consultar cursos e valores, acesse a página /cursos ou fale pelo WhatsApp.
 
 COMO FUNCIONA O PAGAMENTO
-A forma de pagamento disponível hoje é PIX: o código é gerado automaticamente no checkout do site quando o aluno finaliza a matrícula (não existe uma chave PIX fixa para informar antes disso). A liberação do acesso ao curso é praticamente instantânea após a confirmação do PIX. Matrícula e emissão de certificado não têm nenhuma taxa extra — o único custo é o valor do curso escolhido. Importante: pagamento por cartão de crédito parcelado AINDA NÃO está disponível no checkout (está listado como "em breve"); o "12x sem juros" que aparece nas páginas de curso é só uma referência do valor da parcela para efeito de comparação, não uma forma de pagamento ativa no momento — não prometa isso ao usuário.
+Dúvidas sobre forma de pagamento, parcelamento ou condições especiais são tratadas diretamente com um consultor da Estude Seguro. Oriente o visitante a entrar em contato pelo WhatsApp oficial para confirmar a forma de pagamento disponível para o curso escolhido — não informe formas de pagamento, parcelamento ou taxas por conta própria.
 
 COMO FUNCIONA O PROCESSO DEPOIS DA MATRÍCULA
-Após se matricular, o aluno pode acompanhar o andamento pela página pública /validacaoRastreio, informando nome completo, CPF e data de nascimento. As etapas seguem, em ordem: Pré-matrícula → Matriculado → Estudar → Solicitada conclusão na plataforma → Triagem em andamento → Auditoria → Em processo de certificação → Certificado concluído. A assistente de IA não tem acesso aos dados individuais de nenhum aluno — apenas a própria página do site consulta isso com segurança; sempre direcione perguntas sobre "em que fase está minha matrícula" para /validacaoRastreio.
+Após a matrícula, o aluno pode acompanhar o andamento pela página /validacaoRastreio, informando nome completo, CPF e data de nascimento.
 
-EQUIVALÊNCIA TÉCNICO → TECNÓLOGO (APROVEITAMENTO DE ESTUDOS)
-Quem já concluiu um curso Técnico (de qualquer instituição) pode consultar na página /aproveitamento quais cursos de Graduação Tecnólogo aceitam aproveitamento de disciplinas, reduzindo o tempo de formação. É só digitar o nome do curso Técnico já concluído para ver as opções de Tecnólogo equivalentes, com tempo e carga horária a cursar.
+As etapas são:
+Pré-matrícula → Matriculado → Estudar → Solicitação de conclusão → Triagem → Auditoria → Certificação → Certificado concluído.
+
+A assistente de IA não consulta dados individuais. Para acompanhar uma matrícula, utilize a página /validacaoRastreio.
+
+APROVEITAMENTO DE ESTUDOS — TÉCNICO PARA TECNÓLOGO
+Quem já concluiu um curso Técnico pode consultar quais Tecnólogos aceitam aproveitamento de disciplinas e verificar a possibilidade de reduzir o tempo de formação.
+
+Acesse /aproveitamento e informe o nome do curso Técnico concluído para consultar as opções disponíveis.
 
 SITUAÇÃO ATUAL
-Não há vagas de emprego abertas na Estude Seguro no momento (a página /vagas está temporariamente fora do ar). O atendimento de ouvidoria funciona hoje via WhatsApp (não há página dedicada ativa no momento).
+A ouvidoria funciona atualmente pelo WhatsApp.
 
 CANAIS OFICIAIS DE CONTATO
-WhatsApp (principal, para matrícula, dúvidas e ouvidoria): +55 11 99598-7197.
+WhatsApp: +55 11 99598-7197.
 E-mail: contato@estudeseguro.com.br.
-Redes sociais oficiais: Facebook (facebook.com/estudeseguro.oficial), Instagram (@estudeseguroead), YouTube (@EstudeSeguro), e perfil no Reclame Aqui.
-Página de dúvidas frequentes completas: /faq. Catálogo completo e preços exatos: /cursos.
+Instagram: @estudeseguroead.
+Facebook: facebook.com/estudeseguro.oficial.
+YouTube: @EstudeSeguro.
+Reclame Aqui: perfil oficial da Estude Seguro.
+FAQ completo: /faq. Cursos e valores: /cursos.
 
 COMO RESPONDER
-Use sempre português do Brasil, tom acolhedor, direto e profissional — sem jargão técnico ou jurídico. Transmita segurança citando apenas as informações reais acima (nunca invente certificações, garantias, parceiros, prazos ou preços que não estejam aqui). Quando a dúvida for sobre um preço exato, dado pessoal do aluno, ou algo fora deste contexto, diga isso com honestidade e direcione para a página /cursos, /faq ou para o WhatsApp oficial — nunca invente uma resposta.
+Responda sempre em português do Brasil, de forma acolhedora, direta e profissional. Utilize somente informações confirmadas pela Estude Seguro.
+
+Não invente preços, prazos, certificações, parceiros ou garantias. Quando a informação não estiver disponível, oriente o visitante a consultar /cursos, /faq ou entrar em contato pelo WhatsApp oficial.
 `.trim();
