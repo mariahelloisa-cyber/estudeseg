@@ -151,7 +151,7 @@ export default function Sobre() {
       <div className="w-full bg-[#fcfbfb] font-sans antialiased" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* 1. SEÇÃO HERO */}
-      <section className="relative w-full bg-white overflow-hidden pt-10 pb-0 md:pt-12 md:pb-0">
+      <section className="relative w-full bg-white overflow-hidden pt-10 pb-8 md:pt-12 md:pb-0">
         <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8 items-center">
           <div className="relative">
             <div className="absolute -top-7 left-0 flex items-center">
