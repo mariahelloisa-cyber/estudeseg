@@ -6,7 +6,6 @@ import Footer from '../components/Footer';
 import LinhaDivisoriaEsteira from '../components/LinhaDivisoriaEsteira';
 import RoundCarousel from '../components/RoundCarousel';
 import CursoCardNovo from '../components/CursoCardNovo';
-import { obterUrlEmbedVideo } from '../utils/video';
 import { GRUPOS_HOME_CURSO, MAX_CURSOS_POR_GRUPO_HOME } from '../utils/gruposHomeCurso';
 
 

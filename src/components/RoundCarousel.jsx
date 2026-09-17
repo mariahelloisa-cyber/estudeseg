@@ -3,10 +3,10 @@ import { useEffect, useRef } from 'react';
 // Placeholders reaproveitando fotos já existentes no site — troque pelas fotos
 // reais de alunos/formandos que quiser exibir girando no carrossel.
 import foto1 from '../assets/imghero.png';
-import foto2 from '../assets/fundo-login.png';
+import foto2 from '../assets/fundo-login.jpg';
 import foto3 from '../assets/hero.png';
-import foto4 from '../assets/estudante.png';
-import foto5 from '../assets/vagas.png';
+import foto4 from '../assets/estudante.jpg';
+import foto5 from '../assets/vagas.jpg';
 import foto6 from '../assets/fundoo.png';
 
 const IMAGENS_PADRAO = [

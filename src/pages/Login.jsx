@@ -4,7 +4,7 @@ import { UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, ShieldCheckIcon, Arrow
 import { supabase } from '../supabaseClient'; 
 
 import logoLatec from '../assets/logo-estud.png'; 
-import bgFundo from '../assets/fundo-login.png';
+import bgFundo from '../assets/fundo-login.jpg';
 
 export default function Login() {
   const navigate = useNavigate();

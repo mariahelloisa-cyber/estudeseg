@@ -4,7 +4,7 @@ import { StarIcon } from '@heroicons/react/24/solid';
 import Navbar from '../components/Navbar';
 import LinhaDivisoriaEsteira from '../components/LinhaDivisoriaEsteira';
 import { supabase } from '../supabaseClient';
-import { obterUrlEmbedVideo } from '../utils/video';
+import { obterInfoVideo } from '../utils/video';
 import videoHeroDepoimentos from '../assets/animado.mp4';
 
 function montarLinkWhatsapp(numero) {
@@ -84,27 +84,41 @@ function AoRolar({ children, className = '', delayMs = 0, direcao = 'up' }) {
 // --- Card de depoimento: foto com play (ou vídeo embutido quando tocando).
 // `compacto` deixa o card menor (usado nos destaques); `alturaClasse` sobrescreve a altura padrão. ---
 function CardDepoimento({ item, compacto, tocando, onClicar, alturaClasse }) {
-  const urlEmbed = obterUrlEmbedVideo(item.video_url);
+  const infoVideo = obterInfoVideo(item.video_url);
   const altura = alturaClasse || (compacto ? 'h-[300px] md:h-[330px]' : 'h-[440px]');
 
-  if (tocando && urlEmbed) {
+  if (tocando && infoVideo) {
     return (
       <div
         style={{ backgroundImage: `url(${item.foto_url})` }}
         className={`w-full ${altura} rounded-3xl shadow-md relative overflow-hidden bg-black bg-cover bg-center border border-white/10`}
       >
-        {/* Mantém a foto do aluno visível (com um véu escuro + spinner) enquanto o iframe carrega —
+        {/* Mantém a foto do aluno visível (com um véu escuro + spinner) enquanto o player carrega —
             assim o card nunca parece ter sumido, só "carregando" */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#fed106]"></div>
         </div>
-        <iframe
-          src={urlEmbed}
-          className="relative z-10 w-full h-full"
-          allow="autoplay; fullscreen"
-          allowFullScreen
-          title={`Depoimento de ${item.nome}`}
-        />
+        {infoVideo.tipo === 'drive' ? (
+          // <video> nativo: o próprio clique que abriu o card já conta como gesto do
+          // usuário, então o navegador permite tocar com som de primeira — diferente do
+          // iframe /preview do Drive, que sempre pede um segundo clique no play dele.
+          <video
+            key={infoVideo.src}
+            src={infoVideo.src}
+            className="relative z-10 w-full h-full object-contain bg-black"
+            controls
+            autoPlay
+            playsInline
+          />
+        ) : (
+          <iframe
+            src={infoVideo.src}
+            className="relative z-10 w-full h-full"
+            allow="autoplay; fullscreen"
+            allowFullScreen
+            title={`Depoimento de ${item.nome}`}
+          />
+        )}
       </div>
     );
   }

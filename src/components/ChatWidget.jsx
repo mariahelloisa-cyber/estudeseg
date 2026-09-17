@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
-import mascoteSegurinho from '../assets/segurinho.png';
+import mascoteSegurinho from '../assets/segurinho.jpg';
 
 const HISTORICO_MAXIMO_ENVIADO = 6;
 const LIMITE_CARACTERES_MENSAGEM = 500;

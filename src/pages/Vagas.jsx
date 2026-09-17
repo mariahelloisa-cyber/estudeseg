@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import ImagemVagas from '../assets/vagas.png';
+import ImagemVagas from '../assets/vagas.jpg';
 import { supabase } from '../supabaseClient'; // <-- ADICIONA ESTA LINHA // Importação estática da imagem de fundo
 
 export default function Vagas() {
