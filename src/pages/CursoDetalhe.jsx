@@ -12,7 +12,7 @@ import {
   MinusIcon,
   ArrowRightIcon,
   VideoCameraIcon,
-  LifebuoyIcon,
+  UserIcon,
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import Navbar from '../components/Navbar';
@@ -28,7 +28,7 @@ const BENEFICIOS = [
     descricao: 'E apostilas digitais para você estudar onde e quando quiser.',
   },
   {
-    Icon: LifebuoyIcon,
+    Icon: UserIcon,
     titulo: 'Tutoria',
     descricao: 'Suporte com especialistas para tirar todas as suas dúvidas.',
   },
@@ -120,11 +120,11 @@ function TituloSecao({ titulo, destaque, subtitulo }) {
 
 function CardBeneficio({ Icon, titulo, descricao }) {
   return (
-    <div className="flex items-center gap-4 p-4 sm:aspect-square sm:flex-col sm:items-start sm:gap-0 sm:p-5 bg-gradient-to-br from-[#fed106] to-[#fff3b0] rounded-2xl text-black shadow-sm hover:shadow-xl sm:hover:-translate-y-1 transition-all duration-300 group overflow-hidden">
+    <div className="flex items-center gap-4 p-4 h-full sm:flex-col sm:items-start sm:gap-0 sm:p-5 bg-gradient-to-br from-[#fed106] to-[#fff3b0] rounded-2xl text-black shadow-sm hover:shadow-xl sm:hover:-translate-y-1 transition-all duration-300 group overflow-hidden">
       <Icon className="w-8 h-8 text-black shrink-0 sm:mb-3 group-hover:scale-110 transition-transform duration-300" />
       <div className="flex flex-col sm:contents">
-        <h3 className="text-base font-black sm:mb-1.5 text-gray-900 shrink-0">{titulo}</h3>
-        <p className="text-sm font-medium text-black leading-relaxed line-clamp-2 sm:line-clamp-3">{descricao}</p>
+        <h3 className="text-base font-black sm:mb-1.5 text-black shrink-0">{titulo}</h3>
+        <p className="text-sm font-medium text-black leading-relaxed">{descricao}</p>
       </div>
     </div>
   );
@@ -500,7 +500,7 @@ export default function CursoDetalhe() {
             </AoRolar>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5">
               {BENEFICIOS.map((beneficio, idx) => (
-                <AoRolar key={beneficio.titulo} delayMs={idx * 80}>
+                <AoRolar key={beneficio.titulo} delayMs={idx * 80} className="h-full">
                   <CardBeneficio Icon={beneficio.Icon} titulo={beneficio.titulo} descricao={beneficio.descricao} />
                 </AoRolar>
               ))}
