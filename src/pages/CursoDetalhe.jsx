@@ -19,7 +19,7 @@ import Navbar from '../components/Navbar';
 import { supabase } from '../supabaseClient';
 import { parseGradeCurricular } from '../utils/gradeCurricular';
 import { parseBlocosConteudo } from '../utils/blocosConteudo';
-import imagemFundoHero from '../assets/imghero.png';
+import imagemFundoHero from '../assets/imghero.jpg';
 
 const BENEFICIOS = [
   {
@@ -534,23 +534,19 @@ export default function CursoDetalhe() {
             )}
           </div>
           {/* --- CONTEÚDO PROGRAMÁTICO (GRADE CURRICULAR) --- */}
+          {gradeCurricular.length > 0 && (
           <div className="bg-gray-50 rounded-3xl p-6 sm:p-0">
             <AoRolar>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
                 <h2 className="text-2xl md:text-3xl font-black text-gray-900">Conteúdo Programático</h2>
-                {gradeCurricular.length > 0 && (
-                  <span className="inline-flex items-center gap-2 bg-[#fed106] text-[#000000] text-sm font-bold px-4 py-2 rounded-full w-fit">
-                    <BookOpenIcon className="w-4 h-4" />
-                    {gradeCurricular.length} {gradeCurricular.length === 1 ? 'Semestre' : 'Semestres'}
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-2 bg-[#fed106] text-[#000000] text-sm font-bold px-4 py-2 rounded-full w-fit">
+                  <BookOpenIcon className="w-4 h-4" />
+                  {gradeCurricular.length} {gradeCurricular.length === 1 ? 'Semestre' : 'Semestres'}
+                </span>
               </div>
               <p className="text-gray-500 text-sm md:text-base mb-8">Conheça todas as disciplinas do curso organizadas por semestre.</p>
             </AoRolar>
 
-            {gradeCurricular.length === 0 ? (
-              <p className="text-gray-400 italic text-sm">Grade curricular ainda não cadastrada.</p>
-            ) : (
               <div className="flex flex-col gap-4">
                 {gradeCurricular.map((semestre, idx) => {
                   const aberto = !!semestresAbertos[idx];
@@ -617,8 +613,8 @@ export default function CursoDetalhe() {
                   );
                 })}
               </div>
-            )}
           </div>
+          )}
 
           {/* --- DÚVIDAS FREQUENTES (FAQ) --- */}
           <div>

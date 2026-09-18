@@ -42,12 +42,12 @@ export default function CursoCardNovo({ curso }) {
             em 2 ou 3 linhas dependendo do tamanho das palavras, então os cards
             continuavam com alturas diferentes. Com altura fixa, a diferença nunca
             passa de uma linha — pequena e igual em todo card, não um vão gigante. */}
-        <p className="text-xs text-slate-500 leading-relaxed mb-4 line-clamp-2 h-10">{curso.descricao}</p>
-        <div className="mt-2">
+        <p className="text-xs text-slate-500 leading-relaxed mb-2 line-clamp-2 h-10">{curso.descricao}</p>
+        <div className="mt-0">
           {/* Idem aqui: `h-[92px]` fixo, não `min-h` — garante a mesma altura mesmo
               quando o curso não tem desconto (a linha "De R$..." fica só invisível,
               sem sumir o espaço que ela ocuparia). */}
-          <div className="mb-2 h-[92px]">
+          <div className="mb-1 h-[92px]">
             <p className={`text-gray-400 text-xs mb-0.5 ${!precoOriginal ? 'invisible' : ''}`}>
               De <span className="line-through">R$ {formatarPreco(precoOriginal)}</span>
             </p>
