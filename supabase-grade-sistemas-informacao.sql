@@ -91,4 +91,4 @@ set
       {"nome":"Estágio Supervisionado em Sistemas de Informação","horas":""}
     ]}
   ]'
-where id = :id; -- <-- troque :id pelo id encontrado no Passo 1
+where id = 502; -- <-- troque :id pelo id encontrado no Passo 1

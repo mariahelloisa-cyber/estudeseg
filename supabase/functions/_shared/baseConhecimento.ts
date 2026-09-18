@@ -1,13 +1,4 @@
-// Base de conhecimento enxuta da assistente virtual da Estude Seguro.
-//
-// Fica separada do index.ts para facilitar atualização pontual sem mexer na
-// lógica da função. É intencionalmente curta (poucos parágrafos) — o objetivo
-// não é reproduzir o site inteiro, e sim dar contexto suficiente para
-// perguntas frequentes, mantendo o consumo de tokens baixo em toda mensagem.
-//
-// Ao atualizar preços/condições/regras, mantenha este texto em sincronia com
-// public/base-conhecimento-ia.html (que é a fonte operacional mais detalhada)
-// e com as páginas públicas do site.
+
 
 export const BASE_CONHECIMENTO = `
 QUEM É A ESTUDE SEGURO

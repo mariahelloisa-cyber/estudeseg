@@ -82,4 +82,4 @@ set
       {"nome":"Ambiente de Trabalho Simulado","horas":""}
     ]}
   ]'
-where id = :id; -- <-- troque :id pelo id encontrado no Passo 1
+where id = 323; -- <-- troque :id pelo id encontrado no Passo 1
