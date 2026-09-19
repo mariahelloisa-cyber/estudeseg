@@ -83,6 +83,50 @@ function AoRolar({ children, className = '', delayMs = 0, direcao = 'up' }) {
   );
 }
 
+// --- Player nativo para vídeo hospedado direto (upload do admin) ---
+// O atributo `autoPlay` sozinho só dispara quando o navegador estima que dá para tocar o vídeo
+// inteiro sem travar. Os depoimentos são pesados (dezenas de MB) e, em conexão mais lenta que o
+// bitrate do arquivo, essa estimativa nunca chega — o vídeo carregava e ficava parado em 0:00.
+// Por isso chamamos play() assim que há dados para começar, sem esperar o "arquivo todo".
+function VideoDireto({ src }) {
+  const ref = useRef(null);
+  const [iniciou, setIniciou] = useState(false);
+  const [esperando, setEsperando] = useState(true);
+
+  function tentarTocar() {
+    const video = ref.current;
+    if (!video || !video.paused) return;
+    // Se o navegador bloquear o autoplay, o visitante ainda pode tocar nos controles.
+    video.play()?.catch(() => setEsperando(false));
+  }
+
+  return (
+    <>
+      <video
+        ref={ref}
+        src={src}
+        // Transparente até começar a tocar: assim a foto + o spinner do card aparecem enquanto
+        // carrega, em vez de um retângulo preto que parece quebrado.
+        className={`relative z-10 w-full h-full object-contain ${iniciou ? 'bg-black' : 'bg-transparent'}`}
+        controls
+        autoPlay
+        playsInline
+        preload="auto"
+        onLoadedData={tentarTocar}
+        onCanPlay={tentarTocar}
+        onPlaying={() => { setIniciou(true); setEsperando(false); }}
+        onWaiting={() => setEsperando(true)}
+        onPause={() => setEsperando(false)}
+      />
+      {esperando && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#fed106]"></div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // --- Card de depoimento: foto com play (ou vídeo embutido quando tocando).
 // `compacto` deixa o card menor (usado nos destaques); `alturaClasse` sobrescreve a altura padrão. ---
 function CardDepoimento({ item, compacto, tocando, onClicar, alturaClasse }) {
@@ -103,14 +147,7 @@ function CardDepoimento({ item, compacto, tocando, onClicar, alturaClasse }) {
         {infoVideo.tipo === 'direto' ? (
           // Arquivo de vídeo hospedado direto (upload feito no admin): <video> nativo
           // toca de primeira, sem nenhuma das limitações do Drive/YouTube via iframe.
-          <video
-            key={infoVideo.src}
-            src={infoVideo.src}
-            className="relative z-10 w-full h-full object-contain bg-black"
-            controls
-            autoPlay
-            playsInline
-          />
+          <VideoDireto key={infoVideo.src} src={infoVideo.src} />
         ) : (
           // YouTube (autoplay real via parâmetro de URL) e Drive (o /preview oficial
           // dele não tem um jeito confiável de tocar sem um segundo clique — ver

@@ -399,17 +399,15 @@ A Estude Seguro é mais do que uma plataforma: <strong className="text-gray-900 
         <div className="bg-[#fed106]/10 rounded-[48px] py-16 px-6 md:px-12 flex flex-col items-center text-center w-full">
           
           <span className="text-[#fed106] text-xs font-black tracking-widest uppercase mb-4">
-            Educação acessível, inovação digital e compromisso com o seu futuro.
+            Aproveitamento de estudos: do técnico ao tecnólogo.
           </span>
 
           <h2 className="text-3xl md:text-5xl font-black text-[#000000] mb-6 tracking-tight max-w-2xl">
-            Dê o play e conheça a<span className="text-[#fed106]"> Estude Seguro</span> de perto.
+            Tem curso técnico? Descubra como<span className="text-[#fed106]"> aproveitar matérias</span> no tecnólogo.
           </h2>
 
           <p className="text-gray-600 font-medium text-sm md:text-base max-w-xl leading-relaxed mb-12">
-            A história da Estude Seguro é construída diariamente por alunos, professores e colaboradores que acreditam no poder transformador da educação.
-
-Assista ao vídeo e descubra como estamos conectando conhecimento, oportunidades e desenvolvimento profissional para ajudar milhares de estudantes a conquistarem seus objetivos.
+            Quem já concluiu um curso técnico pode ter disciplinas aproveitadas ao ingressar em um tecnólogo, o que pode reduzir o tempo até o diploma superior. Dê o play e entenda como funciona o aproveitamento de matérias e como a Estude Seguro te acompanha nesse próximo passo da sua carreira.
           </p>
 
           {/* Espaço para o Vídeo / Player (SEM A BORDA BRANCA e um pouco mais largo: max-w-4xl) */}
@@ -420,19 +418,19 @@ Assista ao vídeo e descubra como estamos conectando conhecimento, oportunidades
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
-                title="Vídeo institucional Estude Seguro"
+                title="Tenho curso técnico. Posso aproveitar matérias no tecnólogo?"
               />
             ) : (
               <button
                 type="button"
                 onClick={() => setVideoReproduzindo(true)}
                 className="absolute inset-0 w-full h-full cursor-pointer"
-                aria-label="Reproduzir vídeo institucional"
+                aria-label="Reproduzir vídeo: posso aproveitar matérias do curso técnico no tecnólogo?"
               >
                 <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
                   <img
                     src={imagemInstitucional}
-                    alt="Capa do Manifesto"
+                    alt="Capa do vídeo: Tenho curso técnico. Posso aproveitar matérias no tecnólogo?"
                     className="w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
