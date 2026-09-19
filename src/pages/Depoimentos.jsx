@@ -85,13 +85,66 @@ function AoRolar({ children, className = '', delayMs = 0, direcao = 'up' }) {
 
 // --- Player nativo para vídeo hospedado direto (upload do admin) ---
 // O atributo `autoPlay` sozinho só dispara quando o navegador estima que dá para tocar o vídeo
-// inteiro sem travar. Os depoimentos são pesados (dezenas de MB) e, em conexão mais lenta que o
-// bitrate do arquivo, essa estimativa nunca chega — o vídeo carregava e ficava parado em 0:00.
-// Por isso chamamos play() assim que há dados para começar, sem esperar o "arquivo todo".
+// inteiro sem travar; em conexão mais lenta que o bitrate do arquivo o vídeo carregava e ficava
+// parado em 0:00. Por isso chamamos play() assim que há dados para começar.
+//
+// Plano B: em alguns navegadores/redes a requisição de MÍDIA (com "Range") fica pendurada ou é
+// barrada (extensão, antivírus, proxy, gerenciador de downloads) mesmo com o arquivo acessível — o
+// <video> nunca recebe nem os metadados e fica em 0:00 com o spinner girando para sempre. Se isso
+// acontecer (erro, ou 7s sem metadados), baixamos o arquivo por uma requisição comum (fetch) e
+// tocamos a partir dele. Se nem isso funcionar, mostramos um aviso com link para abrir o vídeo.
+const ESPERA_METADADOS_MS = 7000;
+
 function VideoDireto({ src }) {
   const ref = useRef(null);
+  const [srcAtual, setSrcAtual] = useState(src);
   const [iniciou, setIniciou] = useState(false);
   const [esperando, setEsperando] = useState(true);
+  const [falhou, setFalhou] = useState(false);
+  // 'direto' -> 'baixando' (plano B em andamento) -> 'blob' (tocando a cópia baixada)
+  const fase = useRef('direto');
+  const recebeuMetadados = useRef(false);
+  const urlBlob = useRef(null);
+  const controleFetch = useRef(null);
+
+  async function tocarPeloPlanoB() {
+    if (fase.current !== 'direto') return;
+    fase.current = 'baixando';
+    const controle = new AbortController();
+    controleFetch.current = controle;
+    try {
+      const resposta = await fetch(src, { signal: controle.signal });
+      if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+      const arquivo = await resposta.blob();
+      if (controle.signal.aborted) return;
+      urlBlob.current = URL.createObjectURL(arquivo);
+      fase.current = 'blob';
+      setSrcAtual(urlBlob.current);
+    } catch (erro) {
+      if (controle.signal.aborted) return;
+      console.warn('Depoimento: plano B (download) também falhou:', erro);
+      setFalhou(true);
+    }
+  }
+
+  // O <video> avisou de erro: tenta o plano B; se já estava no plano B, desiste.
+  function aoDarErro() {
+    if (fase.current === 'direto') tocarPeloPlanoB();
+    else if (fase.current === 'blob') setFalhou(true);
+  }
+
+  useEffect(() => {
+    const vigia = setTimeout(() => {
+      if (!recebeuMetadados.current) tocarPeloPlanoB();
+    }, ESPERA_METADADOS_MS);
+    return () => {
+      clearTimeout(vigia);
+      controleFetch.current?.abort();
+      if (urlBlob.current) URL.revokeObjectURL(urlBlob.current);
+    };
+    // Roda só na montagem: o componente é recriado (key) quando o vídeo muda.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function tentarTocar() {
     const video = ref.current;
@@ -104,7 +157,7 @@ function VideoDireto({ src }) {
     <>
       <video
         ref={ref}
-        src={src}
+        src={srcAtual}
         // Transparente até começar a tocar: assim a foto + o spinner do card aparecem enquanto
         // carrega, em vez de um retângulo preto que parece quebrado.
         className={`relative z-10 w-full h-full object-contain ${iniciou ? 'bg-black' : 'bg-transparent'}`}
@@ -112,15 +165,30 @@ function VideoDireto({ src }) {
         autoPlay
         playsInline
         preload="auto"
+        onLoadedMetadata={() => { recebeuMetadados.current = true; }}
         onLoadedData={tentarTocar}
         onCanPlay={tentarTocar}
         onPlaying={() => { setIniciou(true); setEsperando(false); }}
         onWaiting={() => setEsperando(true)}
         onPause={() => setEsperando(false)}
+        onError={aoDarErro}
       />
-      {esperando && (
+      {esperando && !falhou && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#fed106]"></div>
+        </div>
+      )}
+      {falhou && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-black/80 px-5 text-center">
+          <p className="text-sm font-semibold text-white">Não foi possível reproduzir o vídeo aqui.</p>
+          <a
+            href={src}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full bg-[#fed106] px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-black hover:bg-white transition-colors"
+          >
+            Abrir vídeo em nova aba
+          </a>
         </div>
       )}
     </>
