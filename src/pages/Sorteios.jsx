@@ -6,7 +6,7 @@ import PopupModalShell from '../components/popups/PopupModalShell';
 import { supabase } from '../supabaseClient';
 import { mascaraCPF, validarCPF } from '../utils/mascaras';
 import { XMarkIcon, UserGroupIcon, GiftIcon, BoltIcon, LockClosedIcon } from '@heroicons/react/24/outline';
-import caixaPresente from '../assets/presente.png';
+import caixaPresente from '../assets/presente.webp';
 
 const FORM_INICIAL = { nomeCompleto: '', cpf: '', numeroMatricula: '' };
 

@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, ShieldCheckIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../supabaseClient'; 
 
-import logoLatec from '../assets/logo-estud.png'; 
-import bgFundo from '../assets/fundo-login.jpg';
+import logoLatec from '../assets/logo-estud.webp'; 
+import bgFundo from '../assets/fundo-login.webp';
 
 export default function Login() {
   const navigate = useNavigate();

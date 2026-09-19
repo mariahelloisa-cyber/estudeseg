@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import logo from '../assets/logo-estud.png';
+import logo from '../assets/logo-estud.webp';
 import { supabase } from '../supabaseClient';
 
 const LINKS = [

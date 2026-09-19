@@ -44,7 +44,7 @@ import {
 import { StarIcon as StarIconSolido } from '@heroicons/react/24/solid';
 import { supabase } from '../supabaseClient';
 import { listaCursosGiga } from './cursosData';
-import logo from '../assets/logo-estud.png';
+import logo from '../assets/logo-estud.webp';
 import { parseGradeCurricular, serializarGradeCurricular } from '../utils/gradeCurricular';
 import { parseBlocosConteudo, serializarBlocosConteudo } from '../utils/blocosConteudo';
 import { GRUPOS_HOME_CURSO, MAX_CURSOS_POR_GRUPO_HOME } from '../utils/gruposHomeCurso';

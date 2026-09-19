@@ -16,7 +16,9 @@ function montarLinkWhatsapp(numero) {
 
 // --- Hook: só "revela" quando o elemento está visível E o usuário já rolou de verdade ---
 // (em telas mais altas, uma seção pode nascer parcialmente visível sem nenhum scroll do usuário)
-function useRevelarAoRolar(ref) {
+// Com exigirScroll: false, revela assim que o elemento fica visível — inclusive logo ao entrar na
+// página, sem precisar rolar (usado pela esteira de destaques, que já nasce na primeira tela).
+function useRevelarAoRolar(ref, { exigirScroll = true } = {}) {
   const [revelado, setRevelado] = useState(false);
 
   useEffect(() => {
@@ -24,7 +26,7 @@ function useRevelarAoRolar(ref) {
     if (!elemento) return;
 
     const scrollInicial = window.scrollY;
-    let houveScrollReal = false;
+    let houveScrollReal = !exigirScroll;
     let estaVisivelAgora = false;
 
     function tentarRevelar() {
@@ -57,7 +59,7 @@ function useRevelarAoRolar(ref) {
       observer.disconnect();
       window.removeEventListener('scroll', aoRolarPagina);
     };
-  }, [ref]);
+  }, [ref, exigirScroll]);
 
   return revelado;
 }
@@ -178,12 +180,13 @@ const DURACAO_ENTRADA_DESTAQUE = 600;
 const ATRASO_ENTRE_CARDS_DESTAQUE = 90;
 
 // --- Esteira dos depoimentos em destaque: os cards sobem com fade um por um, da esquerda pra
-// direita, ao rolar a página até ela (igual à seção "Todos os Depoimentos"). A esteira giratória só
+// direita, assim que a esteira fica visível — já ao entrar na página, sem precisar rolar (diferente
+// da seção "Todos os Depoimentos", que espera o scroll). A esteira giratória só
 // começa a rolar DEPOIS que o último card termina de subir — se ela começasse junto, arrastaria os
 // cards ainda subindo pro lado, embaralhando a ordem visual e cortando alguns na máscara. ---
 function EsteiraDepoimentosDestaque({ itens, depoimentoReproduzindoId, setDepoimentoReproduzindoId }) {
   const ref = useRef(null);
-  const revelado = useRevelarAoRolar(ref);
+  const revelado = useRevelarAoRolar(ref, { exigirScroll: false });
   const [esteiraAtiva, setEsteiraAtiva] = useState(false);
 
   useEffect(() => {

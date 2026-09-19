@@ -4,18 +4,18 @@ import Navbar from '../components/Navbar';
 import HistoriaCinematica from '../components/HistoriaCinematica';
 import SecaoCrescimento from '../components/SecaoCrescimento';
 import { supabase } from '../supabaseClient';
-import imagemInstitucional from '../assets/capa-video.jpg';
-import estudante from '../assets/estudante.jpg';
+import imagemInstitucional from '../assets/capa-video.webp';
+import estudante from '../assets/estudante.webp';
 import selo1 from '../assets/selo1.png';
 import selo2 from '../assets/selo2.png';
 import selo3 from '../assets/selo3.png';
 import selo4 from '../assets/selo4.png';
-import seloAbed from '../assets/abed.png';
-import fotoFacebook from '../assets/facebook.jpg';
-import fotoInstagram from '../assets/instagram.png';
-import fotoYoutube from '../assets/youtube.jpg';
-import fotoReclameAqui from '../assets/reclameaqui.jpg';
-import fotoGoogleMeuNegocio from '../assets/google-meu-negocio.png';
+import seloAbed from '../assets/abed.webp';
+import fotoFacebook from '../assets/facebook.webp';
+import fotoInstagram from '../assets/instagram.webp';
+import fotoYoutube from '../assets/youtube.webp';
+import fotoReclameAqui from '../assets/reclameaqui.webp';
+import fotoGoogleMeuNegocio from '../assets/google-meu-negocio.webp';
 
 const VIDEO_YOUTUBE_ID = 'nnmx4CTwK1s';
 

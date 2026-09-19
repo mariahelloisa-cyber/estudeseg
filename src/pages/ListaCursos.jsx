@@ -3,7 +3,7 @@ import Navbar from '../components/Navbar';
 import CursoCardNovo from '../components/CursoCardNovo';
 import { listaCursosGiga } from './cursosData';
 import { GRUPOS_HOME_CURSO } from '../utils/gruposHomeCurso';
-import imagemFundo from '../assets/imghero.jpg';
+import imagemFundo from '../assets/imghero.webp';
 import { supabase } from '../supabaseClient';
 
 // Nome da categoria (cadastrada no admin) que corresponde visualmente a cada grupo da Home,

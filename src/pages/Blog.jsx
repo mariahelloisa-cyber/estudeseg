@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { supabase } from '../supabaseClient';
-import logo from '../assets/logo-estud.png';
+import logo from '../assets/logo-estud.webp';
 
 export default function Blog() {
   const [posts, setPosts] = useState([]);

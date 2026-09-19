@@ -14,7 +14,7 @@ import {
   mascaraTelefone,
   validarAnexo,
 } from '../utils/camposAluno';
-import logo from '../assets/logo-estud.png';
+import logo from '../assets/logo-estud.webp';
 
 // Campos obrigatórios do formulário (mesma lista dos que têm `required` no JSX) — compartilhada
 // com o cadastro manual de matriculados no admin (ver src/utils/camposAluno.js)
