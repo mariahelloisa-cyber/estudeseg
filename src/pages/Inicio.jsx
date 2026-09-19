@@ -570,15 +570,16 @@ export default function Inicio() {
       {banners.length > 0 && (
         <div className="w-full bg-white relative group">
           <div className="w-full pb-2">
-            {/* Abaixo de md as imagens empilham em grid e a altura segue a proporção natural
-                (banner inteiro, sem cortar); de md pra cima volta à altura fixa com object-cover. */}
-            <div className="w-full relative overflow-hidden rounded-b-2xl md:rounded-b-3xl shadow-sm grid md:block md:h-[480px]">
+            {/* Sem altura fixa em nenhum tamanho de tela: as imagens empilham em grid (pro fade
+                continuar funcionando) e a altura segue a proporção natural do banner. Assim ele
+                aparece inteiro tanto no celular quanto em notebooks menores, sem cortar as bordas. */}
+            <div className="w-full relative overflow-hidden rounded-b-2xl md:rounded-b-3xl shadow-sm grid">
               {banners.map((banner, idx) => (
                 <img
                   key={banner.id ?? idx}
                   src={banner.imagem_url}
                   alt="LATec Banner"
-                  className={`col-start-1 row-start-1 w-full h-auto md:absolute md:inset-0 md:h-full object-cover transition-opacity duration-700 ease-in-out ${
+                  className={`col-start-1 row-start-1 self-start w-full h-auto transition-opacity duration-700 ease-in-out ${
                     idx === indexAtual ? 'opacity-100' : 'opacity-0 pointer-events-none'
                   }`}
                 />
