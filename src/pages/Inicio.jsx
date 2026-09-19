@@ -570,13 +570,15 @@ export default function Inicio() {
       {banners.length > 0 && (
         <div className="w-full bg-white relative group">
           <div className="w-full pb-2">
-            <div className="w-full relative overflow-hidden rounded-b-2xl md:rounded-b-3xl shadow-sm h-[230px] sm:h-[360px] md:h-[480px]">
+            {/* Abaixo de md as imagens empilham em grid e a altura segue a proporção natural
+                (banner inteiro, sem cortar); de md pra cima volta à altura fixa com object-cover. */}
+            <div className="w-full relative overflow-hidden rounded-b-2xl md:rounded-b-3xl shadow-sm grid md:block md:h-[480px]">
               {banners.map((banner, idx) => (
                 <img
                   key={banner.id ?? idx}
                   src={banner.imagem_url}
                   alt="LATec Banner"
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
+                  className={`col-start-1 row-start-1 w-full h-auto md:absolute md:inset-0 md:h-full object-cover transition-opacity duration-700 ease-in-out ${
                     idx === indexAtual ? 'opacity-100' : 'opacity-0 pointer-events-none'
                   }`}
                 />
@@ -620,7 +622,7 @@ export default function Inicio() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </span>
-                <span className="text-sm text-gray-700 font-semibold leading-snug">Certificado reconhecido pelo MEC</span>
+                <span className="text-sm text-gray-700 font-semibold leading-snug">Diploma reconhecido pelo MEC</span>
               </div>
               <div className="flex items-center gap-3 sm:flex-1 py-3 sm:py-0 sm:px-4">
                 <span className="w-10 h-10 rounded-full bg-[#fff4cc] text-[#c99a00] flex items-center justify-center shrink-0">
