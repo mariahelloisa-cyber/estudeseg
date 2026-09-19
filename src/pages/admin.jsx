@@ -362,6 +362,7 @@ export default function Admin() {
   const [novaPerguntafaq, setNovaPerguntaFaq] = useState("");
   const [novaRespostafaq, setNovaRespostaFaq] = useState("");
   const [novoTopicofaq, setNovoTopicofaq] = useState("Geral");
+  const [faqEditandoId, setFaqEditandoId] = useState(null);
 
   // --- Estados para o Gerenciador de Vagas ---
   const [vagasAdmin, setVagasAdmin] = useState([]);
@@ -1671,7 +1672,22 @@ export default function Admin() {
     if (data) setFaqsAdmin(data);
   }
 
-  // Função para Adicionar FAQ
+  // Carrega uma FAQ no formulário para edição
+  function handleEditarFaq(faq) {
+    setFaqEditandoId(faq.id);
+    setNovoTopicofaq(faq.topico || "Geral");
+    setNovaPerguntaFaq(faq.pergunta || "");
+    setNovaRespostaFaq(faq.resposta || "");
+  }
+
+  function handleCancelarEdicaoFaq() {
+    setFaqEditandoId(null);
+    setNovoTopicofaq("Geral");
+    setNovaPerguntaFaq("");
+    setNovaRespostaFaq("");
+  }
+
+  // Função para Adicionar (ou salvar a edição de) FAQ
   async function handleAdicionarFaq(e) {
     e.preventDefault();
 
@@ -1680,25 +1696,33 @@ export default function Admin() {
       return;
     }
 
-    try {
-      const { error } = await supabase
-        .from('faqs')
-        .insert([{
-          pergunta: novaPerguntafaq,
-          resposta: novaRespostafaq,
-          topico: novoTopicofaq
-        }]);
+    const dados = {
+      pergunta: novaPerguntafaq,
+      resposta: novaRespostafaq,
+      topico: novoTopicofaq
+    };
 
-      if (error) {
+    try {
+      // .select() faz o UPDATE devolver as linhas alteradas — se a policy (RLS)
+      // bloquear, o Supabase não dá erro, apenas devolve 0 linhas.
+      const { data, error } = faqEditandoId
+        ? await supabase.from('faqs').update(dados).eq('id', faqEditandoId).select()
+        : await supabase.from('faqs').insert([dados]).select();
+
+      if (error || !data || data.length === 0) {
         console.error("Erro do Supabase:", error);
-        alert("❌ Não foi possível guardar. Tente novamente.");
+        alert(faqEditandoId
+          ? "❌ Não foi possível salvar a edição. Verifique a permissão de UPDATE na tabela 'faqs' do Supabase."
+          : "❌ Não foi possível guardar. Tente novamente.");
         return;
       }
 
+      const editou = Boolean(faqEditandoId);
+      setFaqEditandoId(null);
       setNovaPerguntaFaq("");
       setNovaRespostaFaq("");
 
-      alert("✅ FAQ adicionada com sucesso!");
+      alert(editou ? "✅ FAQ atualizada com sucesso!" : "✅ FAQ adicionada com sucesso!");
 
       buscarFaqsAdmin();
     } catch (err) {
@@ -1713,6 +1737,7 @@ export default function Admin() {
     try {
       const { error } = await supabase.from('faqs').delete().eq('id', id);
       if (error) throw error;
+      if (faqEditandoId === id) handleCancelarEdicaoFaq();
       setMensagemStatus("FAQ removida!");
       buscarFaqsAdmin();
     } catch (err) {
@@ -5417,7 +5442,7 @@ export default function Admin() {
               <CabecalhoPagina titulo="Gerenciar FAQ" subtitulo="Perguntas frequentes exibidas no site" Icon={QuestionMarkCircleIcon} />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
-                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">Nova Pergunta</h3>
+                  <h3 className="text-sm font-black uppercase text-gray-800 mb-4 tracking-wide">{faqEditandoId ? 'Editar Pergunta' : 'Nova Pergunta'}</h3>
                   <form onSubmit={handleAdicionarFaq} className="space-y-4">
                     <div>
                       <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Tópico / Categoria</label>
@@ -5457,12 +5482,23 @@ export default function Admin() {
                       />
                     </div>
 
-                    <button
-                      type="submit"
-                      className="bg-[#fed106] hover:bg-black hover:text-white text-black text-[11px] font-black uppercase tracking-wider px-5 py-3 rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
-                    >
-                      Adicionar ao FAQ
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="submit"
+                        className="bg-[#fed106] hover:bg-black hover:text-white text-black text-[11px] font-black uppercase tracking-wider px-5 py-3 rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+                      >
+                        {faqEditandoId ? 'Salvar Alterações' : 'Adicionar ao FAQ'}
+                      </button>
+                      {faqEditandoId && (
+                        <button
+                          type="button"
+                          onClick={handleCancelarEdicaoFaq}
+                          className="text-gray-500 hover:text-gray-800 text-[11px] font-bold uppercase tracking-wider px-3 py-3 transition-colors cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
                   </form>
                 </div>
 
@@ -5473,19 +5509,27 @@ export default function Admin() {
                       <p className="text-xs text-gray-400 italic">Nenhuma pergunta cadastrada.</p>
                     ) : (
                       faqsAdmin.map(faq => (
-                        <div key={faq.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 shadow-xs">
+                        <div key={faq.id} className={`flex items-center justify-between p-3 rounded-xl border shadow-xs ${faqEditandoId === faq.id ? 'bg-yellow-50 border-[#fed106]' : 'bg-gray-50 border-gray-100'}`}>
                           <div className="pr-4 flex items-center gap-2 flex-wrap sm:flex-nowrap">
                             <span className="text-[9px] font-extrabold bg-white text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full uppercase tracking-wide shrink-0">
                               {faq.topico}
                             </span>
                             <strong className="text-xs text-gray-800 font-medium">{faq.pergunta}</strong>
                           </div>
-                          <button
-                            onClick={() => handleDeletarFaq(faq.id)}
-                            className="text-red-500 hover:text-red-600 text-xs font-bold uppercase px-2 py-1 transition-colors cursor-pointer shrink-0"
-                          >
-                            Excluir
-                          </button>
+                          <div className="flex items-center shrink-0">
+                            <button
+                              onClick={() => handleEditarFaq(faq)}
+                              className="text-blue-600 hover:text-blue-700 text-xs font-bold uppercase px-2 py-1 transition-colors cursor-pointer"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleDeletarFaq(faq.id)}
+                              className="text-red-500 hover:text-red-600 text-xs font-bold uppercase px-2 py-1 transition-colors cursor-pointer"
+                            >
+                              Excluir
+                            </button>
+                          </div>
                         </div>
                       ))
                     )}
