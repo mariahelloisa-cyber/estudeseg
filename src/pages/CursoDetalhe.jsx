@@ -19,7 +19,11 @@ import Navbar from '../components/Navbar';
 import { supabase } from '../supabaseClient';
 import { parseGradeCurricular } from '../utils/gradeCurricular';
 import { parseBlocosConteudo } from '../utils/blocosConteudo';
+<<<<<<< HEAD
 import imagemFundoHero from '../assets/imghero.webp';
+=======
+import imagemFundoHero from '../assets/imghero.png';
+>>>>>>> c5eb0b6 (banner)
 
 const BENEFICIOS = [
   {

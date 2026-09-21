@@ -2,8 +2,13 @@ import { useEffect, useRef } from 'react';
 
 // Placeholders reaproveitando fotos já existentes no site — troque pelas fotos
 // reais de alunos/formandos que quiser exibir girando no carrossel.
+<<<<<<< HEAD
 import foto1 from '../assets/imghero.webp';
 import foto2 from '../assets/fundo-login.webp';
+=======
+import foto1 from '../assets/imghero.png';
+import foto2 from '../assets/fundo-login.jpg';
+>>>>>>> c5eb0b6 (banner)
 import foto3 from '../assets/hero.png';
 import foto4 from '../assets/estudante.webp';
 import foto5 from '../assets/vagas.webp';
