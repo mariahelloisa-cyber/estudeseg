@@ -21,7 +21,7 @@ export default function PopupCadastro({ dados, popupId, somenteVisualizacao }) {
     setStatus('enviando');
     try {
       const { error } = await supabase
-        .from('popup_cadastros')
+        .from('popup_newsletter_inscricoes')
         .insert([{ popup_id: popupId ?? null, nome: nome.trim(), email: email.trim() }]);
       if (error) throw error;
       setStatus('sucesso');

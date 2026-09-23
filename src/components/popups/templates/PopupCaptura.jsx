@@ -17,7 +17,7 @@ export default function PopupCaptura({ dados, popupId, somenteVisualizacao }) {
     setStatus('enviando');
     try {
       const { error } = await supabase
-        .from('popup_capturas_email')
+        .from('popup_newsletter_inscricoes')
         .insert([{ popup_id: popupId ?? null, email: email.trim() }]);
       if (error) throw error;
       setStatus('sucesso');
