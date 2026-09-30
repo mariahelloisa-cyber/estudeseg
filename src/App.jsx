@@ -23,6 +23,11 @@ const Aproveitamento = lazy(() => import('./pages/Aproveitamento'));
 const Matricula = lazy(() => import('./pages/Matricula'));
 const Sorteios = lazy(() => import('./pages/Sorteios'));
 const ResgatePremio = lazy(() => import('./pages/ResgatePremio'));
+const DocumentosCEC = lazy(() => import('./pages/DocumentosCEC'));
+
+// Página de documentos acessada só por link direto (não aparece em menu nenhum).
+// O slug aleatório evita que alguém chegue nela chutando a URL.
+const ROTA_DOCUMENTOS_CEC = '/documentos-cec-nhezdeht';
 
 // Widgets não essenciais para a primeira pintura: carregam depois, sem bloquear a página
 const PopupAvisos = lazy(() => import('./components/PopupAvisos'));
@@ -43,7 +48,8 @@ function CarregandoPagina() {
 
 function LayoutGlobal() {
   const location = useLocation();
-  const paginaSemLayoutPublico = location.pathname === '/login' || location.pathname === '/admin';
+  const paginaSemLayoutPublico =
+    location.pathname === '/login' || location.pathname === '/admin' || location.pathname === ROTA_DOCUMENTOS_CEC;
 
   return (
     <>
@@ -66,10 +72,11 @@ function LayoutGlobal() {
         <Route path="/matricula" element={<Matricula />} />
         <Route path="/sorteios" element={<Sorteios />} />
         <Route path="/resgate-premio" element={<ResgatePremio />} />
+        <Route path={ROTA_DOCUMENTOS_CEC} element={<DocumentosCEC />} />
       </Routes>
       </Suspense>
 
-      {/* O Footer e o WhatsApp só aparecem nas páginas públicas, não no login/admin */}
+      {/* O Footer e o WhatsApp só aparecem nas páginas públicas, não no login/admin/documentos */}
       {!paginaSemLayoutPublico && <Footer />}
       {/* Widgets em Suspense próprio (fallback vazio): não travam nem piscam a página */}
       {!paginaSemLayoutPublico && (
