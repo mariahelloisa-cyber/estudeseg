@@ -27,7 +27,7 @@ const DocumentosCEC = lazy(() => import('./pages/DocumentosCEC'));
 
 // Página de documentos acessada só por link direto (não aparece em menu nenhum).
 // O slug aleatório evita que alguém chegue nela chutando a URL.
-const ROTA_DOCUMENTOS_CEC = '/documentos-ia';
+const ROTA_DOCUMENTOS_CEC = '/resolucao.eja';
 
 // Widgets não essenciais para a primeira pintura: carregam depois, sem bloquear a página
 const PopupAvisos = lazy(() => import('./components/PopupAvisos'));
