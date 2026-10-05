@@ -85,11 +85,42 @@ export default function Navbar() {
   return (
     <div className="w-full">
       {/* --- BARRA DE CONTATOS NO TOPO --- */}
-      <div className="bg-[#efc819] text-white py-2 text-xs">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-2">
-          <div className="flex gap-6">
-
+      <div
+        className="text-white py-2 text-[13px] font-medium"
+        style={{ background: 'linear-gradient(90deg, #fed106 0%, #efc819 3%, #1a1a1a 11%, #000000 55%, #262626 100%)' }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center gap-1 sm:gap-8">
+          <a href="tel:08007998555" className="flex items-center gap-2 hover:text-[#fed106] transition-colors">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+            </svg>
+            <span>Central de Atendimento</span>
+            <span className="font-bold">0800 799 8555</span>
+          </a>
+          <div className="flex items-center gap-2">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Segunda a Sábado das 09h às 18h</span>
           </div>
+
+          {/* Card neon: falar com consultor por chamada */}
+          <a
+            href="https://call.estudeseguro.com.br/"
+            target="_blank"
+            rel="noreferrer"
+            className="sm:ml-auto mt-1 sm:mt-0 flex items-center gap-2.5 px-4 py-1.5 rounded border border-[#ffe14d] text-[#ffe14d] font-semibold bg-transparent hover:bg-[#ffe14d]/10 transition-colors"
+            style={{
+              boxShadow: '0 0 6px rgba(255, 225, 77, 0.55), inset 0 0 6px rgba(255, 225, 77, 0.25)',
+              textShadow: '0 0 6px rgba(255, 225, 77, 0.6)',
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 0 3px rgba(255, 225, 77, 0.7))' }}>
+              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+              <path strokeLinecap="round" d="M8.5 8.5a5 5 0 000 7M15.5 8.5a5 5 0 010 7M5.6 5.6a9 9 0 000 12.8M18.4 5.6a9 9 0 010 12.8" />
+            </svg>
+            <span>Fale com um consultor de vendas por chamada</span>
+          </a>
         </div>
       </div>
 
