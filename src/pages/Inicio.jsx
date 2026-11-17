@@ -7,6 +7,7 @@ import LinhaDivisoriaEsteira from '../components/LinhaDivisoriaEsteira';
 import RoundCarousel from '../components/RoundCarousel';
 import CursoCardNovo from '../components/CursoCardNovo';
 import { GRUPOS_HOME_CURSO, MAX_CURSOS_POR_GRUPO_HOME } from '../utils/gruposHomeCurso';
+import imagemBannerReserva from '../assets/imghero.png';
 
 
 const SECAO_CURSOS_MAIS_VENDIDOS_ATIVA = false;
@@ -80,6 +81,26 @@ export default function Inicio() {
   // --- Estado para os Banners Dinâmicos do Supabase ---
   const [banners, setBanners] = useState([]);
   const [indexAtual, setIndexAtual] = useState(0);
+
+  // Reserva temporária: se a consulta não trouxer nenhum banner com imagem válida
+  // (ex.: Supabase indisponível), exibe uma imagem estática do próprio projeto.
+  // Havendo ao menos um banner válido, a lista original é usada sem alteração.
+  const temBannerValido = banners.some(
+    (banner) => typeof banner?.imagem_url === 'string' && banner.imagem_url.trim() !== ''
+  );
+  const bannersExibidos = temBannerValido
+    ? banners
+    : [{ id: 'banner-reserva', imagem_url: imagemBannerReserva }];
+
+  // Se a imagem de um banner falhar ao carregar, troca apenas o src no DOM pela
+  // reserva (a URL original no estado/banco não é alterada). A marca data-reserva
+  // garante uma única troca por imagem, evitando loop se a reserva também falhar.
+  const usarImagemReservaNoErro = (evento) => {
+    const imagem = evento.currentTarget;
+    if (imagem.dataset.reserva === '1') return;
+    imagem.dataset.reserva = '1';
+    imagem.src = imagemBannerReserva;
+  };
   
   // --- Estados para as restantes seções do Strapi ---
   const [listaSelos, setListaSelos] = useState([]);
@@ -309,12 +330,12 @@ export default function Inicio() {
 
   // Banner Rotativo Automático do Supabase
   useEffect(() => {
-    if (banners.length <= 1) return;
+    if (bannersExibidos.length <= 1) return;
     const temporizador = setInterval(() => {
-      setIndexAtual((prev) => (prev === banners.length - 1 ? 0 : prev + 1));
+      setIndexAtual((prev) => (prev === bannersExibidos.length - 1 ? 0 : prev + 1));
     }, 5000); 
     return () => clearInterval(temporizador);
-  }, [banners.length]);
+  }, [bannersExibidos.length]);
 
   const irParaEsquerda = () => {
     if (listaDiferenciais.length === 0) return;
@@ -567,39 +588,40 @@ export default function Inicio() {
       <Navbar />
       
       {/* --- SEÇÃO 1: BANNER ROTATIVO (AGORA INTEGRADO AO SUPABASE) --- */}
-      {banners.length > 0 && (
+      {bannersExibidos.length > 0 && (
         <div className="w-full bg-white relative group">
           <div className="w-full pb-2">
             {/* Sem altura fixa em nenhum tamanho de tela: as imagens empilham em grid (pro fade
                 continuar funcionando) e a altura segue a proporção natural do banner. Assim ele
                 aparece inteiro tanto no celular quanto em notebooks menores, sem cortar as bordas. */}
             <div className="w-full relative overflow-hidden rounded-b-2xl md:rounded-b-3xl shadow-sm grid">
-              {banners.map((banner, idx) => (
+              {bannersExibidos.map((banner, idx) => (
                 <img
                   key={banner.id ?? idx}
                   src={banner.imagem_url}
+                  onError={usarImagemReservaNoErro}
                   alt="LATec Banner"
                   className={`col-start-1 row-start-1 self-start w-full h-auto transition-opacity duration-700 ease-in-out ${
                     idx === indexAtual ? 'opacity-100' : 'opacity-0 pointer-events-none'
                   }`}
                 />
               ))}
-              {banners.length > 1 && (
+              {bannersExibidos.length > 1 && (
                 <>
                   <button 
-                    onClick={() => setIndexAtual((prev) => (prev === 0 ? banners.length - 1 : prev - 1))}
+                    onClick={() => setIndexAtual((prev) => (prev === 0 ? bannersExibidos.length - 1 : prev - 1))}
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 hover:bg-[#fed106] text-white flex items-center justify-center backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer z-20 font-bold text-sm"
                   >
                     &#10094;
                   </button>
                   <button 
-                    onClick={() => setIndexAtual((prev) => (prev === banners.length - 1 ? 0 : prev + 1))}
+                    onClick={() => setIndexAtual((prev) => (prev === bannersExibidos.length - 1 ? 0 : prev + 1))}
                     className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/20 hover:bg-[#fed106] text-white flex items-center justify-center backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer z-20 font-bold text-sm"
                   >
                     &#10095;
                   </button>
                   <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 bg-black/15 px-2.5 py-1 rounded-full backdrop-blur-xs">
-                    {banners.map((_, idx) => (
+                    {bannersExibidos.map((_, idx) => (
                       <button
                         key={`dot-banner-${idx}`}
                         onClick={() => setIndexAtual(idx)}
