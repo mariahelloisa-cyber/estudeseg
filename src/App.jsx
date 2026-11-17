@@ -31,7 +31,6 @@ const ROTA_DOCUMENTOS_CEC = '/resolucao.eja';
 
 // Widgets não essenciais para a primeira pintura: carregam depois, sem bloquear a página
 const PopupAvisos = lazy(() => import('./components/PopupAvisos'));
-const PopupVotacaoReclameAqui = lazy(() => import('./components/PopupVotacaoReclameAqui'));
 const ChatWidget = lazy(() => import('./components/ChatWidget'));
 const MetaPixel = lazy(() => import('./components/MetaPixel'));
 
@@ -82,7 +81,6 @@ function LayoutGlobal() {
       {!paginaSemLayoutPublico && (
         <Suspense fallback={null}>
           <PopupAvisos />
-          <PopupVotacaoReclameAqui />
           <ChatWidget />
           <MetaPixel />
         </Suspense>
